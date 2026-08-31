@@ -4,7 +4,7 @@
   "sources": [
     {
       "source": "timschoch/skilly",
-      "skills": ["setup-release-please", "setup-skilly"]
+      "skills": ["setup-project", "setup-release-please", "setup-repo", "setup-skilly"]
     },
     {
       "source": "timschoch/mattpocock-skills",

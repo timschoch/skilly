@@ -23,7 +23,7 @@ Distribution: `npx github:timschoch/skilly`. No npm publish. Plain Node (ESM, ze
 
 ### `skilly onboard <bundle...>`
 
-Porcelain over `init` — the whole onboarding, deterministic, no agent judgment. Idempotent: each step skips when its result already holds. Runs locally and needs a `gh` auth that can write the repo.
+Porcelain over `init` — the whole onboarding, deterministic, no agent judgment. Idempotent: each step skips when its result already holds. Runs locally and needs a `gh` auth that can write the repo. Implementation lives with its skill at `bundles/setup-project/skills/setup-skilly/scripts/onboard.js`; the bin command is a thin wrapper.
 
 1. Set the App secrets: `gh secret set SKILLY_APP_ID --body <id>` and `gh secret set SKILLY_APP_PRIVATE_KEY < <pem>`. App ID and pem path (`~/repo/.skilly/skilly-app.pem`) are constants beside `SKILLS_CLI_VERSION` — personal tool, one machine.
 2. `.skilly.json` missing → `skilly init <args>`. Present → merge the args into `bundles` (`status` untouched), scaffold the caller workflow only if missing, run `skilly sync`.
@@ -127,7 +127,7 @@ Per consumer (all CLI, no browser):
 npx github:timschoch/skilly onboard <bundle...>
 ```
 
-Bundle choice is the only judgment step — the `setup-skilly` skill (setup-repo bundle) proposes the set; `onboard` does the rest (secrets, install, workflow, PR).
+Bundle choice is the only judgment step — the `setup-skilly` skill (setup-project bundle) proposes the set; `onboard` does the rest (secrets, install, workflow, PR).
 
 Secrets are per-repo because personal accounts on Free have no account-level secrets. Do not trust local auth tests on the Mac — the machine SSH key bypasses `$HOME` isolation (#8); validate in real CI only.
 

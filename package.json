@@ -1,0 +1,21 @@
+{
+  "name": "skilly",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Personal skill hub CLI: bundles resolved into prepared skills-CLI calls plus config sync",
+  "type": "module",
+  "bin": {
+    "skilly": "bin/skilly.js"
+  },
+  "files": [
+    "bin",
+    "lib",
+    "bundles"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "test": "node --test 'test/*.test.js'"
+  }
+}
