@@ -31,7 +31,7 @@ Drives the new-repo setup order from the [hub README](https://github.com/timscho
    2. `/setup-repo` — GitHub settings, commit/branch rules wired into the hooks just chosen, `CLAUDE.md` scaffold.
    3. `/setup-matt-pocock-skills` — issue tracker, triage labels, domain-doc layout.
    4. `/setup-release-please` — release automation plus merge settings.
-   5. Stack installers where the stack needs them (e.g. `/trigger-setup`).
+   5. Stack installers where the stack needs them (e.g. `/trigger-setup`) — installed ad hoc (`npx skills add <vendor> -s <skill>`), uninstalled after the one use. Setup skills live in NO synced bundle: they would sit unused and pollute the context window.
    6. `/git-guardrails-claude-code` — last: it blocks the git pushes earlier steps need.
 
 4. **Validate in real CI** after the onboarding PR merges: `gh workflow run skilly-sync.yml`, then `gh run watch` until green. Local auth tests on this Mac lie (the machine SSH key bypasses `$HOME` isolation).
