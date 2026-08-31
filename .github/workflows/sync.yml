@@ -1,0 +1,157 @@
+# Shared skilly sync workflow (docs/spec-v1.md). Consumers call it from a
+# ~10-line caller scaffolded by `skilly init`. Two jobs:
+#   sync — nightly/dispatch: skills update + skilly sync, opens the Sync PR
+#   gate — pull_request: runs the gate check scripts of the repo's bundles
+name: skilly sync
+
+on:
+  workflow_call:
+    inputs:
+      private-owner:
+        description: Owner of private skill sources (defaults to the consumer repo owner)
+        type: string
+        required: false
+        default: ""
+
+jobs:
+  sync:
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      # The skills CLI takes a single GH_TOKEN; scope it to the private-source owner.
+      - name: Mint read token (skills CLI)
+        id: read-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ secrets.SKILLY_APP_ID }}
+          private-key: ${{ secrets.SKILLY_APP_PRIVATE_KEY }}
+          owner: ${{ inputs.private-owner || github.repository_owner }}
+          permission-contents: read
+
+      # A PR opened with GITHUB_TOKEN triggers no workflows — the gate would
+      # never run on the Sync PR. The write token makes the gate fire.
+      - name: Mint write token (PR creation)
+        id: write-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ secrets.SKILLY_APP_ID }}
+          private-key: ${{ secrets.SKILLY_APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+          repositories: ${{ github.event.repository.name }}
+          permission-contents: write
+          permission-pull-requests: write
+
+      - name: Checkout consumer
+        uses: actions/checkout@v4
+        with:
+          token: ${{ steps.write-token.outputs.token }}
+
+      - name: Checkout hub
+        uses: actions/checkout@v4
+        with:
+          repository: timschoch/skilly
+          ref: main
+          path: .skilly-hub
+
+      - name: Keep hub checkout out of the sync commit
+        run: |
+          echo "/.skilly-hub/" >> .git/info/exclude
+          echo "sha=$(git -C .skilly-hub rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+        id: hub
+
+      - name: Update pinned skills
+        env:
+          GH_TOKEN: ${{ steps.read-token.outputs.token }}
+        run: |
+          version="$(node -e "import('./.skilly-hub/lib/constants.js').then(m => process.stdout.write(m.SKILLS_CLI_VERSION))")"
+          npx -y "skills@${version}" update -p -y 2>&1 | tee /tmp/skills-update.log
+
+      # `status.skills` tracks the skills CLI only; set it just when the
+      # update step changed the lock (docs/spec-v1.md, consumer files).
+      - name: Detect lock change from update
+        id: lock
+        run: |
+          if git diff --quiet -- skills-lock.json; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            node .skilly-hub/scripts/set-skills-status.mjs --last-update
+          fi
+
+      - name: skilly sync
+        env:
+          SKILLY_COMMIT: ${{ steps.hub.outputs.sha }}
+        run: node .skilly-hub/bin/skilly.js sync 2>&1 | tee /tmp/skilly-sync.log
+
+      - name: Build PR body
+        run: |
+          {
+            echo "Nightly skilly sync."
+            if ! git diff --quiet -- skills-lock.json; then
+              echo
+              echo "## Lock changes"
+              echo '```diff'
+              git diff --unified=0 -- skills-lock.json | grep -E '^[+-][^+-]' || true
+              echo '```'
+            fi
+            if grep -qi 'deleted upstream' /tmp/skills-update.log; then
+              echo
+              echo "## Deleted upstream (prune is manual, run \`skilly sync --prune\` locally)"
+              grep -i 'deleted upstream' /tmp/skills-update.log
+            fi
+            if grep -q 'still missing after add' /tmp/skilly-sync.log; then
+              echo
+              echo "## Failed adds"
+              grep 'still missing after add' /tmp/skilly-sync.log
+            fi
+          } > /tmp/skilly-pr-body.md
+
+      - name: Create sync PR
+        id: pr
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ steps.write-token.outputs.token }}
+          branch: skilly/sync
+          commit-message: "chore: skilly sync"
+          title: "chore: skilly sync"
+          body-path: /tmp/skilly-pr-body.md
+          delete-branch: true
+
+      # The PR URL exists only after creation; record it on the PR branch.
+      - name: Record PR URL in status.skills
+        if: steps.lock.outputs.changed == 'true' && steps.pr.outputs.pull-request-url != ''
+        run: |
+          git reset --hard
+          git fetch origin skilly/sync
+          git checkout -f skilly/sync
+          node .skilly-hub/scripts/set-skills-status.mjs --pr "${{ steps.pr.outputs.pull-request-url }}"
+          if ! git diff --quiet -- .skilly.json; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git commit -am "chore: record sync PR url"
+            git push origin skilly/sync
+          fi
+
+  gate:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout consumer
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Checkout hub
+        uses: actions/checkout@v4
+        with:
+          repository: timschoch/skilly
+          ref: main
+          path: .skilly-hub
+
+      - name: Run gate checks
+        env:
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: node .skilly-hub/scripts/run-gate.mjs
