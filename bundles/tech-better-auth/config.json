@@ -1,0 +1,15 @@
+{
+  "includes": [],
+  "rules": [],
+  "sources": [
+    {
+      "source": "better-auth/skills",
+      "skills": [
+        "better-auth-best-practices",
+        "better-auth-security-best-practices",
+        "create-auth",
+        "email-and-password-best-practices"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "includes": ["tech-postgres"],
+  "rules": [],
+  "sources": [
+    {
+      "source": "neondatabase/agent-skills",
+      "skills": ["neon", "neon-postgres", "neon-postgres-branches"]
+    },
+    {
+      "source": "timschoch/skilly",
+      "skills": ["neon-cli"]
+    }
+  ]
+}

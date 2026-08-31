@@ -1,0 +1,18 @@
+{
+  "includes": [],
+  "rules": [],
+  "sources": [
+    {
+      "source": "PostHog/skills",
+      "skills": [
+        "integration-nextjs-app-router",
+        "integration-tanstack-start",
+        "tools-and-features-hogql"
+      ]
+    },
+    {
+      "source": "timschoch/skilly",
+      "skills": ["posthog-cli"]
+    }
+  ]
+}

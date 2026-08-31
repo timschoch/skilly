@@ -1,0 +1,16 @@
+{
+  "includes": [],
+  "rules": [],
+  "sources": [
+    {
+      "source": "twentyhq/twenty",
+      "skills": [
+        "create-app",
+        "develop-app",
+        "manage-app",
+        "use-twenty-mcp",
+        "twenty-record-presentation"
+      ]
+    }
+  ]
+}

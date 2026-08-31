@@ -1,0 +1,14 @@
+{
+  "includes": [],
+  "rules": [],
+  "sources": [
+    {
+      "source": "triggerdotdev/skills",
+      "skills": ["trigger-tasks", "trigger-realtime"]
+    },
+    {
+      "source": "timschoch/skilly",
+      "skills": ["trigger-cli"]
+    }
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "includes": [],
+  "rules": [],
+  "sources": [
+    {
+      "source": "timschoch/lemy",
+      "skills": ["lemy-write"]
+    },
+    {
+      "source": "coreyhaines31/marketingskills",
+      "skills": [
+        "ai-seo",
+        "cro",
+        "lead-magnets",
+        "seo-audit"
+      ]
+    }
+  ]
+}

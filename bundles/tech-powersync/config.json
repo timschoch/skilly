@@ -1,0 +1,14 @@
+{
+  "includes": [],
+  "rules": [],
+  "sources": [
+    {
+      "source": "powersync-ja/agent-skills",
+      "skills": ["powersync"]
+    },
+    {
+      "source": "timschoch/skilly",
+      "skills": ["powersync-cli"]
+    }
+  ]
+}

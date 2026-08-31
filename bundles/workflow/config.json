@@ -1,0 +1,69 @@
+{
+  "includes": [],
+  "rules": ["conventional-commits"],
+  "sources": [
+    {
+      "source": "timschoch/skilly",
+      "skills": [
+        "1-3-1",
+        "orchestrate",
+        "step-by-step",
+        "cleanup-merged-branches",
+        "git-shortcuts",
+        "plan-critics",
+        "qa",
+        "term-check"
+      ]
+    },
+    {
+      "source": "timschoch/mattpocock-skills",
+      "skills": [
+        "ask-matt",
+        "code-review",
+        "codebase-design",
+        "diagnosing-bugs",
+        "domain-modeling",
+        "grilling",
+        "handoff",
+        "implement",
+        "implement-spec",
+        "improve-codebase-architecture",
+        "prototype",
+        "research",
+        "resolving-merge-conflicts",
+        "retro",
+        "tdd",
+        "to-questionnaire",
+        "to-spec",
+        "to-tickets",
+        "triage",
+        "wait-what",
+        "wayfinder",
+        "wizard",
+        "writing-for-agents"
+      ]
+    },
+    {
+      "source": "cursor/plugins",
+      "skills": [
+        "arena",
+        "blast-radius",
+        "deslop",
+        "how",
+        "make-pr-easy-to-review",
+        "principle-encode-lessons-in-structure",
+        "principle-fix-root-causes",
+        "principle-guard-the-context-window",
+        "principle-prove-it-works",
+        "technical-writing",
+        "thermo-nuclear-code-quality-review",
+        "unslop",
+        "why"
+      ]
+    },
+    {
+      "source": "netresearch/context7-skill",
+      "skills": ["context7"]
+    }
+  ]
+}

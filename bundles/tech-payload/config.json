@@ -1,0 +1,14 @@
+{
+  "includes": [],
+  "rules": [],
+  "sources": [
+    {
+      "source": "payloadcms/skills",
+      "skills": ["payload"]
+    },
+    {
+      "source": "timschoch/skilly",
+      "skills": ["payload-admin-components", "payload-cli"]
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "includes": [],
+  "rules": [],
+  "sources": [
+    {
+      "source": "neondatabase/postgres-skills",
+      "skills": ["postgres-best-practices"]
+    }
+  ]
+}

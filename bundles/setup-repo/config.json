@@ -1,0 +1,14 @@
+{
+  "includes": [],
+  "rules": [],
+  "sources": [
+    {
+      "source": "timschoch/mattpocock-skills",
+      "skills": ["git-guardrails-claude-code", "setup-matt-pocock-skills", "setup-pre-commit"]
+    },
+    {
+      "source": "triggerdotdev/skills",
+      "skills": ["trigger-setup"]
+    }
+  ]
+}

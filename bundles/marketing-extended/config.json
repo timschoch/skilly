@@ -1,0 +1,36 @@
+{
+  "includes": [
+    "marketing",
+    "tech-lemy"
+  ],
+  "rules": [],
+  "sources": [
+    {
+      "source": "coreyhaines31/marketingskills",
+      "skills": [
+        "attribution",
+        "churn-prevention",
+        "competitor-profiling",
+        "competitors",
+        "content-strategy",
+        "customer-research",
+        "emails",
+        "launch",
+        "marketing-council",
+        "marketing-ideas",
+        "marketing-loops",
+        "marketing-plan",
+        "marketing-psychology",
+        "onboarding",
+        "pricing",
+        "product-marketing",
+        "programmatic-seo",
+        "prospecting",
+        "referrals",
+        "schema",
+        "signup",
+        "site-architecture"
+      ]
+    }
+  ]
+}

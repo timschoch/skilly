@@ -1,0 +1,14 @@
+{
+  "includes": [],
+  "rules": [],
+  "sources": [
+    {
+      "source": "cursor/plugins",
+      "skills": ["typescript-best-practices"]
+    },
+    {
+      "source": "wshobson/agents",
+      "skills": ["typescript-advanced-types"]
+    }
+  ]
+}

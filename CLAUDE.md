@@ -1,5 +1,10 @@
 # skilly
 
+## Bundle rules
+
+- tech-* bundles: max 3-4 skills (rare exceptions allowed). Consumers load many tech-* at once — don't pollute their context window.
+- Record left-out skills and why in the bundle's README.md.
+
 ## Agent skills
 
 ### Issue tracker
