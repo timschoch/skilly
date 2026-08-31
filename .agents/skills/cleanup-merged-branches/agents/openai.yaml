@@ -1,0 +1,5 @@
+interface:
+  display_name: "Cleanup Merged Branches"
+  short_description: "Delete remote branches whose PR was merged"
+policy:
+  allow_implicit_invocation: false
