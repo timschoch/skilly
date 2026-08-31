@@ -21,6 +21,15 @@ Distribution: `npx github:timschoch/skilly`. No npm publish. Plain Node (ESM, ze
 2. Scaffold the caller workflow `.github/workflows/skilly-sync.yml` from a template (a real file — symlinked workflows never run). Pick a random cron minute per repo.
 3. Run `skilly sync`.
 
+### `skilly onboard <bundle...>`
+
+Porcelain over `init` — the whole onboarding, deterministic, no agent judgment. Idempotent: each step skips when its result already holds. Runs locally and needs a `gh` auth that can write the repo.
+
+1. Set the App secrets: `gh secret set SKILLY_APP_ID --body <id>` and `gh secret set SKILLY_APP_PRIVATE_KEY < <pem>`. App ID and pem path (`~/repo/.skilly/skilly-app.pem`) are constants beside `SKILLS_CLI_VERSION` — personal tool, one machine.
+2. `.skilly.json` missing → `skilly init <args>`. Present → merge the args into `bundles` (`status` untouched), scaffold the caller workflow only if missing, run `skilly sync`.
+3. Resolve `private-owner`: for each resolved source, `gh api repos/<s> --jq .private`; a private source owned by someone other than the repo owner writes `private-owner` into the caller workflow. Two distinct private owners → hard error (known limit).
+4. Anything changed → branch `chore/skilly`, commit `chore: onboard skilly`, `gh pr create --fill`. Nothing changed → report, no PR.
+
 ### `skilly sync [--prune] [--dry-run]`
 
 1. Read `bundles` from `.skilly.json`. Resolve `includes` recursively; a cycle is a hard error. Result: the union of sources+skills, gate rules, and always-on rule files.
@@ -115,11 +124,10 @@ One-time, before the first consumer — **App permission widening** (browser, Ap
 Per consumer (all CLI, no browser):
 
 ```sh
-gh secret set SKILLY_APP_ID  -R <owner>/<repo> --body 4778931
-gh secret set SKILLY_APP_PRIVATE_KEY -R <owner>/<repo> < ~/repo/.skilly/skilly-app.pem
-npx github:timschoch/skilly init <bundle...>
-git checkout -b chore/skilly && git add -A && git commit -m "chore: onboard skilly" && gh pr create --fill
+npx github:timschoch/skilly onboard <bundle...>
 ```
+
+Bundle choice is the only judgment step — the `setup-skilly` skill (setup-repo bundle) proposes the set; `onboard` does the rest (secrets, install, workflow, PR).
 
 Secrets are per-repo because personal accounts on Free have no account-level secrets. Do not trust local auth tests on the Mac — the machine SSH key bypasses `$HOME` isolation (#8); validate in real CI only.
 
@@ -133,6 +141,6 @@ Secrets are per-repo because personal accounts on Free have no account-level sec
 
 Two sessions, then rollout:
 
-1. **CLI session**: `package.json` (`bin`, `SKILLS_CLI_VERSION`), resolver (includes, cycles), lock diff + add calls, prune listing, config sync, `.skilly.json` status writes, `--dry-run`. Prove it against `timschoch/skilly-auth-test` and a `--dry-run` in one real consumer.
+1. **CLI session**: `package.json` (`bin`, `SKILLS_CLI_VERSION`), resolver (includes, cycles), lock diff + add calls, prune listing, config sync, `.skilly.json` status writes, `--dry-run`, `onboard` (secrets, private-owner resolution, PR). Prove it against `timschoch/skilly-auth-test` and a `--dry-run` in one real consumer.
 2. **Workflow session**: `sync.yml` (both jobs), `conventional-commits.sh`, caller template in `init`, App permission widening, hub CI checks. Pilot end-to-end on one small consumer before touching the fleet.
 3. **Rollout** (beyond this map): per-consumer runbook above across the 14 repos — smallest first, drifted repos (colin's hand-copies) last, each ending in a merged onboarding PR.
