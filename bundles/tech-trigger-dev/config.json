@@ -4,7 +4,7 @@
   "sources": [
     {
       "source": "triggerdotdev/skills",
-      "skills": ["trigger-tasks", "trigger-realtime"]
+      "skills": ["trigger-setup", "trigger-tasks", "trigger-realtime"]
     },
     {
       "source": "timschoch/skilly",
