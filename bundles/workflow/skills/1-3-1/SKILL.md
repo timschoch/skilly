@@ -1,6 +1,6 @@
 ---
 name: 1-3-1
-description: Frame a problem or decision as 1-3-1: one problem, three distinct solutions, one recommendation. Use when the user brings a non-trivial decision or fork and wants options weighed before a pick ("what should I do about X", "help me decide", "weigh the tradeoffs"), or names "1-3-1" or "do a 131". Skip questions with one right answer, just answer those.
+description: 'Frame a problem or decision as 1-3-1: one problem, three distinct solutions, one recommendation. Use when the user brings a non-trivial decision or fork and wants options weighed before a pick ("what should I do about X", "help me decide", "weigh the tradeoffs"), or names "1-3-1" or "do a 131". Skip questions with one right answer, just answer those.'
 ---
 
 One problem, three solutions, one recommendation. The discipline is producing the three solutions _before_ committing to the one recommendation, so the recommendation is a choice among real alternatives, not the first idea dressed up.
