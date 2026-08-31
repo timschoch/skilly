@@ -3,7 +3,7 @@ name: git-shortcuts
 description: >
   Translates shorthand git/GitHub workflow commands into the correct sequence of actions.
   ALWAYS trigger when the user's message contains a "--" prefixed shorthand like:
-  "--c", "--p", "--cp", "--pr", "--prm", "--cppr", "--cpprm", "--release", "--pub", "--close" — with or without a trailing "?".
+  "--c", "--p", "--cp", "--pr", "--prm", "--cppr", "--cpprm", "--ff", "--release", "--pub", "--close" — with or without a trailing "?".
   The "--" prefix is required — do NOT trigger on bare letters like "c" or "pr" appearing in normal sentences.
   NEVER invoke this skill autonomously — it MUST always be user-invoked via an explicit "--" shorthand in their message.
 ---
@@ -89,6 +89,7 @@ All inputs must be prefixed with `--`.
 | `--prm`   | create PR → merge                                                                |
 | `--cppr`  | commit → push → create PR                                                        |
 | `--cpprm` | commit → push → create PR → merge                                                |
+| `--ff`    | fast-forward the current branch from its remote (see below)                      |
 | `--release` | ship the open release PR (see below). `--pub` is the old name and does the same thing |
 | `--close` | dispose of the current worktree — teardown + remove (see below). No-op under Superset |
 
@@ -122,6 +123,15 @@ After every successful `m` (merge):
 - PR title: `feat: add reverse proxy for PostHog`
 - Body: routes `/_s` to PostHog, avoids adblockers
 - → `<@U0123ABCD>: colin -> PostHog läuft jetzt via Reverse Proxy unter /_s — kein Adblocker-Problem mehr. https://github.com/…`
+
+## The `--ff` command
+
+Fast-forwards the current branch to its remote counterpart: `git pull --ff-only`.
+
+- No upstream configured → `git fetch origin`, then `git merge --ff-only origin/<branch>` if that ref exists. Missing on origin → report and stop.
+- Fast-forward not possible (local and remote diverged) → git aborts on its own; report the divergence and stop. **Never** fall back to a merge or rebase to force it through.
+- Uncommitted changes are fine — git refuses the update only if they collide; then report and stop.
+- Touches no other branches, ships nothing.
 
 ## The `--release` command
 
@@ -212,6 +222,7 @@ Appending `?` to the end of any shorthand replaces the **last action** with an i
 | `p`         | No-op — nothing useful to show beyond what the commit message already says. Skip silently.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
 | `pr`        | Check whether a PR is open for the current branch (`gh pr view --json state,mergeable,url`) and report its status and merge-readiness. Do not create a PR.                                                                                                                                                                                                                                                                                                                                                                                                                     |
 | `m`         | Report the PR's merge state instead of merging: `gh pr view --json state,mergeable,mergeStateStatus,baseRefName` plus the merge method that would be used (`--squash`, or `--merge` for an epic into the trunk). Do **not** poll Vercel — a merge deploys nothing.                                                                                                                                                                                                                                                                                    |
+| `ff`        | Report how far the branch is behind/ahead of its remote without updating: `git fetch origin`, then `git rev-list --left-right --count <branch>...origin/<branch>`. Say whether a fast-forward is possible. Do not pull.                                                                                                                                                                                                                                                                                          |
 | `release`   | Inspect the open release PR: version, changelog diff, `mergeable` status. Do not merge. `--pub?` is the same command.                                                                                                                                                                                                                                                                                                                                                                                                                                          |
 | `close`     | Report what would be disposed: the worktree path, whether Superset owns it, uncommitted changes, and whether the repo provides `wt:remove`. Remove nothing.                                                                                                                                                                                                                                                                                                                                                                                                    |
 
@@ -221,6 +232,7 @@ Appending `?` to the end of any shorthand replaces the **last action** with an i
 - `--cp?` → commit, then skip (p? is a no-op)
 - `--cppr?` → commit → push → inspect PR status (don't create)
 - `--cpprm?` → commit → push → create PR → report merge readiness (don't merge)
+- `--ff?` → show how far behind the remote the branch is (don't pull)
 - `--release?` → show what the next release would contain
 - `--close?` → show what closing would tear down
 
