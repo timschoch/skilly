@@ -1,0 +1,28 @@
+name: validate-app-auth
+
+# Proof for issue #8: a GitHub App installation token lets `npx skills`
+# install from a private source repo on a clean CI runner.
+on: workflow_dispatch
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Mint App installation token
+        id: app
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ secrets.SKILLY_APP_ID }}
+          private-key: ${{ secrets.SKILLY_APP_PRIVATE_KEY }}
+          owner: timschoch
+          repositories: skilly-auth-test
+
+      - name: Install skill from private repo
+        env:
+          GH_TOKEN: ${{ steps.app.outputs.token }}
+        run: npx -y skills@1.5.23 add timschoch/skilly-auth-test -s dummy -y --agent claude-code
+
+      - name: Assert skill installed
+        run: |
+          test -f .claude/skills/dummy/SKILL.md
+          cat skills-lock.json
