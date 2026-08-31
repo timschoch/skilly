@@ -3,6 +3,10 @@
   "rules": [],
   "sources": [
     {
+      "source": "timschoch/skilly",
+      "skills": ["setup-release-please"]
+    },
+    {
       "source": "timschoch/mattpocock-skills",
       "skills": ["git-guardrails-claude-code", "setup-matt-pocock-skills", "setup-pre-commit"]
     },
