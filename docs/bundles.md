@@ -6,7 +6,7 @@ One directory per bundle under `bundles/`:
 bundles/<name>/
   config.json   # required: { "includes": [...], "rules": [...], "sources": [{ "source": "owner/repo", "skills": [...] }] }
   skills/       # only skills maintained in this repo; external skills live in config.json only
-  rules/        # scripts for the rules this bundle declares
+  rules/        # <name>.md always-on rule files (config-synced to consumers) + <name>.sh gate check scripts for declared rules
   docs/         # optional bundle docs
 ```
 
