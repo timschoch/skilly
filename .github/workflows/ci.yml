@@ -1,0 +1,17 @@
+# Hub CI (docs/spec-v1.md, "Hub CI"): unit tests + bundle validation.
+# Router-rule freshness lives in router-rules.yml; auth regression in
+# validate-app-auth.yml (workflow_dispatch).
+name: CI
+
+on:
+  pull_request: {}
+  push:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: npm test
+      - run: node scripts/validate-bundles.mjs
