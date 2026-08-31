@@ -13,7 +13,7 @@ Sources: `vercel-labs/skills` GitHub repo at commit tip of `main` as of 2026-08-
 - `-s/--skill` is **variadic space-separated**, not comma-separated: `-s a b c`, or repeat the flag `-s a -s b`. `-s a,b,c` is a single literal skill name, not three names. (src/add.ts:2187-2196)
 - `-y/--yes` skips prompts; without a TTY the CLI still needs `-y` or it hangs waiting on `@clack/prompts`.
 - No `--json`/machine-readable output mode for `add`. All output is colored human text via `@clack/prompts`/`picocolors`. Not parseable for per-skill success/fail — diff `skills-lock.json` before/after instead.
-- Exit codes: `0` success. `1` only when **zero** of the requested `-s` names match anything in the source (src/add.ts:614-634, :1298-1312). **Partial match is not an error**: `-s a b c` where `c` doesn't exist installs `a` and `b`, exits `0`, and does not print a distinct "c not found" line. A wrapper cannot detect a partially-missing skill from exit code or a stable stdout marker — it must diff the lock file's skill set against the requested names.
+- Exit codes: `0` success. `1` when **zero** of the requested `-s` names match anything in the source (src/add.ts:614-634, :1298-1312), on a missing source arg (src/add.ts:1049-1061), when the source contains no valid skills (src/add.ts:1233-1240), on clone/install exceptions (src/add.ts:2052-2064), and on invalid `--metadata` JSON (src/cli.ts:356-360). Per-agent install failures print `Failed to install N` but still exit `0` (src/add.ts:2036-2048). **Partial match is not an error**: `-s a b c` where `c` doesn't exist installs `a` and `b`, exits `0`, and does not print a distinct "c not found" line. A wrapper cannot detect a partially-missing skill from exit code or a stable stdout marker — it must diff the lock file's skill set against the requested names.
 - `-l/--list` lists skills in the source without installing (also no `--json` here).
 
 ### `remove`
@@ -23,7 +23,7 @@ Sources: `vercel-labs/skills` GitHub repo at commit tip of `main` as of 2026-08-
 - Aliases: `rm`, `r`.
 - `--all` = shorthand for `--skill '*' --agent '*' -y`.
 - Interactive picker when no names/`-s` given and stdin is a TTY.
-- Exit `1` on hard errors (e.g. nothing matched with explicit names given, src/remove.ts:89,162); `0` on success/cancel.
+- Exit `1` only on combining `--all` with named skills (src/remove.ts:83-90) or on invalid `-a` agents (src/remove.ts:155-163). Everything else exits `0` — including "No matching skills found" with explicit names (src/remove.ts:173-175, plain `return`) and per-skill removal failures (printed, src/remove.ts:371-376). A wrapper cannot rely on remove's exit code; verify via the lock file.
 - No `--json` output.
 
 ### `update`
@@ -32,7 +32,14 @@ Sources: `vercel-labs/skills` GitHub repo at commit tip of `main` as of 2026-08-
 
 - Aliases: `check`, `upgrade`.
 - `-p/--project` and `-g/--global` restrict scope; both together = `both`. With neither and `-y` (or no TTY), scope auto-detects: project if `skills-lock.json` exists or `.agents/skills/*/SKILL.md` exists, else global (src/update.ts:60-136).
-- `process.exit(0)` on cancel (src/update.ts:161); `process.exitCode = 1` on failure paths (src/update.ts:1007). No dedicated JSON output.
+- Project-scope update does **not** hash-compare: it clones each source once, then re-runs `add <src> --skill <name> -y` as a child process for every lock entry that has a `skillPath` — every skill is refreshed unconditionally (src/update.ts:799, :881-931). Global scope compares `skillFolderHash` against the GitHub tree first (src/update.ts:584-591). Entries without `skillPath` cannot be updated (src/update.ts:938-957).
+- `process.exit(0)` on cancel (src/update.ts:161); `process.exitCode = 1` iff at least one skill failed to update (src/update.ts:1005-1008) — deletions detected but skipped still exit `0`. No dedicated JSON output.
+
+### `list`
+
+`npx skills list [-g] [-a <agent>...] [--json]` (alias: `ls`)
+
+- `--json` is the CLI's **only** machine-readable output: array of `{name, path, scope, agents[], source, sourceUrl, sourceType}`, no ANSI (src/list.ts:113-129). Wrapper protocol: `list --json` for installed/linked state + `skills-lock.json` diff for add/remove/update outcomes; never parse the human output.
 
 ### `experimental_install`
 
