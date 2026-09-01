@@ -15,7 +15,17 @@ Every command guards its branch (`skilly-*`, main → `chore/skilly-setup`, anyt
 
 ## New-repo setup, in order
 
-1. `gh repo create <owner>/<repo> --private --clone` — create the repo before any tooling.
-2. `npx github:timschoch/skilly setup` — secrets, empty `.skilly.json`, caller workflow, formatter ignores, the `setup-project` skill, PR.
-3. `/setup-project` — asks: setup workflow? tech stack? Drives the setup skills in order and adds Bundles via `skilly add`.
-4. From then on: `add` / `remove` / `update`. The nightly workflow runs `update` headless and keeps one standing Sync PR; the gate merges it when green and removal-free.
+1. Create the repo and give `main` its first commit — skilly refuses a bare repo:
+
+   ```sh
+   gh repo create <owner>/<repo> --private --clone && cd <repo>
+   echo "# <repo>" > README.md
+   git add . && git commit -m "chore: initial commit" && git push -u origin main
+   ```
+
+2. `npx -y github:timschoch/skilly setup` — switches to `chore/skilly-setup`, sets the App secrets, writes `.skilly.json` (no bundles), writes `.github/workflows/skilly-sync.yml`, adds formatter ignores, installs the `setup-project` skill, commits, opens the PR.
+3. `/setup-project` in Claude Code — asks: setup workflow? tech stack? Drives the setup skills in order and adds Bundles via `skilly add`. (Or by hand: `npx -y github:timschoch/skilly add workflow` plus your `tech-*`/`project-*` bundles.)
+4. `npx -y github:timschoch/skilly update` — asks to drop bundle-less setup skills (e.g. `setup-project` once you're done with it); say yes.
+5. Merge the PR, then prove the workflow: `gh workflow run skilly-sync.yml && gh run watch`. No changes → no Sync PR.
+
+From then on: `add` / `remove` / `update` any time. The nightly workflow runs `update` headless and keeps one standing Sync PR (`chore/skilly-update`); the gate merges it when green and removal-free — removals always wait for you.
