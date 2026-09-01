@@ -1,0 +1,55 @@
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#eeeeee"
+    primaryBorderColor: "#757575"
+    primaryTextColor: "#212121"
+    clusterBkg: "#fafafa"
+    clusterBorder: "#e0e0e0"
+---
+flowchart TD
+    %% shapes: ((( ))) entry point · [/ \] user action (blue) · [ ] script action (gray) · { } decision (amber) · ([ ]) state (green)
+
+    ENTER-REM((("remove"))) --> REM
+    subgraph REM["REMOVE SKILL OR BUNDLE"]
+        REM-GUARD["run ensure-skilly"]
+            REM-GUARD -->|ok| REM-EB
+            REM-GUARD -->|abort| REM-FALSE
+
+        REM-EB["run ensure-branch"]
+            REM-EB -->|ok| REM-MATCH
+            REM-EB -->|abort| REM-FALSE
+
+        REM-MATCH["match each name against<br>hub bundles json,<br>first match wins"] --> REMQ3
+
+            REMQ3{"name is<br>a bundle?"}
+                REMQ3 -->|yes| REM-BUNDLE["remove bundle from<br>**.skilly.json**"]
+                    REM-BUNDLE --> REM-EXPAND["expand to all<br>skills in bundle"] --> REM-FILTER
+                REMQ3 -->|no| REMQ4
+
+            REMQ4{"name is<br>a skill in the lock?"}
+                REMQ4 -->|yes| REM-FILTER
+                REMQ4 -->|no| REM-ABORT-UNKNOWN
+
+        REM-FILTER["keep skills still claimed<br>by a remaining bundle<br>in **.skilly.json**"] --> REM-CLI
+        REM-CLI["run skills.sh remove<br>(deletes folders + lock entries)"]
+            REM-CLI -->|ok| REM-RULES["run update-rules<br>for each removed skill<br>(only deletes, nothing to copy)"] --> REM-COMMIT["run commit"] --> REM-TRUE
+            REM-CLI -->|fails| REM-FALSE
+
+        REM-TRUE(["return true ✅"])
+        REM-ABORT-UNKNOWN["abort: no bundle or skill<br>with that name"] --> REM-FALSE
+        REM-FALSE(["return false ❌"])
+    end
+
+
+    %% all checks are script checks -> default gray, not amber
+
+    classDef entry fill:#bdbdbd,stroke:#616161
+    class ENTER-REM entry
+
+    classDef ok fill:#e8f5e9,stroke:#2e7d32
+    class REM-TRUE ok
+
+    classDef fail fill:#ffebee,stroke:#c62828
+    class REM-FALSE fail

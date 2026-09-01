@@ -1,0 +1,96 @@
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#eeeeee"
+    primaryBorderColor: "#757575"
+    primaryTextColor: "#212121"
+    clusterBkg: "#fafafa"
+    clusterBorder: "#e0e0e0"
+---
+flowchart LR
+    %% shapes: ((( ))) entry point · [/ \] user action (blue) · [ ] script action (gray) · { } decision (amber) · ([ ]) state (green)
+
+    ENTER-SKILLY((("setup skilly"))) --> SKILLY-SETUP
+    subgraph SKILLY-SETUP["SKILLY SETUP"]
+        ON1[/"npx github:timschoch/skilly setup<br>(once per repo)"\]
+        ON1 --> ON-EB["run ensure-branch"]
+        ON-EB --> ON2["install github app + secrets"]
+        ON2 --> ON3[".skilly.json (no bundles)"]
+        ON3 --> ON4["caller workflow"]
+        ON4 --> ON5["install ONE skill: setup-project"]
+        ON5 --> ON6["run skilly-commit.js"]
+    end
+    SKILLY-SETUP --> ON-DONE(["skilly set up ✅"])
+
+    ON-DONE --> DO-WF{"setup workflow?"}
+    DO-WF -->|yes| WF-SETUP
+
+    ENTER-WF((("setup workflow"))) --> WF-SETUP
+    subgraph WF-SETUP["SETUP WORKFLOW"]
+        WF-EB["run ensure-branch"] --> WFQ1
+        WFQ1{"Husky+Lint+Prettier<br>pre-commit?"}
+            WFQ1 -->|yes| WF1["/setup-pre-commit"] --> WFQ2
+            WFQ1 -->|no| WFQ2
+        WFQ2{"apply<br>github scaffolding?<br>(incl. conventional branches/commit)"}
+            WFQ2 -->|yes| WF2["/setup-repo"] --> WFQ3
+        WFQ3{"setup<br>release please?"}
+            WFQ3 -->|yes| WF3["/setup-release-please"] --> WFQ4
+            WFQ3 -->|no| WFQ4
+        WFQ4{"use wayfinder?"}
+            WFQ4 -->|yes| WF4["/setup-matt-pocock-skills"] --> WFQ5
+            WFQ4 -->|no| WFQ5
+            %% WFQ2 is here to make the line go behind the other steps %%
+            WFQ2 -->|no| WFQ4
+        WFQ5{"was github<br>scaffolding applied<br>earlier?"}
+            WFQ5 -->|yes| WF5["/git-guardrails-claude-code"] --> WF6
+            WFQ5 -->|no| WF6
+        WF6["remove setup skills"]
+        WF6 --> WF7["run skilly-commit.js"]
+    end
+    WF-SETUP --> WF-DONE(["Workflow setup ✅"])
+
+    WF-DONE --> DO-TECH{"setup<br>tech stack<br>skills?"}
+    DO-TECH -->|yes| TECH-SETUP
+
+    ENTER-TECH((("setup tech stack"))) --> TECH-SETUP
+    subgraph TECH-SETUP["SETUP TECHSTACK"]
+        TECH1[/"/setup-techstack"\]
+        TECH1 --> TECH-EB["run ensure-branch"]
+        TECH-EB --> TECH2["propose bundles based on repo tech stack"] --> TECHQ1
+        TECHQ1{"user confirms"}
+            TECHQ1 -->|yes| TECH3["add bundles using<br>skilly-add.js"] --> TECHQ2
+            TECHQ1 -->|no| TECH2
+        TECHQ2{"has dedicated<br>tech stack setup<br>skills?"}
+            TECHQ2 -->|yes| TECH4["add and run<br>tech stack setup skills"]
+                TECH4 --> TECH5["remove tech stack setup skills"] --> TECH6
+            TECHQ2 -->|no| TECH6
+        
+        TECH6["run skilly-update.js<br>(ends with commit)"]    
+    end
+    TECH-SETUP --> TECH-DONE(["Tech stack setup ✅"])
+
+    subgraph MANAGE-SKILLS["MANAGE SKILLS"]
+        ENTER-ADD((("**add**<br>bundle"))) --> SK1
+        SK1[/"npx github:timschoch/skilly add bundle"\] --> SK4
+        
+        ENTER-REMOVE((("**remove**<br>bundle"))) --> SK2
+        SK2[/"npx github:timschoch/skilly remove bundle"\] --> SK4
+        SK4["run skilly-add.js /<br>skilly-remove.js<br>(ends with commit)"]
+
+        ENTER-UPDATE((("**update**<br>all skills"))) --> SK3
+        SK3[/"npx github:timschoch/skilly update"\] --> SK5["run skilly-update.js<br>(ends with commit)"]
+    end
+    MANAGE-SKILLS --> MANAGE-DONE(["skills updated ✅"])
+
+    classDef state fill:#e8f5e9,stroke:#2e7d32
+    class ON-DONE,WF-DONE,TECH-DONE,MANAGE-DONE state
+
+    classDef user fill:#e3f2fd,stroke:#1565c0
+    class ON1,TECH1,SK1,SK2,SK3 user
+
+    classDef decision fill:#fff8e1,stroke:#f9a825
+    class DO-WF,DO-TECH,WFQ1,WFQ2,WFQ3,WFQ4,WFQ5,TECHQ1,TECHQ2 decision
+
+    classDef entry fill:#bdbdbd,stroke:#616161
+    class ENTER-SKILLY,ENTER-WF,ENTER-TECH,ENTER-ADD,ENTER-REMOVE,ENTER-UPDATE entry

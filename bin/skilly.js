@@ -1,32 +1,42 @@
 #!/usr/bin/env node
+// Porcelain only: parse args, dispatch to one verb script (docs/flows user.mmd).
 import { fileURLToPath } from 'node:url';
-import { init } from '../lib/init.js';
-import { sync } from '../lib/sync.js';
-import { onboard } from '../bundles/setup-project/skills/setup-skilly/scripts/onboard.js';
+import { setup } from '../lib/setup.js';
+import { add } from '../lib/add.js';
+import { remove } from '../lib/remove.js';
+import { update } from '../lib/update.js';
 
 const bundlesDir = fileURLToPath(new URL('../bundles', import.meta.url));
-const [command, ...rest] = process.argv.slice(2);
-const flags = rest.filter((arg) => arg.startsWith('--'));
-const args = rest.filter((arg) => !arg.startsWith('--'));
 
 const usage = `usage:
-  skilly init <bundle...>          write .skilly.json + caller workflow, then sync
-  skilly onboard <bundle...>       full onboarding: secrets, init/merge, private-owner, PR
-  skilly sync [--prune] [--dry-run]  install missing bundle skills, sync config`;
+  skilly setup                        one-time setup: secrets, .skilly.json, caller workflow, setup-project skill
+  skilly add <bundle-or-skill...>     add bundles or single skills, commit, ensure PR
+  skilly remove <bundle-or-skill...>  remove bundles or single skills, commit, ensure PR
+  skilly update [--headless] [--report <path>]  pull hub changes, update all skills, commit, ensure PR`;
 
-const allowedFlags = { init: [], onboard: [], sync: ['--prune', '--dry-run'] };
+const [command, ...rest] = process.argv.slice(2);
+const names = [];
+let headless = false;
+let report = null;
 
 try {
-  const unknown = flags.filter((flag) => !(allowedFlags[command] ?? []).includes(flag));
-  if (command && allowedFlags[command] && unknown.length) {
-    throw new Error(`unknown flag(s): ${unknown.join(', ')}\n${usage}`);
+  while (rest.length) {
+    const arg = rest.shift();
+    if (arg === '--headless') headless = true;
+    else if (arg === '--report') report = rest.shift() ?? null;
+    else if (arg.startsWith('--')) throw new Error(`unknown flag ${arg}\n${usage}`);
+    else names.push(arg);
   }
-  if (command === 'init') {
-    await init(args, { bundlesDir });
-  } else if (command === 'onboard') {
-    await onboard(args, { bundlesDir });
-  } else if (command === 'sync') {
-    await sync({ bundlesDir, prune: flags.includes('--prune'), dryRun: flags.includes('--dry-run') });
+  if ((headless || report) && command !== 'update') throw new Error(`--headless/--report only apply to update\n${usage}`);
+
+  if (command === 'setup') {
+    await setup({ bundlesDir });
+  } else if (command === 'add') {
+    await add(names, { bundlesDir });
+  } else if (command === 'remove') {
+    await remove(names, { bundlesDir });
+  } else if (command === 'update') {
+    await update({ bundlesDir, headless, report });
   } else {
     console.log(usage);
     process.exitCode = command ? 1 : 0;

@@ -1,0 +1,40 @@
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#eeeeee"
+    primaryBorderColor: "#757575"
+    primaryTextColor: "#212121"
+    clusterBkg: "#fafafa"
+    clusterBorder: "#e0e0e0"
+---
+flowchart TD
+    %% shapes: ((( ))) entry point · [/ \] user action (blue) · [ ] script action (gray) · { } decision (amber) · ([ ]) state (green)
+
+    ENTER-ES((("ensure skilly"))) --> ES
+    subgraph ES["ENSURE SKILLY"]
+        ESQ1{"has<br>**skills-lock.json**?"}
+            ESQ1 -->|yes| ESQ2
+            ESQ1 -->|no| ES-ABORT-NO-SKILLS
+
+        ESQ2{"has<br>**.skilly.json**?"}
+            ESQ2 -->|yes| ES-TRUE
+            ESQ2 -->|no| ES-ABORT-NO-SKILLY
+
+        ES-TRUE(["return true ✅"])
+        ES-ABORT-NO-SKILLS["no skills lock file.<br>Please set up skilly first"] --> ES-FALSE
+        ES-ABORT-NO-SKILLY["no skilly installed,<br>run skills.sh directly"] --> ES-FALSE
+        ES-FALSE(["return false ❌"])
+    end
+
+
+    %% all checks are script checks -> default gray, not amber
+
+    classDef entry fill:#bdbdbd,stroke:#616161
+    class ENTER-ES entry
+
+    classDef ok fill:#e8f5e9,stroke:#2e7d32
+    class ES-TRUE ok
+
+    classDef fail fill:#ffebee,stroke:#c62828
+    class ES-FALSE fail

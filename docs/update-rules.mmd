@@ -1,0 +1,33 @@
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#eeeeee"
+    primaryBorderColor: "#757575"
+    primaryTextColor: "#212121"
+    clusterBkg: "#fafafa"
+    clusterBorder: "#e0e0e0"
+---
+flowchart TD
+    %% shapes: ((( ))) entry point · [/ \] user action (blue) · [ ] script action (gray) · { } decision (amber) · ([ ]) state (green)
+    %% convention: only files named {skill-name}-{rule-name} are ever moved. No diffing — wipe and reinstall.
+
+    ENTER-RU((("update rules<br>(skill name passed in)"))) --> RU
+    subgraph RU["UPDATE ROUTER RULES"]
+        RU1["delete **.claude/rules/{skill}-*.md**"] --> RUQ1
+
+            RUQ1{"installed skill folder<br>ships rules matching<br>**{skill}-{rule}**?"}
+                RUQ1 -->|yes| RU2["copy them to<br>**.claude/rules/**"] --> RU-TRUE
+                RUQ1 -->|no| RU-TRUE
+
+        RU-TRUE(["return true ✅"])
+    end
+
+
+    %% RUQ1 is a script check -> default gray, not amber
+
+    classDef entry fill:#bdbdbd,stroke:#616161
+    class ENTER-RU entry
+
+    classDef ok fill:#e8f5e9,stroke:#2e7d32
+    class RU-TRUE ok

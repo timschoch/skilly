@@ -1,0 +1,54 @@
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#eeeeee"
+    primaryBorderColor: "#757575"
+    primaryTextColor: "#212121"
+    clusterBkg: "#fafafa"
+    clusterBorder: "#e0e0e0"
+---
+flowchart TD
+    %% shapes: ((( ))) entry point · [/ \] user action (blue) · [ ] script action (gray) · { } decision (amber) · ([ ]) state (green)
+
+    ENTER-ADD((("add"))) --> ADD
+    subgraph ADD["ADD SKILL OR BUNDLE"]
+        ADD-GUARD["run ensure-skilly"]
+            ADD-GUARD -->|ok| ADD-EB
+            ADD-GUARD -->|abort| ADD-FALSE
+
+        ADD-EB["run ensure-branch"]
+            ADD-EB -->|ok| ADD-MATCH
+            ADD-EB -->|abort| ADD-FALSE
+
+        ADD-MATCH["match each name against<br>hub bundles json,<br>first match wins"] --> ADDQ2
+
+            ADDQ2{"name is<br>a bundle?"}
+                ADDQ2 -->|yes| ADD-BUNDLE["add bundle to<br>**.skilly.json**"]
+                    ADD-BUNDLE --> ADD-EXPAND["expand to all<br>skills in bundle"] --> ADD-INSTALL
+                ADDQ2 -->|no| ADDQ3
+
+            ADDQ3{"name is<br>a known skill?"}
+                ADDQ3 -->|yes| ADD-INSTALL
+                ADDQ3 -->|no| ADD-ABORT-UNKNOWN
+
+        ADD-INSTALL["run skills.sh add<br>for each skill<br>(installs + lock entry)"]
+            ADD-INSTALL -->|ok| ADD-RULES["run update-rules<br>for each added skill"] --> ADD-COMMIT["run commit"] --> ADD-TRUE
+            ADD-INSTALL -->|fails| ADD-FALSE
+
+        ADD-TRUE(["return true ✅"])
+        ADD-ABORT-UNKNOWN["abort: no bundle or skill<br>with that name in the hub"] --> ADD-FALSE
+        ADD-FALSE(["return false ❌"])
+    end
+
+
+    %% ADDQ1/ADDQ2/ADDQ3/ADDQ4 are script checks -> default gray, not amber
+
+    classDef entry fill:#bdbdbd,stroke:#616161
+    class ENTER-ADD entry
+
+    classDef ok fill:#e8f5e9,stroke:#2e7d32
+    class ADD-TRUE ok
+
+    classDef fail fill:#ffebee,stroke:#c62828
+    class ADD-FALSE fail
