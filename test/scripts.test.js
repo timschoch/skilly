@@ -1,13 +1,15 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, mkdirSync, writeFileSync, existsSync, readFileSync, readdirSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, writeFileSync, existsSync, readFileSync, readdirSync, lstatSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { matchName } from '../lib/match.js';
 import { planRemovals } from '../lib/remove.js';
-import { pickPrivateOwner } from '../lib/add.js';
+import { pickPrivateOwner, sourceRepo } from '../lib/add.js';
 import { updateRules } from '../lib/update-rules.js';
+import { addFormatterIgnores } from '../lib/formatter-ignores.js';
+import { linkSkillsDir } from '../lib/setup.js';
 import * as skillyFile from '../lib/skilly-file.js';
 
 const bundlesDir = fileURLToPath(new URL('./fixtures/bundles', import.meta.url));
@@ -31,6 +33,37 @@ test('pickPrivateOwner: one foreign private owner passes, two are a hard error',
   assert.equal(pickPrivateOwner(['me/a', 'pub/b'], 'me', isPrivate), null);
   assert.equal(pickPrivateOwner(['me/a', 'priv/b'], 'me', isPrivate), 'priv');
   assert.throws(() => pickPrivateOwner(['priv/a', 'priv2/b'], 'me', isPrivate), /one private-owner per consumer/);
+});
+
+test('sourceRepo reduces tree URLs to owner/repo and leaves shorthand alone', () => {
+  assert.equal(sourceRepo('PostHog/skills'), 'PostHog/skills');
+  assert.equal(sourceRepo('https://github.com/PostHog/skills/tree/main/skills/posthog/all'), 'PostHog/skills');
+});
+
+test('pickPrivateOwner reads the owner out of a tree-URL source', () => {
+  assert.equal(pickPrivateOwner(['https://github.com/priv/deep/tree/main/sub'], 'me', () => true), 'priv');
+});
+
+test('addFormatterIgnores creates .prettierignore when missing, appends once', () => {
+  const cwd = freshDir();
+  addFormatterIgnores(cwd);
+  const first = readFileSync(join(cwd, '.prettierignore'), 'utf8');
+  assert.match(first, /\.claude\/skills\/\*\*/);
+  assert.match(first, /skills-lock\.json/);
+  addFormatterIgnores(cwd);
+  assert.equal(readFileSync(join(cwd, '.prettierignore'), 'utf8'), first);
+});
+
+test('linkSkillsDir symlinks .claude/skills to .agents/skills, migrating existing files', () => {
+  const cwd = freshDir();
+  const claudeSkills = join(cwd, '.claude', 'skills');
+  mkdirSync(join(claudeSkills, 'a-skill'), { recursive: true });
+  writeFileSync(join(claudeSkills, 'a-skill', 'SKILL.md'), 'x');
+  assert.equal(linkSkillsDir(cwd), true);
+  assert.equal(lstatSync(claudeSkills).isSymbolicLink(), true);
+  assert.equal(readFileSync(join(cwd, '.agents', 'skills', 'a-skill', 'SKILL.md'), 'utf8'), 'x');
+  assert.equal(readFileSync(join(claudeSkills, 'a-skill', 'SKILL.md'), 'utf8'), 'x');
+  assert.equal(linkSkillsDir(cwd), false);
 });
 
 test('skilly-file: create, add and remove bundles, empty bundles stay legal', () => {

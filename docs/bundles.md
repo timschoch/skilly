@@ -25,6 +25,7 @@ bundles/<name>/
 - `project-laica` — private source `admin-laicadev/laica-launcher` (skills stay private); includes the tech bundles of the colin/laica-workflows stacks plus `tech-lemy`, `tech-nextjs`, `tech-typescript`. `tech-twenty` NOT included — only laica-stack uses Twenty; add it there directly.
 - `project-habits` — includes-only bundle for the habits stack (TanStack Start, Neon/Drizzle, PowerSync, Better Auth, PostHog, Vercel, Langfuse) plus `tech-react`, `tech-typescript`, `marketing` (minimal), and `tech-lemy`.
 - `tech-lemy` — lemy brand skills (verified against the refactored `timschoch/lemy`: still `lemy-brand`, `lemy-setup`, `lemy-write`; `lemy-admin` is internal-only there and stays out).
+- `test-bundle` — internal: two one-line mock skills for pilot-testing skilly's add/remove/update paths. Never propose it to a consumer.
 - `pitchdeck` — deck creation, review, and visuals from external sources (verified via colin's skills-lock.json): `pitch-deck` (ailabs-393/ai-labs-claude-skills), `pitch-deck-reviewer` (onewave-ai/claude-skills), `pitch-deck-visuals` (inference-sh/skills, needs external `belt` CLI), `startup-pitch` (ferdinandobons/startup-skill), `yc-pitch-deck` and `alex-hormozi-pitch` (admin-laicadev/laica-launcher). Caveat: `alex-hormozi-pitch` delegates to a laica-launcher-local command (`${PAI_DIR}/commands/create-hormozi-pitch.md`) — may need that file to work outside laica-launcher.
 
 ## Deliberately not bundled

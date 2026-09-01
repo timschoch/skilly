@@ -15,7 +15,8 @@ flowchart LR
     subgraph SKILLY-SETUP["SKILLY SETUP"]
         ON1[/"npx github:timschoch/skilly setup<br>(once per repo)"\]
         ON1 --> ON-EB["run ensure-branch"]
-        ON-EB --> ON2["install github app + secrets"]
+        ON-EB --> ON-LN["symlink .claude/skills → .agents/skills"]
+        ON-LN --> ON2["install github app + secrets"]
         ON2 --> ON3[".skilly.json (no bundles)"]
         ON3 --> ON4["caller workflow"]
         ON4 --> ON5["install ONE skill: setup-project"]
@@ -39,13 +40,10 @@ flowchart LR
             WFQ3 -->|yes| WF3["/setup-release-please"] --> WFQ4
             WFQ3 -->|no| WFQ4
         WFQ4{"use wayfinder?"}
-            WFQ4 -->|yes| WF4["/setup-matt-pocock-skills"] --> WFQ5
-            WFQ4 -->|no| WFQ5
+            WFQ4 -->|yes| WF4["/setup-matt-pocock-skills"] --> WF6
+            WFQ4 -->|no| WF6
             %% WFQ2 is here to make the line go behind the other steps %%
             WFQ2 -->|no| WFQ4
-        WFQ5{"was github<br>scaffolding applied<br>earlier?"}
-            WFQ5 -->|yes| WF5["/git-guardrails-claude-code"] --> WF6
-            WFQ5 -->|no| WF6
         WF6["remove setup skills"]
         WF6 --> WF7["run skilly-commit.js"]
     end
@@ -71,6 +69,10 @@ flowchart LR
     end
     TECH-SETUP --> TECH-DONE(["Tech stack setup ✅"])
 
+    TECH-DONE --> WFQ5{".claude/hooks/<br>check-push-branch.mjs<br>exists?"}
+        WFQ5 -->|"yes, hook not wired yet"| WF5["/git-guardrails-claude-code"] --> GUARD-DONE(["Guardrails ✅"])
+        WFQ5 -->|no| GUARD-DONE
+
     subgraph MANAGE-SKILLS["MANAGE SKILLS"]
         ENTER-ADD((("**add**<br>bundle"))) --> SK1
         SK1[/"npx github:timschoch/skilly add bundle"\] --> SK4
@@ -85,7 +87,7 @@ flowchart LR
     MANAGE-SKILLS --> MANAGE-DONE(["skills updated ✅"])
 
     classDef state fill:#e8f5e9,stroke:#2e7d32
-    class ON-DONE,WF-DONE,TECH-DONE,MANAGE-DONE state
+    class ON-DONE,WF-DONE,TECH-DONE,GUARD-DONE,MANAGE-DONE state
 
     classDef user fill:#e3f2fd,stroke:#1565c0
     class ON1,TECH1,SK1,SK2,SK3 user
