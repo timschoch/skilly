@@ -28,16 +28,18 @@ JSON
 
 Merge-method settings (squash, delete-branch-on-merge) live in `/setup-release-please`, not here. Free private repos cannot *require* checks — the gate stays a red check, not a hard block.
 
+A **403** on the rulesets call means rulesets are unavailable for this repo. Fall back without fuss: tell the user trunk protection stays local — the `pre-push` hook from part 2 — and continue with the next part. Never suggest a paid plan or making the repo public.
+
 ## 2. Commit and branch rules
 
-The rule scripts ship with this skill and update through the skill sync — reference them in place, never copy them:
+This skill is disposable — it gets removed after use, and `.claude/skills/` is wiped on every sync. **Copy** the rule scripts into the repo; never reference them inside the skill folder:
 
-- `scripts/check-commit-msg.mjs` — conventional-commit gate (the why: the `writing-rules` skill, group 7)
-- `scripts/check-push-branch.mjs` — refuses a direct push to `main` or the detected trunk (no config; a local edit would die at the next sync)
+- `scripts/check-commit-msg.mjs` → `.claude/hooks/check-commit-msg.mjs` — conventional-commit gate (the why: the `writing-rules` skill, group 7)
+- `scripts/check-push-branch.mjs` → `.claude/hooks/check-push-branch.mjs` — refuses a direct push to `main` or the detected trunk
 
-Wire them into the hook manager the repo chose:
+The copies are repo-owned; re-run this skill to refresh them. Wire them into the hook manager the repo chose:
 
-- **Husky** (`.husky/` exists): write `.husky/commit-msg` with `node .claude/skills/setup-repo/scripts/check-commit-msg.mjs "$1"` and `.husky/pre-push` with `node .claude/skills/setup-repo/scripts/check-push-branch.mjs`.
+- **Husky** (`.husky/` exists): write `.husky/commit-msg` with `node .claude/hooks/check-commit-msg.mjs "$1"` and `.husky/pre-push` with `node .claude/hooks/check-push-branch.mjs`.
 - **Own stack / none**: hand the two `node` invocations above to the user for their manager's `commit-msg` and `pre-push` hooks; do not install a manager for them.
 
 ## 3. Writing-rules injection

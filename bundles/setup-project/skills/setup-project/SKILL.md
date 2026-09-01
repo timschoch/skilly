@@ -10,7 +10,7 @@ description: >
 
 Drives the setup flows in [flows user.mmd](https://github.com/timschoch/skilly/blob/main/docs/flows%20user.mmd): workflow setup first, tech stack second, guardrails last (they block the pushes the middle steps make).
 
-Setup skills are just-in-time: `npx github:timschoch/skilly add <skill>`, then READ the installed SKILL.md and follow it directly (the session's skill list only loads at startup — no reload exists), then `npx github:timschoch/skilly remove <skill>`. Setup skills live in NO synced bundle: they would sit unused and pollute the context window.
+Setup skills are just-in-time: `npx github:timschoch/skilly add <skill>`, then READ the installed SKILL.md and follow it directly (the session's skill list only loads at startup — no reload exists), then `npx github:timschoch/skilly remove <skill>`. This applies to EVERY skill named below — never invoke a copy installed elsewhere on the machine. Setup skills live in NO synced bundle: they would sit unused and pollute the context window.
 
 ## Workflow setup
 
@@ -20,7 +20,6 @@ Ask which parts apply, then run the chosen skills in this order, finishing one b
 2. GitHub scaffolding (conventional commits/branches)? → `setup-repo` — GitHub settings, commit/branch rules wired into the hooks just chosen, `CLAUDE.md` scaffold.
 3. Release automation? → `setup-release-please` — plus merge settings.
 4. Wayfinder? → `setup-matt-pocock-skills` — issue tracker, triage labels, domain-doc layout.
-5. GitHub scaffolding applied in step 2? → `git-guardrails-claude-code` — last: it blocks the git pushes earlier steps need.
 
 Remove the used setup skills, commit conventionally, push, and make sure a PR exists.
 
@@ -34,6 +33,10 @@ Remove the used setup skills, commit conventionally, push, and make sure a PR ex
 2. `npx github:timschoch/skilly add <bundle...>` — installs, rules, commit, PR.
 3. Stack setup skills where the stack needs them (e.g. `trigger-setup`): add, follow, remove.
 4. `npx github:timschoch/skilly update` — ends with its own commit.
+
+## Guardrails
+
+GitHub scaffolding applied in workflow step 2? → `git-guardrails-claude-code`. Run it dead last: it blocks the git pushes every earlier step makes, and its own commit needs a human push.
 
 ## Validate
 
