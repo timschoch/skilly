@@ -4,3 +4,6 @@ skills-lock.json
 .claude/rules/**
 .claude/skills/**
 .agents/**
+
+# hub-exposed stream: shipped to consumers verbatim, never reformatted
+bundles/**
