@@ -170,3 +170,14 @@ test('commit with push:false only commits; the next default commit pushes the ba
   }
   assert.equal(run('git', ['-C', repo, 'rev-parse', 'HEAD']), run('git', ['-C', bare, 'rev-parse', 'main']));
 });
+
+test('checkAgentsLock flags unlocked dirs and orphan pins, passes on 1:1', async () => {
+  const { checkAgentsLock } = await import('../scripts/check-agents-lock.mjs');
+  const cwd = freshDir();
+  mkdirSync(join(cwd, '.agents', 'skills', 'locked'), { recursive: true });
+  mkdirSync(join(cwd, '.agents', 'skills', 'stray'), { recursive: true });
+  writeFileSync(join(cwd, 'skills-lock.json'), JSON.stringify({ skills: { locked: {}, ghost: {} } }));
+  assert.deepEqual(checkAgentsLock(cwd), { dirs: 2, pins: 2, unlocked: ['stray'], orphans: ['ghost'] });
+  writeFileSync(join(cwd, 'skills-lock.json'), JSON.stringify({ skills: { locked: {}, stray: {} } }));
+  assert.deepEqual(checkAgentsLock(cwd), { dirs: 2, pins: 2, unlocked: [], orphans: [] });
+});
