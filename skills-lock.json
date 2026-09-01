@@ -181,12 +181,6 @@
       "skillPath": "skills/in-progress/retro/SKILL.md",
       "computedHash": "b9bd2e5e0378214bf54d2a293df50490669b845a4c2a71c8f747ce8ab365f53a"
     },
-    "setup-matt-pocock-skills": {
-      "source": "timschoch/mattpocock-skills",
-      "sourceType": "github",
-      "skillPath": "skills/engineering/setup-matt-pocock-skills/SKILL.md",
-      "computedHash": "e38b430680c275b3e228eb32dabce449e91be792227839436a94dfc41bb0ec5b"
-    },
     "setup-project": {
       "source": "timschoch/skilly",
       "sourceType": "github",
