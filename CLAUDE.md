@@ -1,5 +1,9 @@
 # skilly
 
+## No Slack
+
+Never post or offer Slack summaries for this repo — skip the git-shortcuts post-merge Slack step entirely.
+
 ## Bundle rules
 
 - tech-* bundles: max 3-4 skills (rare exceptions allowed). Consumers load many tech-* at once — don't pollute their context window.
