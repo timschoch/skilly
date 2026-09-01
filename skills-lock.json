@@ -181,12 +181,6 @@
       "skillPath": "skills/in-progress/retro/SKILL.md",
       "computedHash": "b9bd2e5e0378214bf54d2a293df50490669b845a4c2a71c8f747ce8ab365f53a"
     },
-    "setup-project": {
-      "source": "timschoch/skilly",
-      "sourceType": "github",
-      "skillPath": "bundles/setup-project/skills/setup-project/SKILL.md",
-      "computedHash": "0ade5735f72f6e4b5b4a27297243ff245fada4b3995999011f43f4d940112cb7"
-    },
     "skilly-cli": {
       "source": "timschoch/skilly",
       "sourceType": "github",
