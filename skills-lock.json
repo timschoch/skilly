@@ -67,12 +67,6 @@
       "skillPath": "skills/engineering/domain-modeling/SKILL.md",
       "computedHash": "a11713c0ff7870efa3c331b2e273f09116158485246edc89ae5088eefd1b0b48"
     },
-    "git-guardrails-claude-code": {
-      "source": "timschoch/mattpocock-skills",
-      "sourceType": "github",
-      "skillPath": "skills/misc/git-guardrails-claude-code/SKILL.md",
-      "computedHash": "8c29552c621da0121427306afd92f8e02f47f446cdb0b55ceae01de6879fcb3a"
-    },
     "git-shortcuts": {
       "source": "timschoch/skilly",
       "sourceType": "github",
