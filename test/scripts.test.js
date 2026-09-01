@@ -35,6 +35,18 @@ test('pickPrivateOwner: one foreign private owner passes, two are a hard error',
   assert.throws(() => pickPrivateOwner(['priv/a', 'priv2/b'], 'me', isPrivate), /one private-owner per consumer/);
 });
 
+test('skillyMessage keeps short subjects, moves long name lists to the body', async () => {
+  const { skillyMessage } = await import('../lib/commit.js');
+  assert.equal(skillyMessage('add', ['workflow']), 'chore(skilly): add workflow');
+  const names = ['ai-seo', 'cro', 'integration-nextjs-app-router', 'integration-tanstack-start', 'lead-magnets', 'lemy-write', 'seo-audit', 'skilly-cli', 'tools-and-features-hogql', 'typescript-advanced-types'];
+  const long = skillyMessage('add', names);
+  const [subject, blank, body] = long.split('\n');
+  assert.equal(subject, 'chore(skilly): add 10 skills');
+  assert.equal(blank, '');
+  assert.equal(body, names.join(', '));
+  assert.ok(subject.length <= 72);
+});
+
 test('sourceRepo reduces tree URLs to owner/repo and leaves shorthand alone', () => {
   assert.equal(sourceRepo('PostHog/skills'), 'PostHog/skills');
   assert.equal(sourceRepo('https://github.com/PostHog/skills/tree/main/skills/posthog/all'), 'PostHog/skills');
