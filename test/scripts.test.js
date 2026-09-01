@@ -1,6 +1,15 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, mkdirSync, writeFileSync, existsSync, readFileSync, readdirSync, lstatSync } from 'node:fs';
+import {
+  mkdtempSync,
+  mkdirSync,
+  writeFileSync,
+  existsSync,
+  readFileSync,
+  readdirSync,
+  lstatSync,
+  symlinkSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -95,6 +104,25 @@ test('linkSkillsDir symlinks .claude/skills to .agents/skills, migrating existin
   assert.equal(readFileSync(join(cwd, '.agents', 'skills', 'a-skill', 'SKILL.md'), 'utf8'), 'x');
   assert.equal(readFileSync(join(claudeSkills, 'a-skill', 'SKILL.md'), 'utf8'), 'x');
   assert.equal(linkSkillsDir(cwd), false);
+});
+
+test('linkSkillsDir drops per-skill symlinks into .agents/skills, refuses to clobber real files', () => {
+  const cwd = freshDir();
+  const claudeSkills = join(cwd, '.claude', 'skills');
+  const agentsSkills = join(cwd, '.agents', 'skills');
+  mkdirSync(join(agentsSkills, 'a-skill'), { recursive: true });
+  writeFileSync(join(agentsSkills, 'a-skill', 'SKILL.md'), 'x');
+  mkdirSync(claudeSkills, { recursive: true });
+  symlinkSync(join('..', '..', '.agents', 'skills', 'a-skill'), join(claudeSkills, 'a-skill'));
+  assert.equal(linkSkillsDir(cwd), true);
+  assert.equal(lstatSync(claudeSkills).isSymbolicLink(), true);
+  assert.equal(readFileSync(join(claudeSkills, 'a-skill', 'SKILL.md'), 'utf8'), 'x');
+
+  const clash = freshDir();
+  mkdirSync(join(clash, '.agents', 'skills', 'b-skill'), { recursive: true });
+  mkdirSync(join(clash, '.claude', 'skills', 'b-skill'), { recursive: true });
+  assert.throws(() => linkSkillsDir(clash), /both exist/);
+  assert.equal(existsSync(join(clash, '.claude', 'skills', 'b-skill')), true);
 });
 
 test('skilly-file: create, add and remove bundles, empty bundles stay legal', () => {
