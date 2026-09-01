@@ -48,13 +48,13 @@ jobs:
           permission-pull-requests: write
 
       - name: Checkout consumer
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           token: ${{ steps.write-token.outputs.token }}
           fetch-depth: 0
 
       - name: Checkout hub
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           repository: timschoch/skilly
           ref: main
@@ -105,12 +105,12 @@ jobs:
       pull-requests: write
     steps:
       - name: Checkout consumer
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
       - name: Checkout hub
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           repository: timschoch/skilly
           ref: main
