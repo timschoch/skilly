@@ -11,7 +11,7 @@
       "source": "cursor/plugins",
       "sourceType": "github",
       "skillPath": "pstack/skills/arena/SKILL.md",
-      "computedHash": "c74c49f5ddf22ff96b30c03f3639f2f736796f20495c4ed092bd98e58569fc4a"
+      "computedHash": "04a485fd6c347cb2a79511328e1c469099bfb1cacd2a9e0e0fe61f4a95ba695d"
     },
     "ask-matt": {
       "source": "timschoch/mattpocock-skills",
@@ -89,7 +89,7 @@
       "source": "cursor/plugins",
       "sourceType": "github",
       "skillPath": "pstack/skills/how/SKILL.md",
-      "computedHash": "a3582a44f55210585abd09ed9f2ce4349bfe3f55b59661cd7db03c2529ef57ce"
+      "computedHash": "e8917fff34e8a16c1a48db488923c320bce646e457c05775f80d1362b496d3d6"
     },
     "implement": {
       "source": "timschoch/mattpocock-skills",
@@ -263,7 +263,7 @@
       "source": "cursor/plugins",
       "sourceType": "github",
       "skillPath": "pstack/skills/why/SKILL.md",
-      "computedHash": "3ba252ee8c57295e6c7d785cf04ece4e345b2195a4850fe8a4021ebe6cdb21b2"
+      "computedHash": "b918f84d73285e88cc5f221d91dc61832296683d758617eb6febb19306275aa5"
     },
     "wizard": {
       "source": "timschoch/mattpocock-skills",
