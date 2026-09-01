@@ -14,11 +14,20 @@ flowchart TD
     ENTER-CM((("commit"))) --> CM
     subgraph CM["COMMIT, PUSH, ENSURE PR"]
         CMQ1{"any changes<br>to commit?"}
-            CMQ1 -->|no| CMQ2
+            CMQ1 -->|no| CMQ-PUSH
             CMQ1 -->|yes| CM-COMMIT
 
-        CM-COMMIT["commit with conventional<br>message (passed in)"] --> CM-PUSH
-        CM-PUSH["push branch"]
+        CM-COMMIT["commit with conventional<br>message (passed in)"] --> CMQ-PUSH
+
+        CMQ-PUSH{"push enabled?<br>(update's per-verb calls<br>pass push: false)"}
+            CMQ-PUSH -->|no| CM-DEFER(["return — deferred:<br>update's final commit<br>pushes the backlog"])
+            CMQ-PUSH -->|yes| CMQ-AHEAD
+
+        CMQ-AHEAD{"origin missing<br>commits?"}
+            CMQ-AHEAD -->|no| CMQ2
+            CMQ-AHEAD -->|yes| CM-PUSH
+
+        CM-PUSH["push branch<br>(whole backlog)"]
             CM-PUSH -->|ok| CMQ2
             CM-PUSH -->|push fails| CM-FALSE
 
@@ -41,7 +50,7 @@ flowchart TD
     class ENTER-CM entry
 
     classDef ok fill:#e8f5e9,stroke:#2e7d32
-    class CM-TRUE ok
+    class CM-TRUE,CM-DEFER ok
 
     classDef fail fill:#ffebee,stroke:#c62828
     class CM-FALSE fail
