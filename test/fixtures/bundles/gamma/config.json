@@ -1,7 +1,5 @@
 {
   "includes": [],
   "rules": ["conventional-commits"],
-  "sources": [
-    { "source": "owner/two", "skills": ["c-skill"] }
-  ]
+  "sources": [{ "source": "owner/two", "skills": ["c-skill"] }]
 }

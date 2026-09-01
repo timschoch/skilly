@@ -15,6 +15,11 @@ import * as skillyFile from '../lib/skilly-file.js';
 const bundlesDir = fileURLToPath(new URL('./fixtures/bundles', import.meta.url));
 const freshDir = () => mkdtempSync(join(tmpdir(), 'skilly-test-'));
 
+// A git hook (husky pre-commit → npm test) exports GIT_DIR / GIT_INDEX_FILE
+// to its children. Inherited here, `git -C <tmp>` would act on the repo being
+// committed instead of the temp repos below — and commit fixtures onto it.
+for (const key of Object.keys(process.env)) if (key.startsWith('GIT_')) delete process.env[key];
+
 test('matchName: bundle beats skill, skills resolve to their source, unknown is null', () => {
   assert.deepEqual(matchName('alpha', bundlesDir), { type: 'bundle', name: 'alpha' });
   assert.deepEqual(matchName('c-skill', bundlesDir), { type: 'skill', name: 'c-skill', source: 'owner/two' });
@@ -35,13 +40,39 @@ test('pickPrivateOwner: one foreign private owner passes, two are a hard error',
   assert.throws(() => pickPrivateOwner(['priv/a', 'priv2/b'], 'me', isPrivate), /one private-owner per consumer/);
 });
 
+test('skillyMessage keeps short subjects, moves long name lists to the body', async () => {
+  const { skillyMessage } = await import('../lib/commit.js');
+  assert.equal(skillyMessage('add', ['workflow']), 'chore(skilly): add workflow');
+  const names = [
+    'ai-seo',
+    'cro',
+    'integration-nextjs-app-router',
+    'integration-tanstack-start',
+    'lead-magnets',
+    'lemy-write',
+    'seo-audit',
+    'skilly-cli',
+    'tools-and-features-hogql',
+    'typescript-advanced-types',
+  ];
+  const long = skillyMessage('add', names);
+  const [subject, blank, body] = long.split('\n');
+  assert.equal(subject, 'chore(skilly): add 10 skills');
+  assert.equal(blank, '');
+  assert.equal(body, names.join(', '));
+  assert.ok(subject.length <= 72);
+});
+
 test('sourceRepo reduces tree URLs to owner/repo and leaves shorthand alone', () => {
   assert.equal(sourceRepo('PostHog/skills'), 'PostHog/skills');
   assert.equal(sourceRepo('https://github.com/PostHog/skills/tree/main/skills/posthog/all'), 'PostHog/skills');
 });
 
 test('pickPrivateOwner reads the owner out of a tree-URL source', () => {
-  assert.equal(pickPrivateOwner(['https://github.com/priv/deep/tree/main/sub'], 'me', () => true), 'priv');
+  assert.equal(
+    pickPrivateOwner(['https://github.com/priv/deep/tree/main/sub'], 'me', () => true),
+    'priv',
+  );
 });
 
 test('addFormatterIgnores creates .prettierignore when missing, appends once', () => {
@@ -103,4 +134,50 @@ test('updateRules with null source only deletes', () => {
   writeFileSync(join(outDir, 'alpha-gone.md'), 'x');
   assert.deepEqual(updateRules(cwd, 'alpha', null), []);
   assert.equal(existsSync(join(outDir, 'alpha-gone.md')), false);
+});
+
+test('commit with push:false only commits; the next default commit pushes the backlog', async () => {
+  const { commit } = await import('../lib/commit.js');
+  const { run } = await import('../lib/run.js');
+
+  const bare = freshDir();
+  run('git', ['init', '--bare', '--initial-branch=main', bare]);
+  const repo = freshDir();
+  run('git', ['init', '--initial-branch=main', repo]);
+  run('git', ['-C', repo, 'config', 'user.name', 'test']);
+  run('git', ['-C', repo, 'config', 'user.email', 'test@example.com']);
+  writeFileSync(join(repo, 'seed'), '0');
+  run('git', ['-C', repo, 'add', '-A'], { cwd: repo });
+  run('git', ['-C', repo, 'commit', '--no-verify', '-m', 'chore: seed']);
+  run('git', ['-C', repo, 'remote', 'add', 'origin', bare]);
+  run('git', ['-C', repo, 'push', '-u', 'origin', 'main']);
+
+  // deferred verb commit: lands locally, origin stays behind
+  writeFileSync(join(repo, 'a'), '1');
+  assert.equal(commit(repo, 'chore(skilly): remove test-a', { push: false }), null);
+  assert.notEqual(run('git', ['-C', repo, 'rev-parse', 'HEAD']), run('git', ['-C', bare, 'rev-parse', 'main']));
+
+  // final commit on a CLEAN tree still pushes the backlog (gh stubbed out)
+  const binDir = join(freshDir(), 'bin');
+  mkdirSync(binDir);
+  writeFileSync(join(binDir, 'gh'), '#!/bin/sh\nexit 0\n', { mode: 0o755 });
+  const oldPath = process.env.PATH;
+  process.env.PATH = `${binDir}:${oldPath}`;
+  try {
+    commit(repo, 'chore(skilly): update skills');
+  } finally {
+    process.env.PATH = oldPath;
+  }
+  assert.equal(run('git', ['-C', repo, 'rev-parse', 'HEAD']), run('git', ['-C', bare, 'rev-parse', 'main']));
+});
+
+test('checkAgentsLock flags unlocked dirs and orphan pins, passes on 1:1', async () => {
+  const { checkAgentsLock } = await import('../scripts/check-agents-lock.mjs');
+  const cwd = freshDir();
+  mkdirSync(join(cwd, '.agents', 'skills', 'locked'), { recursive: true });
+  mkdirSync(join(cwd, '.agents', 'skills', 'stray'), { recursive: true });
+  writeFileSync(join(cwd, 'skills-lock.json'), JSON.stringify({ skills: { locked: {}, ghost: {} } }));
+  assert.deepEqual(checkAgentsLock(cwd), { dirs: 2, pins: 2, unlocked: ['stray'], orphans: ['ghost'] });
+  writeFileSync(join(cwd, 'skills-lock.json'), JSON.stringify({ skills: { locked: {}, stray: {} } }));
+  assert.deepEqual(checkAgentsLock(cwd), { dirs: 2, pins: 2, unlocked: [], orphans: [] });
 });

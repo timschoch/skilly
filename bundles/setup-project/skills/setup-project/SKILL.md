@@ -8,7 +8,7 @@ description: >
 
 # Setup project
 
-Drives the setup flows in [flows user.mmd](https://github.com/timschoch/skilly/blob/main/docs/flows%20user.mmd): workflow setup first, tech stack second, guardrails last (they block the pushes the middle steps make).
+Drives the setup flows in [flows user.mmd](https://github.com/timschoch/skilly/blob/main/docs/flows%20user.mmd): workflow setup first, tech stack second.
 
 Setup skills are just-in-time: `npx github:timschoch/skilly add <skill>`, then READ the installed SKILL.md and follow it directly (the session's skill list only loads at startup — no reload exists), then `npx github:timschoch/skilly remove <skill>`. This applies to EVERY skill named below — never invoke a copy installed elsewhere on the machine. Setup skills live in NO synced bundle: they would sit unused and pollute the context window.
 
@@ -33,10 +33,6 @@ Remove the used setup skills, commit conventionally, push, and make sure a PR ex
 2. `npx github:timschoch/skilly add <bundle...>` — installs, rules, commit, PR.
 3. Stack setup skills where the stack needs them (e.g. `trigger-setup`): add, follow, remove.
 4. `npx github:timschoch/skilly update` — ends with its own commit.
-
-## Guardrails
-
-Detect from the repo, never from memory — this flow may run months after the workflow setup. `.claude/hooks/check-push-branch.mjs` exists (github scaffolding was applied)? → `git-guardrails-claude-code`. Skip when `.claude/settings.json` already wires the guardrails hook. Run it dead last: it blocks the git pushes every earlier step makes, and its own commit needs a human push.
 
 ## Validate
 

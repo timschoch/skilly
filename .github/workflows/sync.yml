@@ -13,7 +13,7 @@ on:
         description: Owner of private skill sources (defaults to the consumer repo owner)
         type: string
         required: false
-        default: ""
+        default: ''
 
 jobs:
   update:
@@ -48,13 +48,13 @@ jobs:
           permission-pull-requests: write
 
       - name: Checkout consumer
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           token: ${{ steps.write-token.outputs.token }}
           fetch-depth: 0
 
       - name: Checkout hub
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           repository: timschoch/skilly
           ref: main
@@ -75,7 +75,12 @@ jobs:
         env:
           GH_TOKEN: ${{ steps.write-token.outputs.token }}
           SKILLY_SKILLS_TOKEN: ${{ steps.read-token.outputs.token }}
-        run: node .skilly-hub/bin/skilly.js update --headless --report /tmp/skilly-report.json
+        run: |
+          # The skills CLI targets "all agents" when it detects none installed
+          # (-y, fresh runner) — that once wrote an agent/ dir (Eve) into a
+          # consumer. ~/.claude is its Claude Code marker: pin detection to it.
+          mkdir -p ~/.claude
+          node .skilly-hub/bin/skilly.js update --headless --report /tmp/skilly-report.json
 
       - name: Refresh the Sync PR body, or drop an empty one
         env:
@@ -100,12 +105,12 @@ jobs:
       pull-requests: write
     steps:
       - name: Checkout consumer
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
       - name: Checkout hub
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           repository: timschoch/skilly
           ref: main
@@ -118,13 +123,15 @@ jobs:
 
       # Merge policy (design record, #17): the workflow merges a green Sync PR
       # with zero removals; a PR containing removals always waits for a human.
-      # The removals marker is written by scripts/render-pr-body.mjs.
+      # Removals are read from the branch's commit subjects (skillyMessage
+      # writes "chore(skilly): remove …") — intrinsic to the push, so the
+      # decision cannot race a later body edit.
       - name: Merge a green, removal-free Sync PR
         if: github.event.pull_request.head.ref == 'chore/skilly-update'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          if gh pr view "${{ github.event.pull_request.number }}" --json body --jq .body | grep -q 'skilly:removals'; then
+          if gh pr view "${{ github.event.pull_request.number }}" --json commits --jq '.commits[].messageHeadline' | grep -q '^chore(skilly): remove'; then
             echo "Sync PR contains removals — waiting for a human"
           else
             gh pr merge "${{ github.event.pull_request.number }}" --squash --delete-branch \

@@ -11,6 +11,7 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - run: npm test
       - run: node scripts/validate-bundles.mjs
+      - run: node scripts/check-agents-lock.mjs

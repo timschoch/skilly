@@ -27,7 +27,8 @@ try {
     else if (arg.startsWith('--')) throw new Error(`unknown flag ${arg}\n${usage}`);
     else names.push(arg);
   }
-  if ((headless || report) && command !== 'update') throw new Error(`--headless/--report only apply to update\n${usage}`);
+  if ((headless || report) && command !== 'update')
+    throw new Error(`--headless/--report only apply to update\n${usage}`);
 
   if (command === 'setup') {
     await setup({ bundlesDir });
