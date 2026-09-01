@@ -75,7 +75,12 @@ jobs:
         env:
           GH_TOKEN: ${{ steps.write-token.outputs.token }}
           SKILLY_SKILLS_TOKEN: ${{ steps.read-token.outputs.token }}
-        run: node .skilly-hub/bin/skilly.js update --headless --report /tmp/skilly-report.json
+        run: |
+          # The skills CLI targets "all agents" when it detects none installed
+          # (-y, fresh runner) — that once wrote an agent/ dir (Eve) into a
+          # consumer. ~/.claude is its Claude Code marker: pin detection to it.
+          mkdir -p ~/.claude
+          node .skilly-hub/bin/skilly.js update --headless --report /tmp/skilly-report.json
 
       - name: Refresh the Sync PR body, or drop an empty one
         env:
