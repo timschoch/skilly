@@ -2,8 +2,9 @@
 name: setup-repo
 description: >
   Harden a repo: GitHub settings (protected trunk), conventional-commit and
-  protected-branch git hooks, CLAUDE.md scaffold. Use when the user wants repo
-  hardening, branch protection, or commit-message enforcement set up.
+  protected-branch git hooks, a Claude Code guard against work-destroying git
+  commands, CLAUDE.md scaffold. Use when the user wants repo hardening, branch
+  protection, or commit-message enforcement set up.
 ---
 
 # Setup repo
@@ -36,15 +37,29 @@ This skill is disposable — it gets removed after use, and `.claude/skills/` is
 
 - `scripts/check-commit-msg.mjs` → `.claude/hooks/check-commit-msg.mjs` — conventional-commit gate (the why: the `writing-rules` skill, group 7)
 - `scripts/check-push-branch.mjs` → `.claude/hooks/check-push-branch.mjs` — refuses a direct push to `main` or the detected trunk
+- `scripts/block-destructive-git.sh` → `.claude/hooks/block-destructive-git.sh` (`chmod +x`) — Claude Code guard, wired in part 3
 
-The copies are repo-owned; re-run this skill to refresh them. Wire them into the hook manager the repo chose:
+The copies are repo-owned; re-run this skill to refresh them. Wire the first two into the hook manager the repo chose:
 
 - **Husky** (`.husky/` exists): write `.husky/commit-msg` with `node .claude/hooks/check-commit-msg.mjs "$1"` and `.husky/pre-push` with `node .claude/hooks/check-push-branch.mjs`.
 - **Own stack / none**: hand the two `node` invocations above to the user for their manager's `commit-msg` and `pre-push` hooks; do not install a manager for them.
 
-## 3. Writing-rules injection
+## 3. Claude Code hooks
 
-The `writing-rules` skill (workflow bundle) ships a PreToolUse hook that injects its rule sidecars on every file-writing tool call. Wire it — merge this entry into `.claude/settings.json` `hooks.PreToolUse`, skip when the command is already there:
+Merge each entry into `.claude/settings.json` `hooks.PreToolUse`; skip an entry whose command is already there. Never overwrite other settings.
+
+**Destructive-git guard** — blocks `reset --hard`, `clean -f`, `checkout .` / `restore .`, `branch -D`, bare `push --force`. Plain pushes and `--force-with-lease` pass; trunk safety is part 1 and the `pre-push` hook. Needs `jq`.
+
+```json
+{
+  "matcher": "Bash",
+  "hooks": [{ "type": "command", "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/block-destructive-git.sh" }]
+}
+```
+
+Verify: `echo '{"tool_input":{"command":"git reset --hard"}}' | .claude/hooks/block-destructive-git.sh` exits 2.
+
+**Writing-rules injection** — the `writing-rules` skill (workflow bundle) injects its rule sidecars on every file-writing tool call. The workflow bundle must be added first — the script lives in the installed skill. Not installed? Skip this entry and say so.
 
 ```json
 {
@@ -52,8 +67,6 @@ The `writing-rules` skill (workflow bundle) ships a PreToolUse hook that injects
   "hooks": [{ "type": "command", "command": "node \"$CLAUDE_PROJECT_DIR/.claude/skills/writing-rules/scripts/inject-writing-rules.mjs\"" }]
 }
 ```
-
-The workflow bundle must be added first — the script lives in the installed skill. Not installed? Skip this part and say so.
 
 ## 4. CLAUDE.md
 
