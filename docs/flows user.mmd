@@ -20,6 +20,7 @@ flowchart LR
         ON3 --> ON4["caller workflow"]
         ON4 --> ON5["install ONE skill: setup-project"]
         ON5 --> ON6["run skilly-commit.js"]
+        ON6 --> ON7["launch claude (sonnet)<br>with /setup-project"]
     end
     SKILLY-SETUP --> ON-DONE(["skilly set up ✅"])
 
