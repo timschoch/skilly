@@ -116,3 +116,38 @@ test('updateRules with null source only deletes', () => {
   assert.deepEqual(updateRules(cwd, 'alpha', null), []);
   assert.equal(existsSync(join(outDir, 'alpha-gone.md')), false);
 });
+
+test('commit with push:false only commits; the next default commit pushes the backlog', async () => {
+  const { commit } = await import('../lib/commit.js');
+  const { run } = await import('../lib/run.js');
+
+  const bare = freshDir();
+  run('git', ['init', '--bare', '--initial-branch=main', bare]);
+  const repo = freshDir();
+  run('git', ['init', '--initial-branch=main', repo]);
+  run('git', ['-C', repo, 'config', 'user.name', 'test']);
+  run('git', ['-C', repo, 'config', 'user.email', 'test@example.com']);
+  writeFileSync(join(repo, 'seed'), '0');
+  run('git', ['-C', repo, 'add', '-A'], { cwd: repo });
+  run('git', ['-C', repo, 'commit', '--no-verify', '-m', 'chore: seed']);
+  run('git', ['-C', repo, 'remote', 'add', 'origin', bare]);
+  run('git', ['-C', repo, 'push', '-u', 'origin', 'main']);
+
+  // deferred verb commit: lands locally, origin stays behind
+  writeFileSync(join(repo, 'a'), '1');
+  assert.equal(commit(repo, 'chore(skilly): remove test-a', { push: false }), null);
+  assert.notEqual(run('git', ['-C', repo, 'rev-parse', 'HEAD']), run('git', ['-C', bare, 'rev-parse', 'main']));
+
+  // final commit on a CLEAN tree still pushes the backlog (gh stubbed out)
+  const binDir = join(freshDir(), 'bin');
+  mkdirSync(binDir);
+  writeFileSync(join(binDir, 'gh'), '#!/bin/sh\nexit 0\n', { mode: 0o755 });
+  const oldPath = process.env.PATH;
+  process.env.PATH = `${binDir}:${oldPath}`;
+  try {
+    commit(repo, 'chore(skilly): update skills');
+  } finally {
+    process.env.PATH = oldPath;
+  }
+  assert.equal(run('git', ['-C', repo, 'rev-parse', 'HEAD']), run('git', ['-C', bare, 'rev-parse', 'main']));
+});

@@ -123,13 +123,15 @@ jobs:
 
       # Merge policy (design record, #17): the workflow merges a green Sync PR
       # with zero removals; a PR containing removals always waits for a human.
-      # The removals marker is written by scripts/render-pr-body.mjs.
+      # Removals are read from the branch's commit subjects (skillyMessage
+      # writes "chore(skilly): remove …") — intrinsic to the push, so the
+      # decision cannot race a later body edit.
       - name: Merge a green, removal-free Sync PR
         if: github.event.pull_request.head.ref == 'chore/skilly-update'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          if gh pr view "${{ github.event.pull_request.number }}" --json body --jq .body | grep -q 'skilly:removals'; then
+          if gh pr view "${{ github.event.pull_request.number }}" --json commits --jq '.commits[].messageHeadline' | grep -q '^chore(skilly): remove'; then
             echo "Sync PR contains removals — waiting for a human"
           else
             gh pr merge "${{ github.event.pull_request.number }}" --squash --delete-branch \
