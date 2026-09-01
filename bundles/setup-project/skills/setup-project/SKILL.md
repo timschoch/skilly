@@ -36,7 +36,7 @@ Remove the used setup skills, commit conventionally, push, and make sure a PR ex
 
 ## Guardrails
 
-GitHub scaffolding applied in workflow step 2? → `git-guardrails-claude-code`. Run it dead last: it blocks the git pushes every earlier step makes, and its own commit needs a human push.
+Detect from the repo, never from memory — this flow may run months after the workflow setup. `.claude/hooks/check-push-branch.mjs` exists (github scaffolding was applied)? → `git-guardrails-claude-code`. Skip when `.claude/settings.json` already wires the guardrails hook. Run it dead last: it blocks the git pushes every earlier step makes, and its own commit needs a human push.
 
 ## Validate
 
