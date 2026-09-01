@@ -97,6 +97,12 @@
       "skillPath": "bundles/setup-project/skills/setup-project/SKILL.md",
       "computedHash": "0ade5735f72f6e4b5b4a27297243ff245fada4b3995999011f43f4d940112cb7"
     },
+    "setup-repo": {
+      "source": "timschoch/skilly",
+      "sourceType": "github",
+      "skillPath": "bundles/setup-project/skills/setup-repo/SKILL.md",
+      "computedHash": "5c050a9b0122b8cf2d2b099fe5a263bb5d058cda6920f383294c3385d2d6a912"
+    },
     "tdd": {
       "source": "timschoch/mattpocock-skills",
       "sourceType": "github",
