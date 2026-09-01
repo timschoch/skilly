@@ -28,8 +28,10 @@ for (const name of names) {
     errors.push(`${name}: config.json does not parse — ${error.message}`);
     continue;
   }
-  if (config.includes !== undefined && !isStringArray(config.includes)) errors.push(`${name}: "includes" must be a string array`);
-  if (config.rules !== undefined && !isStringArray(config.rules)) errors.push(`${name}: "rules" must be a string array`);
+  if (config.includes !== undefined && !isStringArray(config.includes))
+    errors.push(`${name}: "includes" must be a string array`);
+  if (config.rules !== undefined && !isStringArray(config.rules))
+    errors.push(`${name}: "rules" must be a string array`);
   if (config.sources !== undefined) {
     if (!Array.isArray(config.sources)) {
       errors.push(`${name}: "sources" must be an array`);
@@ -37,7 +39,10 @@ for (const name of names) {
       for (const entry of config.sources) {
         // "owner/repo", or a GitHub tree URL into a subfolder for catalogs
         // nested deeper than the skills CLI's discovery reaches
-        if (typeof entry?.source !== 'string' || !/^([^/\s]+\/[^/\s]+|https:\/\/github\.com\/[^/\s]+\/[^/\s]+\/tree\/\S+)$/.test(entry.source)) {
+        if (
+          typeof entry?.source !== 'string' ||
+          !/^([^/\s]+\/[^/\s]+|https:\/\/github\.com\/[^/\s]+\/[^/\s]+\/tree\/\S+)$/.test(entry.source)
+        ) {
           errors.push(`${name}: source "${entry?.source}" is not "owner/repo" or a GitHub tree URL`);
         }
         if (!isStringArray(entry?.skills)) errors.push(`${name}: skills of "${entry?.source}" must be a string array`);

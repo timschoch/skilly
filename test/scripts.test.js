@@ -15,6 +15,11 @@ import * as skillyFile from '../lib/skilly-file.js';
 const bundlesDir = fileURLToPath(new URL('./fixtures/bundles', import.meta.url));
 const freshDir = () => mkdtempSync(join(tmpdir(), 'skilly-test-'));
 
+// A git hook (husky pre-commit → npm test) exports GIT_DIR / GIT_INDEX_FILE
+// to its children. Inherited here, `git -C <tmp>` would act on the repo being
+// committed instead of the temp repos below — and commit fixtures onto it.
+for (const key of Object.keys(process.env)) if (key.startsWith('GIT_')) delete process.env[key];
+
 test('matchName: bundle beats skill, skills resolve to their source, unknown is null', () => {
   assert.deepEqual(matchName('alpha', bundlesDir), { type: 'bundle', name: 'alpha' });
   assert.deepEqual(matchName('c-skill', bundlesDir), { type: 'skill', name: 'c-skill', source: 'owner/two' });
@@ -38,7 +43,18 @@ test('pickPrivateOwner: one foreign private owner passes, two are a hard error',
 test('skillyMessage keeps short subjects, moves long name lists to the body', async () => {
   const { skillyMessage } = await import('../lib/commit.js');
   assert.equal(skillyMessage('add', ['workflow']), 'chore(skilly): add workflow');
-  const names = ['ai-seo', 'cro', 'integration-nextjs-app-router', 'integration-tanstack-start', 'lead-magnets', 'lemy-write', 'seo-audit', 'skilly-cli', 'tools-and-features-hogql', 'typescript-advanced-types'];
+  const names = [
+    'ai-seo',
+    'cro',
+    'integration-nextjs-app-router',
+    'integration-tanstack-start',
+    'lead-magnets',
+    'lemy-write',
+    'seo-audit',
+    'skilly-cli',
+    'tools-and-features-hogql',
+    'typescript-advanced-types',
+  ];
   const long = skillyMessage('add', names);
   const [subject, blank, body] = long.split('\n');
   assert.equal(subject, 'chore(skilly): add 10 skills');
@@ -53,7 +69,10 @@ test('sourceRepo reduces tree URLs to owner/repo and leaves shorthand alone', ()
 });
 
 test('pickPrivateOwner reads the owner out of a tree-URL source', () => {
-  assert.equal(pickPrivateOwner(['https://github.com/priv/deep/tree/main/sub'], 'me', () => true), 'priv');
+  assert.equal(
+    pickPrivateOwner(['https://github.com/priv/deep/tree/main/sub'], 'me', () => true),
+    'priv',
+  );
 });
 
 test('addFormatterIgnores creates .prettierignore when missing, appends once', () => {

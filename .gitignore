@@ -1,2 +1,3 @@
 .temp/
 .claude/worktrees/
+node_modules/
