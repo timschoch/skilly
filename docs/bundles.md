@@ -29,7 +29,7 @@ bundles/<name>/
 
 ## Deliberately not bundled
 
-- `setup-matt-pocock-skills` — replaced by skilly.
+- Skill-installer skills (`neonctl skills`, `vercel skills`, the install half of `setup-matt-pocock-skills`) — skilly owns skill installs. `setup-matt-pocock-skills` itself IS shipped (setup-project bundle) for its repo scaffolding: issue tracker, triage labels, domain docs.
 - meco-only: `writing-beats`, `writing-fragments`, `writing-shape`, `scaffold-exercises`, `migrate-to-shoehorn`, `setup-ts-deep-modules` — meco pins them itself.
 - colin one-offs (`impeccable`, `frontend-slides`, `typescript-best-practices`, `frontend-design`, `security-best-practices`, `seo-geo`) — colin pins its own.
 - `obsidian-vault` — lerni-berni only.
