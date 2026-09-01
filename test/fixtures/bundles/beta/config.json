@@ -1,7 +1,5 @@
 {
   "includes": ["gamma"],
   "rules": [],
-  "sources": [
-    { "source": "owner/one", "skills": ["shared-skill", "b-skill"] }
-  ]
+  "sources": [{ "source": "owner/one", "skills": ["shared-skill", "b-skill"] }]
 }

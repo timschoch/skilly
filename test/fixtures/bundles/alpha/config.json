@@ -1,7 +1,5 @@
 {
   "includes": ["beta"],
   "rules": ["conventional-commits"],
-  "sources": [
-    { "source": "owner/one", "skills": ["a-skill", "shared-skill"] }
-  ]
+  "sources": [{ "source": "owner/one", "skills": ["a-skill", "shared-skill"] }]
 }
