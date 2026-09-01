@@ -1,12 +1,6 @@
 {
   "version": 1,
   "skills": {
-    "cleanup-merged-branches": {
-      "source": "timschoch/mattpocock-skills",
-      "sourceType": "github",
-      "skillPath": "skills/fork/cleanup-merged-branches/SKILL.md",
-      "computedHash": "f7e9cb53aeb7a533251ec7cca27f22add92debd3d863beadc6ab1cfea4fcb637"
-    },
     "code-review": {
       "source": "timschoch/mattpocock-skills",
       "sourceType": "github",
@@ -66,12 +60,6 @@
       "sourceType": "github",
       "skillPath": "skills/engineering/improve-codebase-architecture/SKILL.md",
       "computedHash": "2449db6ab1ded9581f69fcc56c1f64818112d05e271fd4c5da23c6523f9d3d9d"
-    },
-    "orchestrate": {
-      "source": "timschoch/mattpocock-skills",
-      "sourceType": "github",
-      "skillPath": "skills/fork/orchestrate/SKILL.md",
-      "computedHash": "7657a01150821a4e0653ef2ca7a418cbb211df6f1dfbe04e357a5fdff306a32a"
     },
     "prototype": {
       "source": "timschoch/mattpocock-skills",
