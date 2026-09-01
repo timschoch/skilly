@@ -1,37 +1,40 @@
 ---
 name: setup-project
 description: >
-  Main entry point when starting work in a new repo. Asks whether to run the full
-  default setup or just skilly, onboards the repo's bundles, and drives the other
-  setup skills in order. Use when the user wants to set up a new project or repo.
+  Main entry point when starting work in a new repo, right after `skilly setup`.
+  Drives the workflow setup skills in order, then the tech-stack bundles.
+  Use when the user wants to set up a new project or repo.
 ---
 
 # Setup project
 
-Drives the new-repo setup order from the [hub README](https://github.com/timschoch/skilly#new-repo-setup-in-order). Skilly first (it installs the setup skills), guardrails last (they block the pushes the middle steps make).
+Drives the setup flows in [flows user.mmd](https://github.com/timschoch/skilly/blob/main/docs/flows%20user.mmd): workflow setup first, tech stack second, guardrails last (they block the pushes the middle steps make).
 
-## Steps
+Setup skills are just-in-time: `npx github:timschoch/skilly add <skill>`, then READ the installed SKILL.md and follow it directly (the session's skill list only loads at startup — no reload exists), then `npx github:timschoch/skilly remove <skill>`. Setup skills live in NO synced bundle: they would sit unused and pollute the context window.
 
-1. **Ask**: full default setup, or just skilly (skill installs + nightly sync only)?
+## Workflow setup
 
-2. **Onboard the bundles.** Propose the set from the [catalog](https://github.com/timschoch/skilly/blob/main/docs/bundles.md), let the user confirm:
+Ask which parts apply, then run the chosen skills in this order, finishing one before the next:
+
+1. Husky + lint-staged + Prettier pre-commit? → `setup-pre-commit`; the repo's own stack → skip (nothing automated for it yet — add a sibling skill when one earns its place).
+2. GitHub scaffolding (conventional commits/branches)? → `setup-repo` — GitHub settings, commit/branch rules wired into the hooks just chosen, `CLAUDE.md` scaffold.
+3. Release automation? → `setup-release-please` — plus merge settings.
+4. Wayfinder? → `setup-matt-pocock-skills` — issue tracker, triage labels, domain-doc layout.
+5. GitHub scaffolding applied in step 2? → `git-guardrails-claude-code` — last: it blocks the git pushes earlier steps need.
+
+Remove the used setup skills, commit conventionally, push, and make sure a PR exists.
+
+## Tech stack
+
+1. Propose Bundles from the [catalog](https://github.com/timschoch/skilly/blob/main/docs/bundles.md), let the user confirm:
    - every repo: `workflow`
    - a `project-<x>` bundle when one exists (it already includes its tech bundles)
    - otherwise the `tech-*` bundles matching the stack (check `package.json` / lockfiles)
    - `marketing` only where the repo produces marketing content
+2. `npx github:timschoch/skilly add <bundle...>` — installs, rules, commit, PR.
+3. Stack setup skills where the stack needs them (e.g. `trigger-setup`): add, follow, remove.
+4. `npx github:timschoch/skilly update` — ends with its own commit.
 
-   ```sh
-   npx github:timschoch/skilly onboard <bundle...>
-   ```
+## Validate
 
-   Idempotent — a re-run merges the bundles into the existing `.skilly.json`.
-
-3. **Just skilly → done.** Full default → run each of these, finishing one before the next:
-   1. Ask which pre-commit stack: Husky + lint-staged + Prettier → `/setup-pre-commit`; the repo's own stack → skip (nothing automated for it yet — add a sibling skill when one earns its place).
-   2. `/setup-repo` — GitHub settings, commit/branch rules wired into the hooks just chosen, `CLAUDE.md` scaffold.
-   3. `/setup-matt-pocock-skills` — issue tracker, triage labels, domain-doc layout.
-   4. `/setup-release-please` — release automation plus merge settings.
-   5. Stack installers where the stack needs them (e.g. `/trigger-setup`) — installed ad hoc (`npx skills add <vendor> -s <skill>`), uninstalled after the one use. Setup skills live in NO synced bundle: they would sit unused and pollute the context window.
-   6. `/git-guardrails-claude-code` — last: it blocks the git pushes earlier steps need.
-
-4. **Validate in real CI** after the onboarding PR merges: `gh workflow run skilly-sync.yml`, then `gh run watch` until green. Local auth tests on this Mac lie (the machine SSH key bypasses `$HOME` isolation).
+After the PR merges: `gh workflow run skilly-sync.yml`, then `gh run watch` until green. Local auth tests on this Mac lie (the machine SSH key bypasses `$HOME` isolation).

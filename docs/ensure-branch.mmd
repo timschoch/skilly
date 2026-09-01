@@ -1,0 +1,50 @@
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#eeeeee"
+    primaryBorderColor: "#757575"
+    primaryTextColor: "#212121"
+    clusterBkg: "#fafafa"
+    clusterBorder: "#e0e0e0"
+---
+flowchart TD
+    %% shapes: ((( ))) entry point · [/ \] user action (blue) · [ ] script action (gray) · { } decision (amber) · ([ ]) state (green)
+
+    ENTER-EB((("ensure branch"))) --> EB
+    subgraph EB["ENSURE BRANCH"]
+        EBQ1{"current branch<br>contains 'skilly-'?"}
+            EBQ1 -->|yes| EB-TRUE
+            EBQ1 -->|no| EBQ-MAIN
+
+            EBQ-MAIN{"currently on<br>github main<br>branch?"}
+                EBQ-MAIN -->|yes| EB-CREATE["create branch<br>**chore/skilly-setup**<br>(PR opened later by commit)"] --> EB-TRUE
+                EBQ-MAIN -->|no| EBQ-CFG
+
+            EBQ-CFG{"git config<br>**skilly.use-current-branch**<br>set?"}
+                EBQ-CFG -->|yes| EB-TRUE
+                EBQ-CFG -->|no| EBQ3
+
+                EBQ3{"use<br>current branch?"}
+                    EBQ3 -->|yes| EB-SET-CFG
+                    EBQ3 -->|no| EB-ABORT
+                    EB-SET-CFG["git config --local<br>**skilly.use-current-branch** true<br>(lives in .git/config, never committed)"] --> EB-TRUE
+
+        EB-TRUE(["return true ✅"])
+        EB-ABORT["abort: please run skilly on a clean branch or main"] --> EB-FALSE
+        EB-FALSE(["return false ❌"])
+    end
+
+
+    %% EBQ1/EBQ-MAIN/EBQ-CFG are script checks -> default gray, not amber
+    classDef decision fill:#fff8e1,stroke:#f9a825
+    class EBQ3 decision
+
+    classDef entry fill:#bdbdbd,stroke:#616161
+    class ENTER-EB entry
+
+    classDef ok fill:#e8f5e9,stroke:#2e7d32
+    class EB-TRUE ok
+
+    classDef fail fill:#ffebee,stroke:#c62828
+    class EB-FALSE fail

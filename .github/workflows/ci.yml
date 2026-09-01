@@ -1,5 +1,4 @@
-# Hub CI (docs/spec-v1.md, "Hub CI"): unit tests + bundle validation.
-# Router-rule freshness lives in router-rules.yml; auth regression in
+# Hub CI: unit tests + bundle validation. Auth regression lives in
 # validate-app-auth.yml (workflow_dispatch).
 name: CI
 

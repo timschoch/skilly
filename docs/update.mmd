@@ -1,0 +1,62 @@
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#eeeeee"
+    primaryBorderColor: "#757575"
+    primaryTextColor: "#212121"
+    clusterBkg: "#fafafa"
+    clusterBorder: "#e0e0e0"
+---
+flowchart TD
+    %% shapes: ((( ))) entry point · [/ \] user action (blue) · [ ] script action (gray) · { } decision (amber) · ([ ]) state (green)
+    %% headless (nightly): UPDQ-REMOVE auto-answers yes; removals are listed loudly in the Sync PR body.
+    %% merge policy: add/update-only Sync PRs may auto-merge; a PR containing removals always waits for a human.
+
+    ENTER-UPD((("update"))) --> UPDATE
+    subgraph UPDATE["UPDATE SKILLS"]
+        UPD-GUARD["run ensure-skilly"]
+            UPD-GUARD -->|ok| UPD-EB
+            UPD-GUARD -->|abort| UPD-FALSE
+         
+
+        UPD-EB["run ensure-branch"]
+            UPD-EB -->|ok| UPD-FETCH
+            UPD-EB -->|abort| UPD-FALSE
+
+        UPD-FETCH["fetch bundles list"] --> UPDQ-REMOVED
+
+            UPDQ-REMOVED{"was a<br>skill or bundle<br>removed?"}
+                UPDQ-REMOVED -->|yes| UPDQ-REMOVE
+                UPDQ-REMOVED -->|no| UPDQ-ADDED         
+
+                UPDQ-REMOVE{"X was removed.<br>Remove from<br>this repo?"}
+                    UPDQ-REMOVE -->|yes| UPD-CALL-REMOVE["run remove X"] --> UPDQ-ADDED
+                    UPDQ-REMOVE -->|no| UPDQ-ADDED
+        
+                UPDQ-ADDED{"was a<br>skill added to a<br>bundle?"}
+                    UPDQ-ADDED -->|yes| UPD-CALL-ADD["run add X"] --> UPD-RUN-SKILLS-UPDATE
+                    UPDQ-ADDED -->|no| UPD-RUN-SKILLS-UPDATE        
+
+
+        UPD-RUN-SKILLS-UPDATE["run skills.sh update<br>on remaining lock entries"]
+            UPD-RUN-SKILLS-UPDATE -->|ok| UPD-RULES["run update-rules<br>for ALL installed skills"] --> UPD-COMMIT["run commit<br>(commit, push, ensure PR)"]
+            UPD-RUN-SKILLS-UPDATE -->|fails| UPD-FALSE
+        UPD-COMMIT --> UPD-TRUE(["return true ✅"])
+
+        UPD-FALSE(["return false ❌"])
+    end
+
+
+    %% PRQ1/PRQ-MAIN/PRQ-LOCK are script checks -> default gray, not amber
+    classDef decision fill:#fff8e1,stroke:#f9a825
+    class PRQ3 decision
+
+    classDef entry fill:#bdbdbd,stroke:#616161
+    class ENTER-UPD entry
+
+    classDef ok fill:#e8f5e9,stroke:#2e7d32
+    class UPD-TRUE ok
+
+    classDef fail fill:#ffebee,stroke:#c62828
+    class UPD-FALSE fail

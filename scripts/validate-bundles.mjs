@@ -1,7 +1,7 @@
-// Hub CI: validate every bundle (docs/spec-v1.md, "Hub CI").
+// Hub CI: validate every bundle.
 //   - config.json parses and has the right shape
-//   - includes resolve, no cycles, rule-file names unique fleet-wide
-//   - every declared rule has its <rule>.sh in the declaring bundle
+//   - includes resolve, no cycles
+//   - every declared rule has its <rule>.sh in the declaring bundle (resolve throws)
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -42,14 +42,10 @@ for (const name of names) {
       }
     }
   }
-  for (const rule of config.rules ?? []) {
-    const script = join(bundlesDir, name, 'rules', `${rule}.sh`);
-    if (!existsSync(script)) errors.push(`${name}: declared rule "${rule}" has no rules/${rule}.sh`);
-  }
 }
 
-// Resolving all bundles at once catches include cycles, unknown includes, and
-// rule-file name collisions across the flat .claude/rules/ namespace.
+// Resolving all bundles at once catches include cycles, unknown includes,
+// and Rules whose check script is missing.
 try {
   resolveBundles(names, bundlesDir);
 } catch (error) {

@@ -51,7 +51,7 @@ The `writing-rules` skill (workflow bundle) ships a PreToolUse hook that injects
 }
 ```
 
-The workflow bundle must be onboarded first — the script lives in the installed skill. Not installed? Skip this part and say so.
+The workflow bundle must be added first — the script lives in the installed skill. Not installed? Skip this part and say so.
 
 ## 4. CLAUDE.md
 

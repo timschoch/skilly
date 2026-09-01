@@ -1,0 +1,39 @@
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#eeeeee"
+    primaryBorderColor: "#757575"
+    primaryTextColor: "#212121"
+    clusterBkg: "#fafafa"
+    clusterBorder: "#e0e0e0"
+---
+flowchart LR
+    %% shapes: ((( ))) entry point · [/ \] user action (blue) · [ ] script action (gray) · { } decision (amber) · ([ ]) state (green)
+    S1((("cron / manual dispatch"))) --> SYNC
+    subgraph SYNC["NIGHTLY SYNC (consumer CI)"]
+        S2["mint app tokens,<br>checkout consumer + hub"]
+        S2 --> S3["reset **chore/skilly-update**<br>from main"]
+        S3 --> S4["run update (headless)<br>removals auto-apply,<br>shouted in Sync PR body"]
+        S4 --> S5["force-push<br>one standing Sync PR"]
+    end
+    S5 --> G1
+
+    subgraph GATE["PR GATE (on pull_request)"]
+        G1["run the rules of<br>all consumer bundles"]
+            G1 -->|green, no removals| G2["workflow merges the Sync PR"]
+            G1 -->|green, removals| G3[/"user reviews, merges"\]
+            G1 -->|red| G4[/"fix rule violations<br>in consumer"\] --> G1
+    end
+    G2 --> S-DONE(["consumer up to date ✅"])
+    G3 --> S-DONE
+
+
+    classDef state fill:#e8f5e9,stroke:#2e7d32
+    class S-DONE state
+
+    classDef user fill:#e3f2fd,stroke:#1565c0
+    class G3,G4 user
+
+    classDef entry fill:#bdbdbd,stroke:#616161
+    class S1 entry

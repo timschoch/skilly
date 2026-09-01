@@ -1,0 +1,47 @@
+---
+config:
+  theme: base
+  themeVariables:
+    primaryColor: "#eeeeee"
+    primaryBorderColor: "#757575"
+    primaryTextColor: "#212121"
+    clusterBkg: "#fafafa"
+    clusterBorder: "#e0e0e0"
+---
+flowchart TD
+    %% shapes: ((( ))) entry point · [/ \] user action (blue) · [ ] script action (gray) · { } decision (amber) · ([ ]) state (green)
+
+    ENTER-CM((("commit"))) --> CM
+    subgraph CM["COMMIT, PUSH, ENSURE PR"]
+        CMQ1{"any changes<br>to commit?"}
+            CMQ1 -->|no| CMQ2
+            CMQ1 -->|yes| CM-COMMIT
+
+        CM-COMMIT["commit with conventional<br>message (passed in)"] --> CM-PUSH
+        CM-PUSH["push branch"]
+            CM-PUSH -->|ok| CMQ2
+            CM-PUSH -->|push fails| CM-FALSE
+
+            CMQ2{"PR exists<br>for this branch?"}
+                CMQ2 -->|yes| CM-TRUE
+                CMQ2 -->|no| CMQ3
+
+            CMQ3{"branch has<br>pushed commits?"}
+                CMQ3 -->|yes| CM-OPEN["open PR"] --> CM-TRUE
+                CMQ3 -->|no| CM-TRUE
+
+        CM-TRUE(["return true ✅"])
+        CM-FALSE(["return false ❌"])
+    end
+
+
+    %% all checks are script checks -> default gray, not amber
+
+    classDef entry fill:#bdbdbd,stroke:#616161
+    class ENTER-CM entry
+
+    classDef ok fill:#e8f5e9,stroke:#2e7d32
+    class CM-TRUE ok
+
+    classDef fail fill:#ffebee,stroke:#c62828
+    class CM-FALSE fail
