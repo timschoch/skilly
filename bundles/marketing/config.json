@@ -1,11 +1,9 @@
 {
-  "includes": [],
+  "includes": [
+    "tech-lemy"
+  ],
   "rules": [],
   "sources": [
-    {
-      "source": "timschoch/lemy",
-      "skills": ["lemy-write"]
-    },
     {
       "source": "coreyhaines31/marketingskills",
       "skills": [

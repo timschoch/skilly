@@ -1,7 +1,7 @@
 {
   "includes": [
     "marketing",
-    "tech-lemy"
+    "tech-lemy-manage"
   ],
   "rules": [],
   "sources": [
