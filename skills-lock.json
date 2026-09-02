@@ -185,7 +185,7 @@
       "source": "timschoch/skilly",
       "sourceType": "github",
       "skillPath": "bundles/workflow/skills/skilly-cli/SKILL.md",
-      "computedHash": "fed3445cd0df263a5a8fa0d895f8c8c6c4cbd9a2406d14d953c7546f0245f4ef"
+      "computedHash": "12cf2a07a9334654d280360e3bd091ede509cc9f0c9beb6c3bbe22f2752e9bb9"
     },
     "step-by-step": {
       "source": "timschoch/skilly",
