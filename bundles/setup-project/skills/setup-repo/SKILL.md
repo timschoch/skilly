@@ -52,7 +52,7 @@ Merge each entry into `.claude/settings.json` `hooks.PreToolUse`; skip an entry 
 
 ```json
 {
-  "matcher": "Bash",
+  "matcher": "Bash|mcp__lean-ctx__ctx_shell",
   "hooks": [{ "type": "command", "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/block-destructive-git.sh" }]
 }
 ```
