@@ -3,8 +3,8 @@
 // Injects the sidecars beside this script (../rules): all.md plus plain.md or
 // dense.md by path. Zero dependencies; holds no rule of its own.
 // Wired by the setup-repo skill in .claude/settings.json on every write tool.
-import { readFileSync } from 'node:fs';
-import { dirname, join, resolve } from 'node:path';
+import { readFileSync, realpathSync } from 'node:fs';
+import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const RULES_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', 'rules');
@@ -60,4 +60,14 @@ function main() {
   );
 }
 
-if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) main();
+// Node loads the main module through its real path; argv[1] keeps the path as typed.
+// `.claude/skills` is a symlink to `.agents/skills`, so compare real paths on both sides.
+const isMain = () => {
+  try {
+    return realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url));
+  } catch {
+    return false;
+  }
+};
+
+if (isMain()) main();

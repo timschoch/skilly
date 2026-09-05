@@ -209,3 +209,20 @@ test('checkAgentsLock flags unlocked dirs and orphan pins, passes on 1:1', async
   writeFileSync(join(cwd, 'skills-lock.json'), JSON.stringify({ skills: { locked: {}, stray: {} } }));
   assert.deepEqual(checkAgentsLock(cwd), { dirs: 2, pins: 2, unlocked: [], orphans: [] });
 });
+
+// setup-repo wires the hook at .claude/skills/…, a symlink to .agents/skills.
+// Node loads the main module through the real path; the is-main check must still fire.
+test('inject-writing-rules runs when invoked through a symlinked skills dir', async () => {
+  const { spawnSync } = await import('node:child_process');
+  const realSkill = fileURLToPath(new URL('../bundles/workflow/skills/writing-rules', import.meta.url));
+  const link = join(freshDir(), 'skills');
+  symlinkSync(realSkill, link);
+  const event = JSON.stringify({ tool_name: 'Write', tool_input: { file_path: 'README.md' } });
+  const { stdout, status } = spawnSync(
+    process.execPath,
+    [join(link, 'scripts', 'inject-writing-rules.mjs')],
+    { input: event, encoding: 'utf8' },
+  );
+  assert.equal(status, 0);
+  assert.match(stdout, /"additionalContext":"Your writing rules for `README\.md`/);
+});
