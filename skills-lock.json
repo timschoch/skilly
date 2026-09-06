@@ -185,7 +185,7 @@
       "source": "timschoch/skilly",
       "sourceType": "github",
       "skillPath": "bundles/workflow/skills/skilly-cli/SKILL.md",
-      "computedHash": "12cf2a07a9334654d280360e3bd091ede509cc9f0c9beb6c3bbe22f2752e9bb9"
+      "computedHash": "e8c272df1a275624931a82abaf098a962836ec6f0b8b9688c5383e4ff2cc8e5b"
     },
     "step-by-step": {
       "source": "timschoch/skilly",
@@ -281,7 +281,7 @@
       "source": "timschoch/skilly",
       "sourceType": "github",
       "skillPath": "bundles/workflow/skills/writing-rules/SKILL.md",
-      "computedHash": "6edcd0448bd4fd5072f96437a2d6ee356bad32b243872e4dddea22d427d7da88"
+      "computedHash": "ffbc7da0a8d3592442574dfb4e03a1d6e6b38c7704d1041151bbe11acba14d70"
     }
   }
 }
