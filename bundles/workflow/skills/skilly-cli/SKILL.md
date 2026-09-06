@@ -21,6 +21,4 @@ Never hand-edit skilly-owned files — the nightly sync wipes and rewrites them:
 - `.claude/rules/<name>-*.md` (installed router rules)
 - `.skilly.json`, `skills-lock.json`
 
-A change to a skill belongs in its source repo (see `skills-lock.json` for the source), a repo-local rule in `CLAUDE.md`.
-
-If you find a bug or encounter a problem, file an issue at https://github.com/timschoch/skilly/issues.
+A change to a skill belongs in its source repo (see `skills-lock.json` for the source), a repo-local rule in `CLAUDE.md`. A bug in an installed skill, hook, or rule: file it before you work around it, see `.claude/rules/workflow-hazards.md`.
