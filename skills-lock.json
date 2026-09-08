@@ -11,7 +11,7 @@
       "source": "cursor/plugins",
       "sourceType": "github",
       "skillPath": "pstack/skills/arena/SKILL.md",
-      "computedHash": "04a485fd6c347cb2a79511328e1c469099bfb1cacd2a9e0e0fe61f4a95ba695d"
+      "computedHash": "66e9b8b4486f3fc07ffdf0e0b2874ba1dc411f6df24a440af5873c35a079cefc"
     },
     "ask-matt": {
       "source": "timschoch/mattpocock-skills",
@@ -23,7 +23,7 @@
       "source": "cursor/plugins",
       "sourceType": "github",
       "skillPath": "pstack/skills/blast-radius/SKILL.md",
-      "computedHash": "29c76d37a04163f5005cec955e4cdd0311783322d0c6bf478577955b6fefea40"
+      "computedHash": "748de95ad5aae5efa666a8ca5656eb38684b4c64be7b58e27827c9038dc4214c"
     },
     "cleanup-merged-branches": {
       "source": "timschoch/skilly",
@@ -89,7 +89,7 @@
       "source": "cursor/plugins",
       "sourceType": "github",
       "skillPath": "pstack/skills/how/SKILL.md",
-      "computedHash": "e8917fff34e8a16c1a48db488923c320bce646e457c05775f80d1362b496d3d6"
+      "computedHash": "532e080fb8d0f9119488628910d2ff2e2976882b009d3df4e8a29c86016e3207"
     },
     "implement": {
       "source": "timschoch/mattpocock-skills",
@@ -131,25 +131,25 @@
       "source": "cursor/plugins",
       "sourceType": "github",
       "skillPath": "pstack/skills/principle-encode-lessons-in-structure/SKILL.md",
-      "computedHash": "527fa064a616d4aecb1b952624daae24c6229cbf9c28404233c1678f2488ce22"
+      "computedHash": "13cb9b8bbf0aecd3c03a30803bbdfc012f6123f1a7d44db134bc8cce88a02d63"
     },
     "principle-fix-root-causes": {
       "source": "cursor/plugins",
       "sourceType": "github",
       "skillPath": "pstack/skills/principle-fix-root-causes/SKILL.md",
-      "computedHash": "b21d93ea5f651b83596bbd90187c87f40f4d33c9e5d105a1ad2be41b0d74bd97"
+      "computedHash": "a6fe6d14109670ba52904a95a18711816b7cf464f2730fa6d34ed5d9f362edb6"
     },
     "principle-guard-the-context-window": {
       "source": "cursor/plugins",
       "sourceType": "github",
       "skillPath": "pstack/skills/principle-guard-the-context-window/SKILL.md",
-      "computedHash": "4ba70fa93ea45d353d411daa7458e15959e6369f388cff727f639587e67b2fed"
+      "computedHash": "79651832c9b9a87405f02ccba09ee23104b4eca3e87bb31775a30c8ec26f75be"
     },
     "principle-prove-it-works": {
       "source": "cursor/plugins",
       "sourceType": "github",
       "skillPath": "pstack/skills/principle-prove-it-works/SKILL.md",
-      "computedHash": "df5e2a3f8b71c39780a398a9cd4515356479f2862e554b3d7cbf6dd8d1a37db7"
+      "computedHash": "1ed61e8344e183ef344d70e54294b8bd7eba8b874d58cfcfbbbfd6fad75959b8"
     },
     "prototype": {
       "source": "timschoch/mattpocock-skills",
@@ -203,7 +203,7 @@
       "source": "cursor/plugins",
       "sourceType": "github",
       "skillPath": "pstack/skills/technical-writing/SKILL.md",
-      "computedHash": "0a1bf9d082feaaecc0fe7a808daf3fd03a91e9fad55dd785584b27c7b09420db"
+      "computedHash": "820fc92bb14b53f5b724fc17e0c1edd3b3a9e96bbe4db1da666a12127b0aac0a"
     },
     "term-check": {
       "source": "timschoch/skilly",
@@ -245,7 +245,7 @@
       "source": "cursor/plugins",
       "sourceType": "github",
       "skillPath": "pstack/skills/unslop/SKILL.md",
-      "computedHash": "78f45b785f543d1bd82f55cd7be018239c769dc1462848a720b62a6d214ffc6d"
+      "computedHash": "3b8676e7461f44026b4d555ff0f3369a761df6033b9b9e2cd5152693cb20fbb2"
     },
     "wait-what": {
       "source": "timschoch/mattpocock-skills",
@@ -263,7 +263,7 @@
       "source": "cursor/plugins",
       "sourceType": "github",
       "skillPath": "pstack/skills/why/SKILL.md",
-      "computedHash": "b918f84d73285e88cc5f221d91dc61832296683d758617eb6febb19306275aa5"
+      "computedHash": "552d937a5bad70c5e0c2b92fa21cc914cd4b59d3c1747554a68f26bce9fc9a0f"
     },
     "wizard": {
       "source": "timschoch/mattpocock-skills",
