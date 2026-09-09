@@ -18,7 +18,7 @@ import { planRemovals } from '../lib/remove.js';
 import { pickPrivateOwner } from '../lib/add.js';
 import { sourceRepo } from '../lib/resolve.js';
 import { updateRules } from '../lib/update-rules.js';
-import { addFormatterIgnores } from '../lib/formatter-ignores.js';
+import { addFormatterIgnores, biomeMajor } from '../lib/formatter-ignores.js';
 import { linkSkillsDir } from '../lib/setup.js';
 import * as skillyFile from '../lib/skilly-file.js';
 
@@ -95,12 +95,14 @@ test('addFormatterIgnores creates .prettierignore when missing, appends once', (
   assert.equal(readFileSync(join(cwd, '.prettierignore'), 'utf8'), first);
 });
 
+const biomeConfig = (cwd) => JSON.parse(readFileSync(join(cwd, 'biome.json'), 'utf8'));
+
 test('addFormatterIgnores writes a bare folder for Biome 2.x and the glob for Biome 1.x', () => {
   const two = freshDir();
   writeFileSync(join(two, 'biome.json'), JSON.stringify({ files: { includes: ['**'] } }));
   addFormatterIgnores(two);
   // A trailing /** here is what Biome's own useBiomeIgnoreFolder warns about.
-  assert.deepEqual(JSON.parse(readFileSync(join(two, 'biome.json'), 'utf8')).files.includes, [
+  assert.deepEqual(biomeConfig(two).files.includes, [
     '**',
     '!.skilly.json',
     '!skills-lock.json',
@@ -112,13 +114,85 @@ test('addFormatterIgnores writes a bare folder for Biome 2.x and the glob for Bi
   const one = freshDir();
   writeFileSync(join(one, 'biome.json'), JSON.stringify({ files: { ignore: [] } }));
   addFormatterIgnores(one);
-  assert.deepEqual(JSON.parse(readFileSync(join(one, 'biome.json'), 'utf8')).files.ignore, [
+  assert.deepEqual(biomeConfig(one).files.ignore, [
     '.skilly.json',
     'skills-lock.json',
     '.claude/rules/**',
     '.claude/skills/**',
     '.agents/**',
   ]);
+});
+
+test('biomeMajor reads the manifest, then the $schema, and only then the config shape', () => {
+  const cwd = freshDir();
+  assert.equal(biomeMajor(cwd, { files: { ignore: [] } }), 1);
+  assert.equal(biomeMajor(cwd, { $schema: 'https://biomejs.dev/schemas/2.2.0/schema.json', files: { ignore: [] } }), 2);
+  writeFileSync(join(cwd, 'package.json'), JSON.stringify({ devDependencies: { '@biomejs/biome': '^1.9.4' } }));
+  assert.equal(biomeMajor(cwd, { $schema: 'https://biomejs.dev/schemas/2.2.0/schema.json' }), 1);
+});
+
+test('addFormatterIgnores keys off the installed Biome, not off the shape it finds', () => {
+  // A 2.x config that never declared files.includes reads as 1.x by shape alone.
+  const cwd = freshDir();
+  writeFileSync(join(cwd, 'package.json'), JSON.stringify({ devDependencies: { '@biomejs/biome': '^2.2.0' } }));
+  writeFileSync(join(cwd, 'biome.json'), JSON.stringify({ linter: { enabled: true } }));
+  addFormatterIgnores(cwd);
+  assert.deepEqual(biomeConfig(cwd).files.includes, [
+    '**',
+    '!.skilly.json',
+    '!skills-lock.json',
+    '!.claude/rules',
+    '!.claude/skills',
+    '!.agents',
+  ]);
+});
+
+test('addFormatterIgnores swaps the form an older skilly wrote instead of adding a second entry', () => {
+  const cwd = freshDir();
+  writeFileSync(
+    join(cwd, 'biome.json'),
+    JSON.stringify({
+      files: {
+        includes: ['**', '!.skilly.json', '!skills-lock.json', '!.claude/rules/**', '!vendor'],
+        // Written by an older skilly that mistook this 2.x config for a 1.x one.
+        ignore: ['.skilly.json', '.agents/**'],
+      },
+    }),
+  );
+  writeFileSync(
+    join(cwd, '.prettierignore'),
+    '# skilly-owned files\n.skilly.json\nskills-lock.json\n.claude/rules/**\n.claude/skills/**\n.agents/**\n',
+  );
+  addFormatterIgnores(cwd);
+
+  const config = biomeConfig(cwd);
+  assert.deepEqual(config.files.includes, [
+    '**',
+    '!.skilly.json',
+    '!skills-lock.json',
+    '!.claude/rules',
+    '!vendor',
+    '!.claude/skills',
+    '!.agents',
+  ]);
+  assert.equal('ignore' in config.files, false, 'Biome 2 does not know files.ignore');
+
+  const prettier = readFileSync(join(cwd, '.prettierignore'), 'utf8');
+  assert.equal(
+    prettier,
+    '# skilly-owned files\n.skilly.json\nskills-lock.json\n.claude/rules\n.claude/skills\n.agents\n',
+  );
+  addFormatterIgnores(cwd);
+  assert.equal(readFileSync(join(cwd, '.prettierignore'), 'utf8'), prettier);
+  assert.deepEqual(biomeConfig(cwd).files.includes, config.files.includes);
+});
+
+test('addFormatterIgnores keeps a files.ignore list the consumer owns', () => {
+  const cwd = freshDir();
+  writeFileSync(join(cwd, 'package.json'), JSON.stringify({ devDependencies: { '@biomejs/biome': '2.2.0' } }));
+  writeFileSync(join(cwd, 'biome.json'), JSON.stringify({ files: { includes: ['**'], ignore: ['dist/**'] } }));
+  addFormatterIgnores(cwd);
+  assert.deepEqual(biomeConfig(cwd).files.ignore, ['dist/**']);
 });
 
 test('linkSkillsDir symlinks .claude/skills to .agents/skills, migrating existing files', () => {
