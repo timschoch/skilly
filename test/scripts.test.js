@@ -15,7 +15,8 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { matchName } from '../lib/match.js';
 import { planRemovals } from '../lib/remove.js';
-import { pickPrivateOwner, sourceRepo } from '../lib/add.js';
+import { pickPrivateOwner } from '../lib/add.js';
+import { sourceRepo } from '../lib/resolve.js';
 import { updateRules } from '../lib/update-rules.js';
 import { addFormatterIgnores } from '../lib/formatter-ignores.js';
 import { linkSkillsDir } from '../lib/setup.js';
@@ -218,11 +219,10 @@ test('inject-writing-rules runs when invoked through a symlinked skills dir', as
   const link = join(freshDir(), 'skills');
   symlinkSync(realSkill, link);
   const event = JSON.stringify({ tool_name: 'Write', tool_input: { file_path: 'README.md' } });
-  const { stdout, status } = spawnSync(
-    process.execPath,
-    [join(link, 'scripts', 'inject-writing-rules.mjs')],
-    { input: event, encoding: 'utf8' },
-  );
+  const { stdout, status } = spawnSync(process.execPath, [join(link, 'scripts', 'inject-writing-rules.mjs')], {
+    input: event,
+    encoding: 'utf8',
+  });
   assert.equal(status, 0);
   assert.match(stdout, /"additionalContext":"Your writing rules for `README\.md`/);
 });

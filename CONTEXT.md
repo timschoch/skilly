@@ -23,6 +23,10 @@ _Avoid_: Preset, collection, group
 A repo that installs bundles and runs the nightly sync.
 _Avoid_: Client, target repo
 
+**Self-source**:
+A consumer that is also a source of skills its own bundles name. Identified by the git remote, never the directory name. Bundle resolution drops those sources: the skills already live in the repo, so they are never pinned back into it.
+_Avoid_: Self-hosting, local source
+
 **Pin**:
 One entry in a consumer's `skills-lock.json`, recording a skill and its real source. Owned by the skills CLI, not by skilly.
 
