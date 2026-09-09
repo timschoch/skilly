@@ -89,10 +89,36 @@ test('addFormatterIgnores creates .prettierignore when missing, appends once', (
   const cwd = freshDir();
   addFormatterIgnores(cwd);
   const first = readFileSync(join(cwd, '.prettierignore'), 'utf8');
-  assert.match(first, /\.claude\/skills\/\*\*/);
+  assert.match(first, /^\.claude\/skills$/m);
   assert.match(first, /skills-lock\.json/);
   addFormatterIgnores(cwd);
   assert.equal(readFileSync(join(cwd, '.prettierignore'), 'utf8'), first);
+});
+
+test('addFormatterIgnores writes a bare folder for Biome 2.x and the glob for Biome 1.x', () => {
+  const two = freshDir();
+  writeFileSync(join(two, 'biome.json'), JSON.stringify({ files: { includes: ['**'] } }));
+  addFormatterIgnores(two);
+  // A trailing /** here is what Biome's own useBiomeIgnoreFolder warns about.
+  assert.deepEqual(JSON.parse(readFileSync(join(two, 'biome.json'), 'utf8')).files.includes, [
+    '**',
+    '!.skilly.json',
+    '!skills-lock.json',
+    '!.claude/rules',
+    '!.claude/skills',
+    '!.agents',
+  ]);
+
+  const one = freshDir();
+  writeFileSync(join(one, 'biome.json'), JSON.stringify({ files: { ignore: [] } }));
+  addFormatterIgnores(one);
+  assert.deepEqual(JSON.parse(readFileSync(join(one, 'biome.json'), 'utf8')).files.ignore, [
+    '.skilly.json',
+    'skills-lock.json',
+    '.claude/rules/**',
+    '.claude/skills/**',
+    '.agents/**',
+  ]);
 });
 
 test('linkSkillsDir symlinks .claude/skills to .agents/skills, migrating existing files', () => {
