@@ -3,8 +3,28 @@
   "rules": [],
   "sources": [
     {
-      "source": "TanStack/router",
-      "skills": ["react-start", "react-router", "router-core", "router-query"]
+      "source": "https://github.com/TanStack/router/tree/main/packages/router-core/skills",
+      "skills": ["router-core"]
+    },
+    {
+      "source": "https://github.com/TanStack/router/tree/main/packages/react-router/skills",
+      "skills": ["react-router"]
+    },
+    {
+      "source": "https://github.com/TanStack/router/tree/main/packages/react-router/skills/compositions",
+      "skills": ["router-query"]
+    },
+    {
+      "source": "https://github.com/TanStack/router/tree/main/packages/react-start/skills",
+      "skills": ["react-start"]
+    },
+    {
+      "source": "https://github.com/TanStack/router/tree/main/packages/start-client-core/skills",
+      "skills": ["start-core"]
+    },
+    {
+      "source": "https://github.com/TanStack/router/tree/main/packages/start-server-core/skills",
+      "skills": ["start-server-core"]
     }
   ]
 }
