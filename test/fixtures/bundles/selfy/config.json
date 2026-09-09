@@ -1,0 +1,8 @@
+{
+  "includes": [],
+  "rules": [],
+  "sources": [
+    { "source": "https://github.com/owner/two/tree/main/skills", "skills": ["c-skill"] },
+    { "source": "owner/one", "skills": ["a-skill"] }
+  ]
+}
