@@ -3,14 +3,16 @@
   "rules": [],
   "sources": [
     {
-      "source": "twentyhq/twenty",
+      "source": "https://github.com/twentyhq/twenty/tree/main/packages/twenty-codex-plugin/skills",
       "skills": [
         "create-app",
         "develop-app",
-        "manage-app",
-        "use-twenty-mcp",
-        "twenty-record-presentation"
+        "manage-app"
       ]
+    },
+    {
+      "source": "https://github.com/twentyhq/twenty/tree/main/packages/twenty-claude-skills/skills",
+      "skills": ["twenty-record-presentation"]
     }
   ]
 }
