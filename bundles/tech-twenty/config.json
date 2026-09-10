@@ -9,6 +9,10 @@
         "develop-app",
         "manage-app"
       ]
+    },
+    {
+      "source": "https://github.com/twentyhq/twenty/tree/main/packages/twenty-claude-skills/skills",
+      "skills": ["twenty-record-presentation"]
     }
   ]
 }
