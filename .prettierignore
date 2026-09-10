@@ -1,9 +1,9 @@
 # skilly-owned files
 .skilly.json
 skills-lock.json
-.claude/rules/**
-.claude/skills/**
-.agents/**
+.claude/rules
+.claude/skills
+.agents
 
 # hub-exposed stream: shipped to consumers verbatim, never reformatted
 bundles/**
