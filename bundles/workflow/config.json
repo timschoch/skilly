@@ -1,6 +1,6 @@
 {
   "includes": [],
-  "rules": ["conventional-commits"],
+  "rules": ["conventional-commits", "naming"],
   "sources": [
     {
       "source": "timschoch/skilly",
@@ -13,6 +13,8 @@
         "plan-critics",
         "qa",
         "term-check",
+        "naming",
+        "audit-agent-history",
         "writing-rules",
         "skilly-cli"
       ]
