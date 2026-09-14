@@ -14,6 +14,13 @@ on:
         type: string
         required: false
         default: ''
+    # Callers name these; `secrets: inherit` passes nothing across owners.
+    # Optional so an unhealed caller still runs the gate job.
+    secrets:
+      SKILLY_APP_ID:
+        required: false
+      SKILLY_APP_PRIVATE_KEY:
+        required: false
 
 jobs:
   update:
@@ -25,6 +32,16 @@ jobs:
     steps:
       # The skills CLI takes a single GH_TOKEN; scope a read token to the
       # private-source owner. gh/git keep the repo-scoped write token.
+      - name: Check App secrets
+        env:
+          APP_ID: ${{ secrets.SKILLY_APP_ID }}
+          APP_KEY: ${{ secrets.SKILLY_APP_PRIVATE_KEY }}
+        run: |
+          if [ -z "$APP_ID" ] || [ -z "$APP_KEY" ]; then
+            echo "::error::SKILLY_APP_ID / SKILLY_APP_PRIVATE_KEY did not arrive. Name them under 'secrets:' in .github/workflows/skilly-sync.yml ('secrets: inherit' passes nothing across owners), or run 'skilly setup' to set them."
+            exit 1
+          fi
+
       - name: Mint read token (skills CLI)
         id: read-token
         uses: actions/create-github-app-token@v2

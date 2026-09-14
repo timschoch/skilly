@@ -9,4 +9,6 @@ permissions:
 jobs:
   skilly:
     uses: timschoch/skilly/.github/workflows/sync.yml@main
-    secrets: inherit
+    secrets:
+      SKILLY_APP_ID: ${{ secrets.SKILLY_APP_ID }}
+      SKILLY_APP_PRIVATE_KEY: ${{ secrets.SKILLY_APP_PRIVATE_KEY }}
