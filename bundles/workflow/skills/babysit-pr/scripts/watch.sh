@@ -21,11 +21,17 @@ deadline=$(( $(date +%s) + max * 60 ))
 rc=0
 
 while true; do
-  set +e
-  gh pr checks "$pr" --watch --fail-fast
-  rc=$?
-  set -e
-  # gh 2.98: 8 = no check has reported yet / still pending, 0 = all passed.
+  # Right after a push GitHub has not registered any check yet, and
+  # `gh pr checks` then exits 1 with "no checks reported". That is pending.
+  if [[ "$(gh pr checks "$pr" --json name --jq 'length' 2>/dev/null || echo 0)" == "0" ]]; then
+    rc=8
+  else
+    set +e
+    gh pr checks "$pr" --watch --fail-fast
+    rc=$?
+    set -e
+  fi
+  # gh 2.98: 8 = still pending, 0 = all passed.
   [[ $rc -eq 8 ]] || break
   if [[ "$(date +%s)" -ge "$deadline" ]]; then
     echo "watch.sh: checks still pending after ${max}m" >&2
