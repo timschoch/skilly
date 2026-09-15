@@ -16,6 +16,7 @@
         "term-check",
         "naming",
         "audit-agent-history",
+        "audit-skilly-workflow",
         "writing-rules",
         "skilly-cli",
         "verify"
