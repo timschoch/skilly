@@ -22,6 +22,19 @@ const makeRepo = ({ verify, tier, files = [] } = {}) => {
 
 const run = (root, ...args) => spawnSync(process.execPath, [script, ...args], { cwd: root, encoding: 'utf8' });
 
+test('a step does not inherit the git hook env', () => {
+  const root = makeRepo({
+    verify: { stages: { commit: { steps: [{ name: 'env', run: 'echo "dir=[$GIT_DIR] home=[$HOME]"' }] } } },
+  });
+  const result = spawnSync(process.execPath, [script, 'commit'], {
+    cwd: root,
+    encoding: 'utf8',
+    env: { ...process.env, GIT_DIR: '/elsewhere/.git', GIT_INDEX_FILE: '/elsewhere/index' },
+  });
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /dir=\[\] home=\[.+\]/);
+});
+
 test('extends is cumulative: push runs the commit steps first', () => {
   const root = makeRepo({
     verify: {

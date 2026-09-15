@@ -116,10 +116,14 @@ for (const skip of skipped) process.stdout.write(`skip ${skip.name}: ${skip.reas
 const startedAt = Date.now();
 const timings = [];
 
+// A git hook exports GIT_DIR and friends, which point every `git` a step runs at the hook's
+// repo, temp repos included. Steps run as they would from a shell.
+const env = Object.fromEntries(Object.entries(process.env).filter(([key]) => !key.startsWith('GIT_')));
+
 for (const step of steps) {
   const stepStartedAt = Date.now();
   process.stdout.write(`\n> ${stageName}: ${step.name}\n`);
-  const result = spawnSync(step.run, { cwd: root, shell: true, stdio: 'inherit' });
+  const result = spawnSync(step.run, { cwd: root, shell: true, stdio: 'inherit', env });
   const seconds = (Date.now() - stepStartedAt) / 1000;
   timings.push({ name: step.name, seconds });
   if (result.status !== 0) {
