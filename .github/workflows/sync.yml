@@ -44,7 +44,7 @@ jobs:
 
       - name: Mint read token (skills CLI)
         id: read-token
-        uses: actions/create-github-app-token@v2
+        uses: actions/create-github-app-token@v3
         with:
           app-id: ${{ secrets.SKILLY_APP_ID }}
           private-key: ${{ secrets.SKILLY_APP_PRIVATE_KEY }}
@@ -55,7 +55,7 @@ jobs:
       # never run on the Sync PR. The write token makes the gate fire.
       - name: Mint write token (push + PR)
         id: write-token
-        uses: actions/create-github-app-token@v2
+        uses: actions/create-github-app-token@v3
         with:
           app-id: ${{ secrets.SKILLY_APP_ID }}
           private-key: ${{ secrets.SKILLY_APP_PRIVATE_KEY }}
