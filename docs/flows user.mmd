@@ -17,7 +17,7 @@ flowchart LR
         ON1 --> ON-EB["run ensure-branch"]
         ON-EB --> ON-LN["symlink .claude/skills → .agents/skills"]
         ON-LN --> ON2["install github app + secrets"]
-        ON2 --> ON3[".skilly.json (no bundles)"]
+        ON2 --> ON3[".skilly/config.json (no bundles)"]
         ON3 --> ON4["caller workflow"]
         ON4 --> ON5["install ONE skill: setup-project"]
         ON5 --> ON6["run skilly-commit.js"]

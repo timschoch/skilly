@@ -62,14 +62,26 @@ test('loadNamingConfig reads the defaults and merges the repo override', () => {
   assert.equal(defaults.shortWords.opts, 'options');
   assert.equal(defaults.$comment, undefined);
 
+  mkdirSync(join(root, '.skilly'), { recursive: true });
+  writeFileSync(join(root, '.skilly', 'naming.json'), JSON.stringify({ discriminant: 'type' }));
+  assert.equal(loadNamingConfig(root).discriminant, 'type');
+});
+
+test('loadNamingConfig falls back to the pre-.skilly override path', () => {
+  const root = mkdtempSync(join(tmpdir(), 'skilly-naming-config-'));
   mkdirSync(join(root, 'docs', 'agents'), { recursive: true });
   writeFileSync(join(root, 'docs', 'agents', 'naming.json'), JSON.stringify({ discriminant: 'type' }));
   assert.equal(loadNamingConfig(root).discriminant, 'type');
+
+  // The new path wins wherever both exist.
+  mkdirSync(join(root, '.skilly'), { recursive: true });
+  writeFileSync(join(root, '.skilly', 'naming.json'), JSON.stringify({ discriminant: 'sort' }));
+  assert.equal(loadNamingConfig(root).discriminant, 'sort');
 });
 
 test('loadNamingConfig names the file when the override is malformed', () => {
   const root = mkdtempSync(join(tmpdir(), 'skilly-naming-config-'));
-  mkdirSync(join(root, 'docs', 'agents'), { recursive: true });
-  writeFileSync(join(root, 'docs', 'agents', 'naming.json'), '{ not json');
-  assert.throws(() => loadNamingConfig(root), /docs\/agents\/naming\.json/);
+  mkdirSync(join(root, '.skilly'), { recursive: true });
+  writeFileSync(join(root, '.skilly', 'naming.json'), '{ not json');
+  assert.throws(() => loadNamingConfig(root), /\.skilly\/naming\.json/);
 });

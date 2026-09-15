@@ -1,19 +1,18 @@
 // Gate job entry (shared workflow). Runs from a consumer checkout with the hub
 // checked out at .skilly-hub: resolves the consumer's bundles, then runs every
 // declared rule's check script. Any failing script fails the job.
-import { existsSync, readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 import { resolveBundles } from '../lib/resolve.js';
+import * as skillyFile from '../lib/skilly-file.js';
 
 const bundlesDir = join(dirname(fileURLToPath(import.meta.url)), '..', 'bundles');
-const skillyPath = join(process.cwd(), '.skilly.json');
-if (!existsSync(skillyPath)) {
-  console.log('no .skilly.json — nothing to gate');
+if (!skillyFile.exists(process.cwd())) {
+  console.log(`no ${skillyFile.CONFIG_PATH} — nothing to gate`);
   process.exit(0);
 }
-const { bundles, rules } = resolveBundles(JSON.parse(readFileSync(skillyPath, 'utf8')).bundles ?? [], bundlesDir);
+const { bundles, rules } = resolveBundles(skillyFile.read(process.cwd()).bundles, bundlesDir);
 
 if (!rules.size) {
   console.log(`no rules declared by bundles: ${bundles.join(', ') || '(none)'}`);

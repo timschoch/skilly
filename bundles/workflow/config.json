@@ -9,6 +9,7 @@
         "orchestrate",
         "step-by-step",
         "cleanup-merged-branches",
+        "babysit-pr",
         "git-shortcuts",
         "plan-critics",
         "qa",
@@ -17,7 +18,8 @@
         "audit-agent-history",
         "audit-skilly-workflow",
         "writing-rules",
-        "skilly-cli"
+        "skilly-cli",
+        "verify"
       ]
     },
     {

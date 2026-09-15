@@ -9,7 +9,7 @@ import { update } from '../lib/update.js';
 const bundlesDir = fileURLToPath(new URL('../bundles', import.meta.url));
 
 const usage = `usage:
-  skilly setup                        one-time setup: secrets, .skilly.json, caller workflow, setup-project skill
+  skilly setup                        one-time setup: secrets, .skilly/config.json, caller workflow, setup-project skill
   skilly add <bundle-or-skill...>     add bundles or single skills, commit, ensure PR
   skilly remove <bundle-or-skill...>  remove bundles or single skills, commit, ensure PR
   skilly update [--headless] [--report <path>]  pull hub changes, update all skills, commit, ensure PR`;

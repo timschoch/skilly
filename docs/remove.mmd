@@ -24,7 +24,7 @@ flowchart TD
         REM-MATCH["match each name against<br>hub bundles json,<br>first match wins"] --> REMQ3
 
             REMQ3{"name is<br>a bundle?"}
-                REMQ3 -->|yes| REM-BUNDLE["remove bundle from<br>**.skilly.json**"]
+                REMQ3 -->|yes| REM-BUNDLE["remove bundle from<br>**.skilly/config.json**"]
                     REM-BUNDLE --> REM-EXPAND["expand to all<br>skills in bundle"] --> REM-FILTER
                 REMQ3 -->|no| REMQ4
 
@@ -32,7 +32,7 @@ flowchart TD
                 REMQ4 -->|yes| REM-FILTER
                 REMQ4 -->|no| REM-ABORT-UNKNOWN
 
-        REM-FILTER["keep skills still claimed<br>by a remaining bundle<br>in **.skilly.json**"] --> REM-CLI
+        REM-FILTER["keep skills still claimed<br>by a remaining bundle<br>in **.skilly/config.json**"] --> REM-CLI
         REM-CLI["run skills.sh remove<br>(deletes folders + lock entries)"]
             REM-CLI -->|ok| REM-RULES["run update-rules<br>for each removed skill<br>(only deletes, nothing to copy)"] --> REM-COMMIT["run commit"] --> REM-TRUE
             REM-CLI -->|fails| REM-FALSE

@@ -1,17 +1,29 @@
-# Hub CI: unit tests + bundle validation. Auth regression lives in
-# validate-app-auth.yml (workflow_dispatch).
+# The PR gate: one job running the ci stage of .skilly/verify.json. Actions
+# rounds every job up to the minute, so one job beats several short ones.
+# Auth regression lives in validate-app-auth.yml (workflow_dispatch).
 name: CI
 
 on:
-  pull_request: {}
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
   push:
     branches: [main]
 
+# A newer push to the same ref cancels the run it superseded.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  test:
+  verify:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v5
-      - run: npm test
-      - run: node scripts/validate-bundles.mjs
-      - run: node scripts/check-agents-lock.mjs
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      # The hub is its own Source, so the verify skill is called where it lives.
+      - run: node bundles/workflow/skills/verify/scripts/verify.mjs ci
