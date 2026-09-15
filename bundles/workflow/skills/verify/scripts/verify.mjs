@@ -74,21 +74,21 @@ const stepsFor = (name, seen = []) => {
 };
 
 const meets = (needed) => TIERS.indexOf(tier) >= TIERS.indexOf(needed);
-const checkTier = (needed, where) => {
+const validateTier = (needed, where) => {
   if (!TIERS.includes(needed)) fail(`unknown tier ${JSON.stringify(needed)} on ${where}, tiers are ${TIERS.join(', ')}.`);
 };
 
 const steps = [];
 const skipped = [];
 
-if (stage.tier !== undefined) checkTier(stage.tier, `stage ${stageName}`);
+if (stage.tier !== undefined) validateTier(stage.tier, `stage ${stageName}`);
 const stageBlocked = stage.tier !== undefined && !meets(stage.tier);
 
 if (stageBlocked) {
   skipped.push({ name: stageName, reason: `stage needs ${stage.tier}, repo is ${tier}` });
 } else {
   for (const step of stepsFor(stageName)) {
-    if (step.tier !== undefined) checkTier(step.tier, `step ${step.name}`);
+    if (step.tier !== undefined) validateTier(step.tier, `step ${step.name}`);
     if (step.tier !== undefined && !meets(step.tier)) {
       skipped.push({ name: step.name, reason: `needs ${step.tier}, repo is ${tier}` });
       continue;
@@ -116,10 +116,14 @@ for (const skip of skipped) process.stdout.write(`skip ${skip.name}: ${skip.reas
 const startedAt = Date.now();
 const timings = [];
 
+// A git hook exports GIT_DIR and friends, which point every `git` a step runs at the hook's
+// repo, temp repos included. Steps run as they would from a shell.
+const env = Object.fromEntries(Object.entries(process.env).filter(([key]) => !key.startsWith('GIT_')));
+
 for (const step of steps) {
   const stepStartedAt = Date.now();
   process.stdout.write(`\n> ${stageName}: ${step.name}\n`);
-  const result = spawnSync(step.run, { cwd: root, shell: true, stdio: 'inherit' });
+  const result = spawnSync(step.run, { cwd: root, shell: true, stdio: 'inherit', env });
   const seconds = (Date.now() - stepStartedAt) / 1000;
   timings.push({ name: step.name, seconds });
   if (result.status !== 0) {

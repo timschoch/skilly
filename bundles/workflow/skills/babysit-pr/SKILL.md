@@ -1,6 +1,6 @@
 ---
 name: babysit-pr
-description: Watch a PR until it is merge-ready: CI, review threads, fix-push loop. Use for "babysit", "watch the PR", "get it green".
+description: 'Watch a PR until it is merge-ready: CI, review threads, fix-push loop. Use for "babysit", "watch the PR", "get it green".'
 disable-model-invocation: true
 argument-hint: <pr-number|url> [--merge]
 ---
