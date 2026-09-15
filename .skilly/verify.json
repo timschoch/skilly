@@ -1,0 +1,46 @@
+{
+  "budgetTicket": "https://github.com/timschoch/skilly/issues",
+  "stages": {
+    "commit": {
+      "budgetSeconds": 3,
+      "steps": []
+    },
+    "push": {
+      "extends": "commit",
+      "budgetSeconds": 30,
+      "steps": [{ "name": "unit", "run": "npm test" }]
+    },
+    "ci": {
+      "extends": "push",
+      "budgetSeconds": 300,
+      "steps": [
+        {
+          "name": "format",
+          "run": "npx prettier --check .",
+          "why": "lint-staged formats what a commit touches. A file written by a script or an agent that bypassed the hook shows up here."
+        },
+        {
+          "name": "bundles",
+          "run": "node scripts/validate-bundles.mjs",
+          "why": "Every bundle config must resolve: unknown skill, missing rule script, include cycle."
+        },
+        {
+          "name": "agents lock",
+          "run": "node scripts/check-agents-lock.mjs",
+          "why": "Every dir in .agents/skills has a pin and every pin a dir. A dead pin resurfaces on the next sync."
+        },
+        {
+          "name": "audit",
+          "run": "npm audit --audit-level=high",
+          "tier": "tool",
+          "why": "High and critical advisories only. Lower levels fire on transitive dev dependencies and train everyone to ignore the check."
+        }
+      ]
+    },
+    "nightly": {
+      "tier": "product",
+      "budgetSeconds": 600,
+      "steps": []
+    }
+  }
+}

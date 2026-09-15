@@ -17,7 +17,7 @@ flowchart TD
             ESQ1 -->|yes| ESQ2
             ESQ1 -->|no| ES-ABORT-NO-SKILLS
 
-        ESQ2{"has<br>**.skilly.json**?"}
+        ESQ2{"has<br>**.skilly/config.json**?"}
             ESQ2 -->|yes| ES-TRUE
             ESQ2 -->|no| ES-ABORT-NO-SKILLY
 

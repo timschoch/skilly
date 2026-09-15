@@ -1,0 +1,9 @@
+{
+  "tier": "tool",
+  "bundles": [
+    "workflow"
+  ],
+  "review": {
+    "bots": []
+  }
+}
