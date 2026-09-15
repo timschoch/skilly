@@ -197,22 +197,22 @@ test('an allow entry suppresses a matching identifier, path or env name', () => 
 // Writes the consumer override into a fresh root, then checks the same files.
 const withOverride = (files, override) => {
   const { root } = check(files);
-  mkdirSync(join(root, 'docs', 'agents'), { recursive: true });
+  mkdirSync(join(root, '.skilly'), { recursive: true });
   const text = typeof override === 'string' ? override : JSON.stringify(override, null, 2);
-  writeFileSync(join(root, 'docs', 'agents', 'naming.json'), text);
+  writeFileSync(join(root, '.skilly', 'naming.json'), text);
   return { root, ...checkNaming({ root, files: Object.keys(files) }) };
 };
 
-test('docs/agents/naming.json allow silences a name the defaults flag', () => {
+test('.skilly/naming.json allow silences a name the defaults flag', () => {
   assert.deepEqual(withOverride({ 'a.ts': 'const opts = 1;\n' }, { allow: ['^opts$'] }).failures, []);
 });
 
-test('docs/agents/naming.json drops a default noise word and a default short word', () => {
+test('.skilly/naming.json drops a default noise word and a default short word', () => {
   assert.deepEqual(withOverride({ 'a.ts': 'const userData = 1;\n' }, { noiseWords: ['-Data'] }).failures, []);
   assert.deepEqual(withOverride({ 'a.ts': 'const opts = 1;\n' }, { shortWords: { opts: null } }).failures, []);
 });
 
-test('docs/agents/naming.json adds a short word and a verb synonym', () => {
+test('.skilly/naming.json adds a short word and a verb synonym', () => {
   const short = withOverride({ 'a.ts': 'const dto = 1;\n' }, { shortWords: { dto: 'data transfer object' } });
   assert.deepEqual(
     short.failures.map((finding) => [finding.rule, finding.suggestion]),
@@ -226,18 +226,25 @@ test('docs/agents/naming.json adds a short word and a verb synonym', () => {
   );
 });
 
-test('docs/agents/naming.json can make "type" the discriminant, which drops the warning', () => {
+test('.skilly/naming.json can make "type" the discriminant, which drops the warning', () => {
   const source = "interface Message {\n  readonly type: 'ping';\n}\n";
   assert.deepEqual(withOverride({ 'a.ts': source }, { discriminant: 'type' }).warnings, []);
 });
 
+test('the gate still reads an override left at the pre-.skilly path', () => {
+  const { root } = check({ 'a.ts': 'const opts = 1;\n' });
+  mkdirSync(join(root, 'docs', 'agents'), { recursive: true });
+  writeFileSync(join(root, 'docs', 'agents', 'naming.json'), JSON.stringify({ allow: ['^opts$'] }));
+  assert.deepEqual(checkNaming({ root, files: ['a.ts'] }).failures, []);
+});
+
 test('a malformed override fails the CLI and names the file', () => {
   const { root } = check({ 'a.ts': 'const label = 1;\n' });
-  mkdirSync(join(root, 'docs', 'agents'), { recursive: true });
-  writeFileSync(join(root, 'docs', 'agents', 'naming.json'), '{ not json');
+  mkdirSync(join(root, '.skilly'), { recursive: true });
+  writeFileSync(join(root, '.skilly', 'naming.json'), '{ not json');
   const result = spawnSync(process.execPath, [namingScript, 'a.ts'], { cwd: root, encoding: 'utf8' });
   assert.equal(result.status, 1);
-  assert.match(result.stderr, /docs\/agents\/naming\.json/);
+  assert.match(result.stderr, /\.skilly\/naming\.json/);
 });
 
 test('vendored, generated and non-code paths are skipped', () => {

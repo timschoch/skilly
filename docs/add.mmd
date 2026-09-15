@@ -24,7 +24,7 @@ flowchart TD
         ADD-MATCH["match each name against<br>hub bundles json,<br>first match wins"] --> ADDQ2
 
             ADDQ2{"name is<br>a bundle?"}
-                ADDQ2 -->|yes| ADD-BUNDLE["add bundle to<br>**.skilly.json**"]
+                ADDQ2 -->|yes| ADD-BUNDLE["add bundle to<br>**.skilly/config.json**"]
                     ADD-BUNDLE --> ADD-EXPAND["expand to all<br>skills in bundle"] --> ADD-INSTALL
                 ADDQ2 -->|no| ADDQ3
 

@@ -6,7 +6,7 @@
 // a false FAIL, which teaches people to ignore the gate.
 // Every word list — short words, noise words, verb synonyms, env roles, the
 // discriminant key and the allow list — lives in the naming skill's
-// `references/naming.json`, merged with the consumer's `docs/agents/naming.json`
+// `references/naming.json`, merged with the consumer's `.skilly/naming.json`
 // by `skills/naming/scripts/config.mjs`. Only the single-letter ban is in code.
 import { existsSync, readFileSync } from 'node:fs';
 import { extname, join } from 'node:path';

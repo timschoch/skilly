@@ -1,1 +1,5 @@
+# Trunk guard first, so a push at the default branch fails before any work runs.
 node .claude/hooks/check-push-branch.mjs
+# Everything else is a step in .skilly/verify.json, never a line in this file.
+# The hub is its own Source, so the verify skill is called where it lives.
+node bundles/workflow/skills/verify/scripts/verify.mjs push

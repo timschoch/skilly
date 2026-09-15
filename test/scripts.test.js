@@ -139,8 +139,8 @@ test('addFormatterIgnores writes a bare folder for Biome 2.x and the glob for Bi
   // A trailing /** here is what Biome's own useBiomeIgnoreFolder warns about.
   assert.deepEqual(biomeConfig(two).files.includes, [
     '**',
-    '!.skilly.json',
     '!skills-lock.json',
+    '!.skilly',
     '!.claude/rules',
     '!.claude/skills',
     '!.agents',
@@ -150,8 +150,8 @@ test('addFormatterIgnores writes a bare folder for Biome 2.x and the glob for Bi
   writeFileSync(join(one, 'biome.json'), JSON.stringify({ files: { ignore: [] } }));
   addFormatterIgnores(one);
   assert.deepEqual(biomeConfig(one).files.ignore, [
-    '.skilly.json',
     'skills-lock.json',
+    '.skilly/**',
     '.claude/rules/**',
     '.claude/skills/**',
     '.agents/**',
@@ -174,8 +174,8 @@ test('addFormatterIgnores keys off the installed Biome, not off the shape it fin
   addFormatterIgnores(cwd);
   assert.deepEqual(biomeConfig(cwd).files.includes, [
     '**',
-    '!.skilly.json',
     '!skills-lock.json',
+    '!.skilly',
     '!.claude/rules',
     '!.claude/skills',
     '!.agents',
@@ -188,25 +188,25 @@ test('addFormatterIgnores swaps the form an older skilly wrote instead of adding
     join(cwd, 'biome.json'),
     JSON.stringify({
       files: {
-        includes: ['**', '!.skilly.json', '!skills-lock.json', '!.claude/rules/**', '!vendor'],
+        includes: ['**', '!skills-lock.json', '!.claude/rules/**', '!vendor'],
         // Written by an older skilly that mistook this 2.x config for a 1.x one.
-        ignore: ['.skilly.json', '.agents/**'],
+        ignore: ['.agents/**'],
       },
     }),
   );
   writeFileSync(
     join(cwd, '.prettierignore'),
-    '# skilly-owned files\n.skilly.json\nskills-lock.json\n.claude/rules/**\n.claude/skills/**\n.agents/**\n',
+    '# skilly-owned files\nskills-lock.json\n.claude/rules/**\n.claude/skills/**\n.agents/**\n',
   );
   addFormatterIgnores(cwd);
 
   const config = biomeConfig(cwd);
   assert.deepEqual(config.files.includes, [
     '**',
-    '!.skilly.json',
     '!skills-lock.json',
     '!.claude/rules',
     '!vendor',
+    '!.skilly',
     '!.claude/skills',
     '!.agents',
   ]);
@@ -215,7 +215,7 @@ test('addFormatterIgnores swaps the form an older skilly wrote instead of adding
   const prettier = readFileSync(join(cwd, '.prettierignore'), 'utf8');
   assert.equal(
     prettier,
-    '# skilly-owned files\n.skilly.json\nskills-lock.json\n.claude/rules\n.claude/skills\n.agents\n',
+    '# skilly-owned files\nskills-lock.json\n.claude/rules\n.claude/skills\n.agents\n\n# skilly-owned files\n.skilly\n',
   );
   addFormatterIgnores(cwd);
   assert.equal(readFileSync(join(cwd, '.prettierignore'), 'utf8'), prettier);
@@ -261,16 +261,55 @@ test('linkSkillsDir drops per-skill symlinks into .agents/skills, refuses to clo
   assert.equal(existsSync(join(clash, '.claude', 'skills', 'b-skill')), true);
 });
 
+const configPath = (cwd) => join(cwd, '.skilly', 'config.json');
+const sandbox = (bundles) => ({ tier: 'sandbox', bundles, review: { bots: [] } });
+
 test('skilly-file: create, add and remove bundles, empty bundles stay legal', () => {
   const cwd = freshDir();
   assert.equal(skillyFile.create(cwd), true);
-  assert.deepEqual(skillyFile.read(cwd), { bundles: [] });
+  assert.deepEqual(skillyFile.read(cwd), sandbox([]));
   assert.equal(skillyFile.addBundle(cwd, 'alpha'), true);
   assert.equal(skillyFile.addBundle(cwd, 'alpha'), false);
-  assert.deepEqual(skillyFile.read(cwd), { bundles: ['alpha'] });
+  assert.deepEqual(skillyFile.read(cwd), sandbox(['alpha']));
   assert.equal(skillyFile.removeBundle(cwd, 'alpha'), true);
-  assert.deepEqual(skillyFile.read(cwd), { bundles: [] });
-  assert.match(readFileSync(join(cwd, '.skilly.json'), 'utf8'), /\n$/);
+  assert.deepEqual(skillyFile.read(cwd), sandbox([]));
+  assert.match(readFileSync(configPath(cwd), 'utf8'), /\n$/);
+});
+
+test('skilly-file: create defaults the tier to sandbox', () => {
+  const cwd = freshDir();
+  skillyFile.create(cwd);
+  assert.deepEqual(JSON.parse(readFileSync(configPath(cwd), 'utf8')), {
+    tier: 'sandbox',
+    bundles: [],
+    review: { bots: [] },
+  });
+});
+
+test('skilly-file: migrate moves .skilly.json into .skilly/config.json and removes it', () => {
+  const cwd = freshDir();
+  writeFileSync(join(cwd, '.skilly.json'), JSON.stringify({ bundles: ['alpha'] }));
+  assert.equal(skillyFile.migrate(cwd), true);
+  assert.equal(existsSync(join(cwd, '.skilly.json')), false);
+  assert.deepEqual(skillyFile.read(cwd), sandbox(['alpha']));
+  assert.equal(skillyFile.migrate(cwd), false);
+});
+
+test('skilly-file: keys another skill owns survive a bundle change', () => {
+  const cwd = freshDir();
+  skillyFile.create(cwd);
+  const data = skillyFile.read(cwd);
+  skillyFile.write(cwd, { ...data, verify: { stages: ['commit'] } });
+  skillyFile.addBundle(cwd, 'alpha');
+  assert.deepEqual(skillyFile.read(cwd).verify, { stages: ['commit'] });
+});
+
+test('skilly-file: setTier takes the three tier names and nothing else', () => {
+  const cwd = freshDir();
+  skillyFile.create(cwd);
+  assert.equal(skillyFile.setTier(cwd, 'product'), true);
+  assert.equal(skillyFile.read(cwd).tier, 'product');
+  assert.throws(() => skillyFile.setTier(cwd, 'prod'), /unknown tier "prod"/);
 });
 
 test('updateRules wipes {name}-*.md, installs matching rules, leaves the rest', () => {
