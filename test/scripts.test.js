@@ -278,6 +278,7 @@ test('updateRules wipes {name}-*.md, installs matching rules, leaves the rest', 
   const outDir = join(cwd, '.claude', 'rules');
   mkdirSync(outDir, { recursive: true });
   writeFileSync(join(outDir, 'alpha-stale.md'), 'stale');
+  writeFileSync(join(outDir, 'alpha-fresh.local.md'), 'consumer overlay, survives sync');
   writeFileSync(join(outDir, 'other-rule.md'), 'not mine');
 
   const skillDir = join(cwd, 'skill-src');
@@ -287,7 +288,7 @@ test('updateRules wipes {name}-*.md, installs matching rules, leaves the rest', 
 
   const installed = updateRules(cwd, 'alpha', skillDir);
   assert.deepEqual(installed, ['alpha-fresh.md']);
-  assert.deepEqual(readdirSync(outDir).sort(), ['alpha-fresh.md', 'other-rule.md']);
+  assert.deepEqual(readdirSync(outDir).sort(), ['alpha-fresh.local.md', 'alpha-fresh.md', 'other-rule.md']);
   assert.equal(existsSync(join(outDir, 'alpha-stale.md')), false);
 });
 
