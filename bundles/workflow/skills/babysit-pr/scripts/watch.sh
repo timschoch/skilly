@@ -31,6 +31,12 @@ while true; do
   set -e
   cat "$err" >&2
   if grep -q 'no checks reported' "$err"; then rc=8; fi
+  # The other early shape: only a skipped job has registered, so nothing is
+  # pending and gh returns 0. Settled means at least one pass or fail.
+  if [[ $rc -eq 0 ]]; then
+    settled="$(gh pr checks "$pr" --json bucket --jq '[.[] | select(.bucket == "pass" or .bucket == "fail")] | length' 2>/dev/null || echo 0)"
+    [[ "$settled" == "0" ]] && rc=8
+  fi
   # gh 2.98: 8 = still pending, 0 = all passed.
   [[ $rc -eq 8 ]] || break
   if [[ "$(date +%s)" -ge "$deadline" ]]; then

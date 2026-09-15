@@ -5,6 +5,7 @@
 #
 # Scenarios:
 #   no checks yet  -> watch.sh keeps polling instead of returning an empty snapshot
+#   skipped only   -> gh exits 0 with nothing pending; still polling until a pass or fail
 #   all passed     -> exit 0 and a snapshot with the checks
 #   red check      -> exit code of gh (1), snapshot still printed
 set -euo pipefail
@@ -43,6 +44,11 @@ JSON
 # WATCH_PLAN: one exit code per `pr checks --watch` call, in order.
 cat >"$tmp/gh" <<'FAKE'
 #!/usr/bin/env bash
+if [[ "${1:-}" == pr && "${2:-}" == checks && "${3:-}" == 7 && "${4:-}" == --json ]]; then
+  # SKIPPED_ONLY: the first settled-count call sees only a skipped job.
+  if [[ -f "$SKIPPED_ONLY" ]]; then rm -f "$SKIPPED_ONLY"; echo 0; else echo 1; fi
+  exit 0
+fi
 if [[ "${1:-}" == pr && "${2:-}" == checks ]]; then
   echo x >>"$CALLS"
   n="$(wc -l <"$CALLS" | tr -d ' ')"
@@ -72,6 +78,7 @@ mkdir -p "$repo"
 git -C "$repo" init -q
 
 export PATH="$tmp:$PATH"
+export SKIPPED_ONLY="$tmp/skipped-only"
 export BABYSIT_POLL_SECONDS=0
 export BABYSIT_MAX_MINUTES=1
 
@@ -103,6 +110,11 @@ check "no checks yet: snapshot carries the check" "verify" "$(echo "$out" | jq -
 run "0"
 check "green: one call" "1" "$(wc -l <"$CALLS" | tr -d ' ')"
 check "green: exit 0" "0" "$rc"
+
+touch "$SKIPPED_ONLY"
+run "0,0"
+check "only a skipped job yet: polls again" "2" "$(wc -l <"$CALLS" | tr -d ' ')"
+check "only a skipped job yet: exit 0 once settled" "0" "$rc"
 
 run "1"
 check "red: exit mirrors gh" "1" "$rc"
