@@ -25,7 +25,7 @@ test('audit-skilly-workflow: each planted defect yields its finding', () => {
 
   const found = result.findings.map(({ kind, where }) => `${kind} ${where}`).sort();
   assert.deepEqual(found, [
-    'dead-path CLAUDE.md:7',
+    'dead-path CLAUDE.md:8',
     'hook-duplicate .claude/settings.json: PreToolUse [Bash]',
     'hook-matcher-gap .claude/settings.json: PreToolUse [Bash]',
     'hook-matcher-gap .claude/settings.json: PreToolUse [Write|Edit|mcp__lean-ctx__ctx_patch]',
@@ -44,7 +44,11 @@ test('audit-skilly-workflow: each planted defect yields its finding', () => {
 
   assert.deepEqual(result.gates.commit.skilly.types.slice(0, 4), ['feat', 'fix', 'chore', 'docs']);
   assert.equal(result.gates.commit.skilly.descriptionMax, 72);
+  // lefthook.yml is setup-repo's template, which runs the skilly commit hook: no second gate.
   assert.deepEqual(result.gates.commit.others, ['commitlint.config.js']);
+  assert.equal(result.tier, 'tool');
+  assert.equal(result.gates.verify.file, '.skilly/verify.json');
+  assert.deepEqual(result.gates.verify.stages.push.steps, [{ name: 'unit', run: 'npm test' }]);
   assert.deepEqual(result.skills, [{ name: 'demo-skill', description: 'Shows a demo.' }]);
   assert.match(
     result.report.file,
@@ -90,6 +94,7 @@ test('audit-skilly-workflow: parser edge cases stay quiet or load right', () => 
   const home = freshDirectory();
   git(repo, 'init', '-q');
   const files = {
+    // The layout before .skilly/config.json still counts as a consumer.
     '.skilly.json': JSON.stringify({ bundles: ['workflow'] }),
     '.claude/CLAUDE.md': '# Project\n\n- Read [the 100% plan](docs/100%.md).\n',
     'docs/100%.md': '# Plan\n',
@@ -108,6 +113,7 @@ test('audit-skilly-workflow: parser edge cases stay quiet or load right', () => 
   symlinkSync(join(repo, 'shared', 'crlf'), join(repo, '.agents', 'skills', 'crlf'));
 
   const result = audit(repo, home);
+  assert.equal(result.consumer, true);
   assert.deepEqual(result.findings, []);
   assert.deepEqual(result.skills, [{ name: 'crlf', description: 'Folded over two lines.' }]);
   const loaded = Object.fromEntries(result.sources.map(({ path, loaded }) => [path, loaded]));
@@ -122,11 +128,14 @@ test('audit-skilly-workflow: a clean consumer has no findings, a plain repo is n
   execFileSync('git', ['init', '-q'], { cwd: repo });
   assert.deepEqual(audit(repo, home), {
     consumer: false,
-    reason: 'no .skilly.json: not a skilly consumer, nothing to audit',
+    reason: 'no .skilly/config.json: not a skilly consumer, nothing to audit',
   });
 
-  writeFileSync(join(repo, '.skilly.json'), JSON.stringify({ bundles: ['workflow'] }));
+  mkdirSync(join(repo, '.skilly'));
+  writeFileSync(join(repo, '.skilly', 'config.json'), JSON.stringify({ tier: 'sandbox', bundles: ['workflow'] }));
   const result = audit(repo, home);
   assert.equal(result.consumer, true);
+  assert.equal(result.tier, 'sandbox');
+  assert.equal(result.gates.verify, null);
   assert.deepEqual(result.findings, []);
 });

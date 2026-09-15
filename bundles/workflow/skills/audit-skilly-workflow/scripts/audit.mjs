@@ -125,12 +125,15 @@ export function listGates(root, workflows) {
   const packageJson = parseJson(join(root, 'package.json'));
   if (packageJson?.commitlint) commitOthers.push('package.json#commitlint');
   for (const file of readdirSync(root)) if (/^(commitlint\.config\.|\.commitlintrc)/.test(file)) commitOthers.push(file);
-  if (/commit-msg/.test(findText(join(root, 'lefthook.yml')) ?? findText(join(root, 'lefthook.yaml')) ?? '')) commitOthers.push('lefthook.yml');
+  const lefthook = findText(join(root, 'lefthook.yml')) ?? findText(join(root, 'lefthook.yaml')) ?? '';
+  if (/commit-msg/.test(lefthook) && !/check-commit-msg/.test(lefthook)) commitOthers.push('lefthook.yml');
   const huskyCommit = findText(join(root, '.husky', 'commit-msg'));
   if (huskyCommit && !/check-commit-msg/.test(huskyCommit)) commitOthers.push('.husky/commit-msg');
   for (const path of workflows) {
     if (/commitlint|semantic-pull-request|conventional-commit/i.test(findText(path) ?? '')) commitOthers.push(relative(root, path));
   }
+
+  const verifyFile = parseJson(join(root, '.skilly', 'verify.json'));
 
   const namingOthers = [];
   for (const file of readdirSync(root)) {
@@ -144,6 +147,8 @@ export function listGates(root, workflows) {
       others: commitOthers,
     },
     naming: { skilly: existsSync(join(root, '.agents', 'skills', 'naming')), others: namingOthers },
+    // Stage -> steps that hooks and CI run through the verify skill.
+    verify: verifyFile?.stages ? { file: '.skilly/verify.json', stages: verifyFile.stages } : null,
   };
 }
 
@@ -327,8 +332,9 @@ export function findShadowedSkills({ root, home, skills }) {
 export function audit(start = process.cwd(), home = homedir()) {
   const root = runGit(start, ['rev-parse', '--show-toplevel']);
   if (!root) return { consumer: false, reason: 'not a git repository' };
-  const skillyFile = parseJson(join(root, '.skilly.json'));
-  if (!skillyFile) return { consumer: false, reason: 'no .skilly.json: not a skilly consumer, nothing to audit' };
+  // .skilly.json is the layout before .skilly/config.json; skilly migrates it on its next run.
+  const skillyFile = parseJson(join(root, '.skilly', 'config.json')) ?? parseJson(join(root, '.skilly.json'));
+  if (!skillyFile) return { consumer: false, reason: 'no .skilly/config.json: not a skilly consumer, nothing to audit' };
 
   const commonDirectory = runGit(root, ['rev-parse', '--path-format=absolute', '--git-common-dir']);
   const mainCheckout = commonDirectory && basename(commonDirectory) === '.git' ? dirname(commonDirectory) : root;
@@ -355,6 +361,7 @@ export function audit(start = process.cwd(), home = homedir()) {
     consumer: true,
     root,
     report: { file: reportFile, ignored },
+    tier: skillyFile.tier ?? null,
     bundles,
     sources,
     skills,

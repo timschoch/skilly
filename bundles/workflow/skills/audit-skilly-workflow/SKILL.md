@@ -20,7 +20,8 @@ node .agents/skills/audit-skilly-workflow/scripts/audit.mjs
 | --- | --- |
 | `sources` | every instruction file: `owner` (`skilly`, `overlay`, `repo`, `global`), `loaded` (`always`, `on-demand`), `bytes` |
 | `skills` | name and description of each installed skill |
-| `gates` | skilly commit gate values; other commit gates and naming linters found in config |
+| `tier` | the repo's tier from `.skilly/config.json`; a `verify` step with its own `tier` runs only at that tier |
+| `gates` | skilly commit gate values; `verify` stages (commit, push, ci, nightly) with their steps; other commit gates and naming linters found in config |
 | `findings` | config defects: `kind`, `where`, `detail` |
 | `report` | `file` to write; `ignored` says whether git ignores it |
 
@@ -51,6 +52,8 @@ Also match:
 
 - a number or list in text against `gates` (text allows 90 chars, the gate allows 72)
 - an instruction to skip a gate (`-n`, a disabled hook) against that gate
+- a text that says when to run a check ("run the tests before each commit") against the `gates.verify` stage that runs it
+- a hook or CI job that runs a check itself instead of the `verify` stage
 - each entry in `gates.*.others`: read its config, compare its values with the skilly gate
 
 Give each pair one kind:

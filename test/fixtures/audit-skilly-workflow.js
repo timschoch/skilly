@@ -6,14 +6,18 @@ import { execFileSync } from 'node:child_process';
 import { chmodSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 
-// The hook setup-repo ships, so a change to its format breaks the gate parser test.
-const COMMIT_HOOK = readFileSync(
-  new URL('../../bundles/setup-project/skills/setup-repo/scripts/check-commit-msg.mjs', import.meta.url),
-  'utf8',
-);
+// What setup-repo ships, so a change to its format breaks the gate parser test.
+const readSetupRepo = (path) =>
+  readFileSync(new URL(`../../bundles/setup-project/skills/setup-repo/${path}`, import.meta.url), 'utf8');
+const COMMIT_HOOK = readSetupRepo('scripts/check-commit-msg.mjs');
+const SKILLY_LEFTHOOK = readSetupRepo('templates/lefthook.yml');
 
 export const REPO_FILES = {
-  '.skilly.json': JSON.stringify({ bundles: ['workflow'] }),
+  '.skilly/config.json': JSON.stringify({ tier: 'tool', bundles: ['workflow'] }),
+  '.skilly/verify.json': JSON.stringify({
+    stages: { commit: { steps: [] }, push: { extends: 'commit', steps: [{ name: 'unit', run: 'npm test' }] } },
+  }),
+  'lefthook.yml': SKILLY_LEFTHOOK,
   '.agents/skills/demo-skill/SKILL.md': '---\nname: demo-skill\ndescription: Shows a demo.\n---\n\n# Demo\n',
   '.claude/rules/workflow-delegation.md':
     '# Delegation\n\n1. Work one agent finishes in one pass: do it yourself, spawn no subagent.\n',
@@ -47,6 +51,7 @@ export const REPO_FILES = {
     '- Keep the first line of a commit under 90 characters.',
     '- A slow pre-commit step? Commit with `git commit -n`.',
     '- When a change is ready, push the branch and open the pull request right away.',
+    '- Run the unit tests before every commit.',
     '- Decisions live in [the log](docs/decisions/).',
     '',
   ].join('\n'),
