@@ -19,25 +19,25 @@ fi
 max="${BABYSIT_MAX_MINUTES:-60}"
 deadline=$(( $(date +%s) + max * 60 ))
 rc=0
+err="$(mktemp)"
+trap 'rm -f "$err"' EXIT
 
 while true; do
-  # Right after a push GitHub has not registered any check yet, and
-  # `gh pr checks` then exits 1 with "no checks reported". That is pending.
-  if [[ "$(gh pr checks "$pr" --json name --jq 'length' 2>/dev/null || echo 0)" == "0" ]]; then
-    rc=8
-  else
-    set +e
-    gh pr checks "$pr" --watch --fail-fast
-    rc=$?
-    set -e
-  fi
+  # Right after a push GitHub has not registered any check yet. gh then
+  # exits 1 with "no checks reported" instead of waiting. That is pending.
+  set +e
+  gh pr checks "$pr" --watch --fail-fast 2> "$err"
+  rc=$?
+  set -e
+  cat "$err" >&2
+  if grep -q 'no checks reported' "$err"; then rc=8; fi
   # gh 2.98: 8 = still pending, 0 = all passed.
   [[ $rc -eq 8 ]] || break
   if [[ "$(date +%s)" -ge "$deadline" ]]; then
     echo "watch.sh: checks still pending after ${max}m" >&2
     break
   fi
-  sleep 30
+  sleep "${BABYSIT_POLL_SECONDS:-30}"
 done
 
 bash "$here/pr-state.sh" "$pr"
