@@ -33,6 +33,7 @@ Remove the used setup skills, commit conventionally, push, and make sure a PR ex
 2. `npx github:timschoch/skilly add <bundle...>` — installs, rules, commit, PR.
 3. Stack setup skills where the stack needs them (e.g. `trigger-setup`): add, follow, remove.
 4. `npx github:timschoch/skilly update` — ends with its own commit.
+5. Read `.agents/skills/audit-skilly-workflow/SKILL.md` in full and follow it: the rules, hooks and gates just installed get checked against what the repo and the user's global files already say. Show the report path, stop; fix only what the user picks.
 
 ## Validate
 
