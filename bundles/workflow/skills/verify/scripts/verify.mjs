@@ -74,21 +74,21 @@ const stepsFor = (name, seen = []) => {
 };
 
 const meets = (needed) => TIERS.indexOf(tier) >= TIERS.indexOf(needed);
-const checkTier = (needed, where) => {
+const validateTier = (needed, where) => {
   if (!TIERS.includes(needed)) fail(`unknown tier ${JSON.stringify(needed)} on ${where}, tiers are ${TIERS.join(', ')}.`);
 };
 
 const steps = [];
 const skipped = [];
 
-if (stage.tier !== undefined) checkTier(stage.tier, `stage ${stageName}`);
+if (stage.tier !== undefined) validateTier(stage.tier, `stage ${stageName}`);
 const stageBlocked = stage.tier !== undefined && !meets(stage.tier);
 
 if (stageBlocked) {
   skipped.push({ name: stageName, reason: `stage needs ${stage.tier}, repo is ${tier}` });
 } else {
   for (const step of stepsFor(stageName)) {
-    if (step.tier !== undefined) checkTier(step.tier, `step ${step.name}`);
+    if (step.tier !== undefined) validateTier(step.tier, `step ${step.name}`);
     if (step.tier !== undefined && !meets(step.tier)) {
       skipped.push({ name: step.name, reason: `needs ${step.tier}, repo is ${tier}` });
       continue;
