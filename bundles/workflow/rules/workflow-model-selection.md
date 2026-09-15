@@ -18,7 +18,7 @@ Applies every time an agent spawns a subagent or teammate. Set `model` and
 | Bulk workers under an orchestrator | `sonnet` | `low` |
 | Single-fact code or web lookup, classification | `haiku` | omit — no effort support |
 
-Relative token cost: Haiku 1x · Sonnet 2x · Opus 5x · Fable 10x.
+Relative token cost (August 2026): Haiku 1x · Sonnet 2x · Opus 5x · Fable 10x.
 Same multiplier for input, output and cache. Add ~30% token inflation for
 Sonnet 5 / Opus 5 / Fable 5 vs Haiku 4.5 (newer tokenizer).
 
