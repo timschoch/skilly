@@ -4,18 +4,18 @@ One verify config, three tiers, nested. Every Consumer declares a tier in `.skil
 
 ## Tiers
 
-| Stage                                                                        | sandbox | tool | product |
-| ---------------------------------------------------------------------------- | :-----: | :--: | :-----: |
-| pre-commit: `lint-staged`                                                    |   yes   | yes  |   yes   |
-| pre-push: typecheck + `vitest run --changed origin/main`                     |   yes   | yes  |   yes   |
-| PR gate: lint + typecheck + unit + build, one job                            |   yes   | yes  |   yes   |
-| local `/code-review` on request; `/babysit-pr`                               |   yes   | yes  |   yes   |
-| `/ai-review` PR comment runs `/code-review --comment` on the Max OAuth token |   no    | yes  |   yes   |
-| required checks on `main` (GitHub Pro or Team)                               |   no    | yes  |   yes   |
-| Dependabot alerts + `npm audit --audit-level=high` in the PR gate            |   no    | yes  |   yes   |
-| PR gate: e2e smoke                                                           |   no    |  no  |   yes   |
-| nightly: full e2e, dependency drift, security scan                           |   no    |  no  |   yes   |
-| `/security-review` locally before release                                    |   no    |  no  |   yes   |
+| Stage                                                                       | sandbox | tool | product |
+| --------------------------------------------------------------------------- | :-----: | :--: | :-----: |
+| pre-commit: `lint-staged`                                                   |   yes   | yes  |   yes   |
+| pre-push: typecheck + `vitest run --changed origin/main`                    |   yes   | yes  |   yes   |
+| PR gate: lint + typecheck + unit + build, one job                           |   yes   | yes  |   yes   |
+| local `/code-review` on request; `/babysit-pr`                              |   yes   | yes  |   yes   |
+| `/ai-review` PR comment runs the `code-review` skill, posts inline comments |   no    | yes  |   yes   |
+| required checks on `main` (GitHub Pro or Team)                              |   no    | yes  |   yes   |
+| Dependabot alerts + `npm audit --audit-level=high` in the PR gate           |   no    | yes  |   yes   |
+| PR gate: e2e smoke                                                          |   no    |  no  |   yes   |
+| nightly: full e2e, dependency drift, security scan                          |   no    |  no  |   yes   |
+| `/security-review` locally before release                                   |   no    |  no  |   yes   |
 
 ## Life of a change
 
@@ -57,12 +57,11 @@ Green plus clean is a milestone, not a terminal state: new review items still la
 
 ## `.skilly/`
 
-| File           | Holds                                                                                  |
-| -------------- | -------------------------------------------------------------------------------------- |
-| `config.json`  | tier and the Consumer's Bundles                                                        |
-| `verify.json`  | stages `commit`, `push`, `ci`, `nightly`; steps with `why`, `budgetSeconds`, `extends` |
-| `naming.json`  | overrides and exceptions for the `naming` Rule                                         |
-| `writing.json` | overrides for the writing rules                                                        |
+| File          | Holds                                                                                  |
+| ------------- | -------------------------------------------------------------------------------------- |
+| `config.json` | tier and the Consumer's Bundles                                                        |
+| `verify.json` | stages `commit`, `push`, `ci`, `nightly`; steps with `why`, `budgetSeconds`, `extends` |
+| `naming.json` | overrides and exceptions for the `naming` Rule                                         |
 
 ## Rules
 
