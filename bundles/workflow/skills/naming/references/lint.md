@@ -8,7 +8,7 @@ Rule numbers refer to [SKILL.md](../SKILL.md).
 
 | Check | Rule | JSON key | Level |
 | --- | --- | --- | --- |
-| File and folder names kebab-case | 11 | `artifacts.file.case`, `artifacts.folder.case` | error |
+| File and folder names in the configured case (default `kebab`; one name or a list of `kebab`, `snake_case`, `camelCase`, `PascalCase`) | 11 | `artifacts.file.case`, `artifacts.folder.case` | error |
 | Banned short words and single-letter declared names | 4 | `shortWords` | error |
 | Noise-word suffix | 3 | `noiseWords` | error |
 | `enum` | 9 | none | error |

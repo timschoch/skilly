@@ -17,13 +17,34 @@ const SKIP_SEGMENTS = new Set(['node_modules', '.agents', '.claude', '.skilly-hu
 const CODE_EXTENSIONS = new Set(['.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs']);
 const GENERATED = /\.generated\.|\.d\.ts$/;
 const ENV_EXAMPLE = /^\.env(\.[^.]+)*\.(example|sample)$/;
-const KEBAB = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 const ENV_NAME = /^[A-Z][A-Z0-9]*(_[A-Z0-9]+)*$/;
 const VALUE_KINDS = new Set(['binding', 'function', 'param']);
 const NAMED_KINDS = new Set(['binding', 'function', 'type', 'interface', 'class', 'enum']);
 const TYPE_KINDS = new Set(['type', 'interface', 'class']);
 
 const escapeRegExp = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+// The cases `artifacts.file.case` and `artifacts.folder.case` may name: the
+// pattern a name must match, and how to spell a suggestion from its words.
+const capitalize = (word) => word.charAt(0).toUpperCase() + word.slice(1);
+const CASES = {
+  kebab: { pattern: /^[a-z0-9]+(-[a-z0-9]+)*$/, spell: (words) => words.join('-') },
+  snake_case: { pattern: /^[a-z0-9]+(_[a-z0-9]+)*$/, spell: (words) => words.join('_') },
+  camelCase: {
+    pattern: /^[a-z][a-z0-9]*([A-Z][a-z0-9]*)*$/,
+    spell: ([first, ...rest]) => first + rest.map(capitalize).join(''),
+  },
+  PascalCase: { pattern: /^([A-Z][a-z0-9]*)+$/, spell: (words) => words.map(capitalize).join('') },
+};
+
+// One case name or a list of them; a name passes when it matches any.
+function toCaseNames(value, key) {
+  const names = [value ?? 'kebab'].flat();
+  for (const name of names) {
+    if (!CASES[name]) throw new Error(`${key} "${name}" is not one of ${Object.keys(CASES).join(', ')}`);
+  }
+  return names;
+}
 
 // The config's word lists, turned into the shapes the checks below match on.
 function toCheckLists(config) {
@@ -43,6 +64,8 @@ function toCheckLists(config) {
       ? new RegExp(`^[A-Z0-9]+(_[A-Z0-9]+)*_(${roles.map(escapeRegExp).join('|')})_FOR_[A-Z0-9]+$`)
       : null,
     discriminant: config.discriminant,
+    fileCases: toCaseNames(config.artifacts?.file?.case, 'artifacts.file.case'),
+    folderCases: toCaseNames(config.artifacts?.folder?.case, 'artifacts.folder.case'),
   };
 }
 
@@ -250,7 +273,7 @@ const kebab = (text) =>
     .toLowerCase();
 
 // Framework spellings — Next.js dynamic segments, route groups, parallel slots,
-// private folders — are stripped before the kebab test, not exempted from it.
+// private folders — are stripped before the case test, not exempted from it.
 const stripDecorations = (segment) =>
   segment
     .replace(/^[_+@]/, '')
@@ -258,39 +281,39 @@ const stripDecorations = (segment) =>
     .replace(/\[[^\]]*\]/g, '')
     .replace(/^-+|-+$/g, '');
 
-function fileCaseFindings(path) {
+// A finding when `bare` matches none of `cases`; the suggestion is spelled in the first.
+function caseFinding(kind, shown, bare, cases, key) {
+  if (!bare || cases.some((name) => CASES[name].pattern.test(bare))) return [];
+  const words = kebab(bare).split('-').filter(Boolean);
+  return [
+    {
+      line: 1,
+      rule: 'file-case',
+      message: `${kind} "${shown}" does not match ${key} (${cases.join(', ')})`,
+      suggestion: CASES[cases[0]].spell(words),
+    },
+  ];
+}
+
+function fileCaseFindings(path, lists) {
   const segments = path.split('/').filter((segment) => segment && segment !== '.');
   const name = segments.pop();
   const out = [];
   for (const segment of segments) {
     if (segment.startsWith('.')) continue;
-    const bare = stripDecorations(segment);
-    if (bare && !KEBAB.test(bare)) {
-      out.push({
-        line: 1,
-        rule: 'file-case',
-        message: `directory "${segment}" is not lowercase kebab-case`,
-        suggestion: kebab(segment),
-      });
-    }
+    out.push(
+      ...caseFinding('directory', segment, stripDecorations(segment), lists.folderCases, 'artifacts.folder.case'),
+    );
   }
   const stem = name.split('.')[0];
-  const bare = stripDecorations(stem);
-  if (bare && !KEBAB.test(bare)) {
-    out.push({
-      line: 1,
-      rule: 'file-case',
-      message: `file "${name}" is not lowercase kebab-case`,
-      suggestion: kebab(stem),
-    });
-  }
+  out.push(...caseFinding('file', name, stripDecorations(stem), lists.fileCases, 'artifacts.file.case'));
   return out;
 }
 
-function identifierFindings(source, isTypeScript, allowed, lists) {
+function identifierFindings(source, isTypeScript, isExempt, lists) {
   const out = [];
   for (const { name, index, kind, isFunction } of declarations(source)) {
-    if (allowed(name)) continue;
+    if (isExempt(name)) continue;
     const line = lineOf(source, index);
     const word = lists.shortWords[name.toLowerCase()];
     if (VALUE_KINDS.has(kind)) {
@@ -361,13 +384,13 @@ function discriminantFindings(source, discriminant) {
   return out;
 }
 
-function envFindings(source, allowed, lists) {
+function envFindings(source, isExempt, lists) {
   const out = [];
   source.split('\n').forEach((text, offset) => {
     const match = text.match(/^\s*(?:export\s+)?([A-Za-z_][\w]*)\s*=/);
     if (!match || text.trimStart().startsWith('#')) return;
     const name = match[1];
-    if (allowed(name)) return;
+    if (isExempt(name)) return;
     const line = offset + 1;
     if (!ENV_NAME.test(name)) {
       out.push({
@@ -395,10 +418,10 @@ function envFindings(source, allowed, lists) {
 
 // `allow` in the config: one regex per entry, matched against an identifier, an
 // env var name or a path. A match exempts it.
-export function checkNaming({ root, files, config = loadNamingConfig(root), allow = config.allow ?? [] }) {
+export function validateNaming({ root, files, config = loadNamingConfig(root), allow = config.allow ?? [] }) {
   const lists = toCheckLists(config);
   const patterns = allow.map((entry) => (entry instanceof RegExp ? entry : new RegExp(entry)));
-  const allowed = (name) => patterns.some((pattern) => pattern.test(name));
+  const isExempt = (name) => patterns.some((pattern) => pattern.test(name));
   const failures = [];
   const warnings = [];
 
@@ -417,7 +440,7 @@ export function checkNaming({ root, files, config = loadNamingConfig(root), allo
     };
 
     if (ENV_EXAMPLE.test(name)) {
-      collect(envFindings(readFileSync(path, 'utf8'), allowed, lists));
+      collect(envFindings(readFileSync(path, 'utf8'), isExempt, lists));
       flush();
       continue;
     }
@@ -426,8 +449,8 @@ export function checkNaming({ root, files, config = loadNamingConfig(root), allo
 
     const source = blankNoise(readFileSync(path, 'utf8'));
     const isTypeScript = extension === '.ts' || extension === '.tsx';
-    if (!allowed(file)) collect(fileCaseFindings(file));
-    collect(identifierFindings(source, isTypeScript, allowed, lists));
+    if (!isExempt(file)) collect(fileCaseFindings(file, lists));
+    collect(identifierFindings(source, isTypeScript, isExempt, lists));
     flush();
     if (isTypeScript) {
       for (const finding of discriminantFindings(source, lists.discriminant)) warnings.push({ file, ...finding });
@@ -447,7 +470,7 @@ function main(argv) {
     .map((line) => line.trim())
     .filter(Boolean);
   const root = process.cwd();
-  const { failures, warnings } = checkNaming({ root, files });
+  const { failures, warnings } = validateNaming({ root, files });
   for (const finding of failures) console.log(format('FAIL', finding));
   for (const finding of warnings) console.log(format('WARN', finding));
   console.log(`naming: ${plural(failures.length, 'failure')}, ${plural(warnings.length, 'warning')} over ${plural(files.length, 'file')}`);

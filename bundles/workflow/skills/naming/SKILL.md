@@ -93,7 +93,7 @@ Before you name anything, run `node .agents/skills/naming/scripts/config.mjs` an
     | `TestimonialGrid` | `GridTestimonial` | entity first, then role |
     | `testimonial.added` | `addTestimonial` | an event is a fact in the past, not a command |
 
-11. Casing follows the language guide and the repo's linter. Files and folders are lowercase kebab-case. An existing repo convention wins over this line.
+11. Casing follows the language guide and the repo's linter. Files and folders are lowercase kebab-case. An existing repo convention wins over this line: set it in `artifacts.file.case` and `artifacts.folder.case`, one case or a list (`["kebab", "PascalCase", "camelCase"]` for React components and hooks).
 
     | Good | Bad | Why |
     | --- | --- | --- |

@@ -5,7 +5,7 @@ import { spawnSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { checkNaming } from '../bundles/workflow/rules/naming.mjs';
+import { validateNaming } from '../bundles/workflow/rules/naming.mjs';
 
 const rulesDir = fileURLToPath(new URL('../bundles/workflow/rules/', import.meta.url));
 const namingScript = join(rulesDir, 'naming.mjs');
@@ -15,14 +15,14 @@ const namingShell = join(rulesDir, 'naming.sh');
 // its children; inherited, `git -C <tmp>` would act on the repo being committed.
 for (const key of Object.keys(process.env)) if (key.startsWith('GIT_')) delete process.env[key];
 
-// Writes files into a fresh root and returns the check result for them.
-const check = (files, allow) => {
+// Writes files into a fresh root and returns the gate result for them.
+const validate = (files, allow) => {
   const root = mkdtempSync(join(tmpdir(), 'skilly-naming-'));
   for (const [path, source] of Object.entries(files)) {
     mkdirSync(join(root, dirname(path)), { recursive: true });
     writeFileSync(join(root, path), source);
   }
-  return { root, ...checkNaming({ root, files: Object.keys(files), allow }) };
+  return { root, ...validateNaming({ root, files: Object.keys(files), allow }) };
 };
 
 const rules = (result) => result.failures.map((finding) => finding.rule).sort();
@@ -38,26 +38,26 @@ export function renderProfile(profile: UserProfile): string {
 `;
 
 test('a compliant file produces nothing', () => {
-  const result = check({ 'src/user-profile.ts': COMPLIANT });
+  const result = validate({ 'src/user-profile.ts': COMPLIANT });
   assert.deepEqual(result.failures, []);
   assert.deepEqual(result.warnings, []);
 });
 
 test('file-case flags the file stem and every directory segment', () => {
-  const bad = check({ 'src/UserStuff/UserProfile.ts': COMPLIANT });
+  const bad = validate({ 'src/UserStuff/UserProfile.ts': COMPLIANT });
   assert.deepEqual(rules(bad), ['file-case', 'file-case']);
   assert.equal(bad.failures[0].suggestion, 'user-stuff');
   assert.equal(bad.failures[1].suggestion, 'user-profile');
   assert.equal(bad.failures[1].line, 1);
 
-  const ok = check({
+  const ok = validate({
     'app/(marketing)/[slug]/_private/@modal/[...rest]/route.test.ts': 'export const handler = () => null;\n',
   });
   assert.deepEqual(ok.failures, []);
 });
 
 test('short-word flags single letters and abbreviations, in bindings and params', () => {
-  const result = check({
+  const result = validate({
     'a.ts': `const opts = { a: 1 };
 function f(e) {
   return e;
@@ -84,7 +84,7 @@ try {
 });
 
 test('short-word ignores comments, string contents and the unused-marker underscore', () => {
-  const result = check({
+  const result = validate({
     'a.ts': `// const opts = 1;
 /* function f(e) {} */
 const label = 'const err = 1';
@@ -95,7 +95,7 @@ const _ = label;
 });
 
 test('noise-word flags filler suffixes on declared names', () => {
-  const result = check({
+  const result = validate({
     'a.ts': `const userData = 1;
 interface OrderInfo {
   kind: 'a';
@@ -106,25 +106,25 @@ function csvHelper() {}
 `,
   });
   assert.deepEqual(rules(result), ['noise-word', 'noise-word', 'noise-word', 'noise-word', 'noise-word']);
-  assert.equal(check({ 'a.ts': 'const items = [];\nconst data = 1;\n' }).failures.length, 0);
+  assert.equal(validate({ 'a.ts': 'const items = [];\nconst data = 1;\n' }).failures.length, 0);
 });
 
 test('enum fires in TypeScript only', () => {
-  assert.deepEqual(rules(check({ 'a.ts': 'enum Color {}\nconst enum Size {}\n' })), ['enum', 'enum']);
-  assert.deepEqual(check({ 'a.js': 'const enumerate = 1;\n' }).failures, []);
+  assert.deepEqual(rules(validate({ 'a.ts': 'enum Color {}\nconst enum Size {}\n' })), ['enum', 'enum']);
+  assert.deepEqual(validate({ 'a.js': 'const enumerate = 1;\n' }).failures, []);
 });
 
 test('type-prefix flags IFoo and TFoo but not Item or Table', () => {
-  assert.deepEqual(rules(check({ 'a.ts': 'interface IUser {}\ntype TOrder = string;\nclass IPay {}\n' })), [
+  assert.deepEqual(rules(validate({ 'a.ts': 'interface IUser {}\ntype TOrder = string;\nclass IPay {}\n' })), [
     'type-prefix',
     'type-prefix',
     'type-prefix',
   ]);
-  assert.deepEqual(check({ 'a.ts': 'interface Item {}\nclass Table {}\ntype Token = string;\n' }).failures, []);
+  assert.deepEqual(validate({ 'a.ts': 'interface Item {}\nclass Table {}\ntype Token = string;\n' }).failures, []);
 });
 
 test('verb-synonym flags function declarations and function-valued bindings', () => {
-  const result = check({
+  const result = validate({
     'a.ts': `function retrieveUser() {}
 const getAllUsers = () => [];
 export function convertRow() {}
@@ -143,7 +143,7 @@ const insertion = 1;
 });
 
 test('env-shape checks example env files, and only those', () => {
-  const result = check({
+  const result = validate({
     '.env.example': `# a comment
 API_KEY_FOR_BILLING=1
 stripeKey=2
@@ -156,13 +156,13 @@ DATABASE_URL=4
     [3, 4],
   );
   assert.deepEqual(rules(result), ['env-shape', 'env-shape']);
-  assert.deepEqual(check({ '.env.local.example': 'stripeKey=2\n' }).failures.length, 1);
-  assert.deepEqual(check({ '.env.sample': 'stripeKey=2\n' }).failures.length, 1);
-  assert.deepEqual(check({ 'notes.txt': 'stripeKey=2\n' }).failures, []);
+  assert.deepEqual(validate({ '.env.local.example': 'stripeKey=2\n' }).failures.length, 1);
+  assert.deepEqual(validate({ '.env.sample': 'stripeKey=2\n' }).failures.length, 1);
+  assert.deepEqual(validate({ 'notes.txt': 'stripeKey=2\n' }).failures, []);
 });
 
 test('discriminant only warns, and only in TypeScript type bodies', () => {
-  const result = check({
+  const result = validate({
     'a.ts': `interface Message {
   readonly type: 'ping' | 'pong';
 }
@@ -177,7 +177,7 @@ const payload = { type: 'ping' };
 });
 
 test('a generic type parameter is not an identifier', () => {
-  const result = check({
+  const result = validate({
     'a.ts': `export function identity<T>(value: T): T {
   return value;
 }
@@ -189,18 +189,18 @@ type Box<T> = { value: T };
 });
 
 test('an allow entry suppresses a matching identifier, path or env name', () => {
-  assert.deepEqual(check({ 'a.ts': 'const opts = 1;\n' }, ['^opts$']).failures, []);
-  assert.deepEqual(check({ 'src/UserProfile.ts': COMPLIANT }, ['UserProfile']).failures, []);
-  assert.deepEqual(check({ '.env.example': 'stripeKey=1\n' }, ['^stripeKey$']).failures, []);
+  assert.deepEqual(validate({ 'a.ts': 'const opts = 1;\n' }, ['^opts$']).failures, []);
+  assert.deepEqual(validate({ 'src/UserProfile.ts': COMPLIANT }, ['UserProfile']).failures, []);
+  assert.deepEqual(validate({ '.env.example': 'stripeKey=1\n' }, ['^stripeKey$']).failures, []);
 });
 
 // Writes the consumer override into a fresh root, then checks the same files.
 const withOverride = (files, override) => {
-  const { root } = check(files);
+  const { root } = validate(files);
   mkdirSync(join(root, '.skilly'), { recursive: true });
   const text = typeof override === 'string' ? override : JSON.stringify(override, null, 2);
   writeFileSync(join(root, '.skilly', 'naming.json'), text);
-  return { root, ...checkNaming({ root, files: Object.keys(files) }) };
+  return { root, ...validateNaming({ root, files: Object.keys(files) }) };
 };
 
 test('.skilly/naming.json allow silences a name the defaults flag', () => {
@@ -231,15 +231,49 @@ test('.skilly/naming.json can make "type" the discriminant, which drops the warn
   assert.deepEqual(withOverride({ 'a.ts': source }, { discriminant: 'type' }).warnings, []);
 });
 
+test('.skilly/naming.json sets the file and folder case, one name or a list', () => {
+  const react = {
+    artifacts: { file: { case: ['kebab', 'PascalCase', 'camelCase'] }, folder: { case: ['kebab', 'PascalCase'] } },
+  };
+  const accepted = withOverride(
+    { 'src/components/TestimonialGrid/TestimonialGrid.tsx': COMPLIANT, 'src/hooks/useTestimonial.ts': COMPLIANT },
+    react,
+  );
+  assert.deepEqual(accepted.failures, []);
+
+  const snake = withOverride({ 'src/Case_Studies/case_study.ts': COMPLIANT }, react);
+  assert.deepEqual(
+    snake.failures.map((finding) => [finding.rule, finding.suggestion]),
+    [
+      ['file-case', 'case-studies'],
+      ['file-case', 'case-study'],
+    ],
+  );
+  assert.match(snake.failures[1].message, /does not match artifacts\.file\.case \(kebab, PascalCase, camelCase\)/);
+
+  const pascal = withOverride({ 'src/user-profile.ts': COMPLIANT }, { artifacts: { file: { case: 'PascalCase' } } });
+  assert.deepEqual(
+    pascal.failures.map((finding) => finding.suggestion),
+    ['UserProfile'],
+  );
+});
+
+test('an unknown case name fails the gate and names the key', () => {
+  assert.throws(
+    () => withOverride({ 'a.ts': COMPLIANT }, { artifacts: { file: { case: 'Kebab' } } }),
+    /artifacts\.file\.case "Kebab" is not one of kebab, snake_case, camelCase, PascalCase/,
+  );
+});
+
 test('the gate still reads an override left at the pre-.skilly path', () => {
-  const { root } = check({ 'a.ts': 'const opts = 1;\n' });
+  const { root } = validate({ 'a.ts': 'const opts = 1;\n' });
   mkdirSync(join(root, 'docs', 'agents'), { recursive: true });
   writeFileSync(join(root, 'docs', 'agents', 'naming.json'), JSON.stringify({ allow: ['^opts$'] }));
-  assert.deepEqual(checkNaming({ root, files: ['a.ts'] }).failures, []);
+  assert.deepEqual(validateNaming({ root, files: ['a.ts'] }).failures, []);
 });
 
 test('a malformed override fails the CLI and names the file', () => {
-  const { root } = check({ 'a.ts': 'const label = 1;\n' });
+  const { root } = validate({ 'a.ts': 'const label = 1;\n' });
   mkdirSync(join(root, '.skilly'), { recursive: true });
   writeFileSync(join(root, '.skilly', 'naming.json'), '{ not json');
   const result = spawnSync(process.execPath, [namingScript, 'a.ts'], { cwd: root, encoding: 'utf8' });
@@ -249,7 +283,7 @@ test('a malformed override fails the CLI and names the file', () => {
 
 test('vendored, generated and non-code paths are skipped', () => {
   const bad = 'const opts = 1;\n';
-  const result = check({
+  const result = validate({
     'node_modules/pkg/Bad.ts': bad,
     '.agents/skills/Bad.ts': bad,
     '.claude/Bad.ts': bad,
@@ -267,7 +301,7 @@ test('vendored, generated and non-code paths are skipped', () => {
 const runCli = (root, files) => spawnSync(process.execPath, [namingScript, ...files], { cwd: root, encoding: 'utf8' });
 
 test('the CLI prints one line per finding and exits 1 only on failures', () => {
-  const { root } = check({ 'src/BadName.ts': 'const opts = 1;\n', 'src/user-profile.ts': COMPLIANT });
+  const { root } = validate({ 'src/BadName.ts': 'const opts = 1;\n', 'src/user-profile.ts': COMPLIANT });
   const bad = runCli(root, ['src/BadName.ts']);
   assert.equal(bad.status, 1);
   assert.match(bad.stdout, /^FAIL src\/BadName\.ts:1 file-case: /m);
@@ -280,7 +314,7 @@ test('the CLI prints one line per finding and exits 1 only on failures', () => {
 });
 
 test('the CLI reads the file list from stdin', () => {
-  const { root } = check({ 'src/user-profile.ts': COMPLIANT });
+  const { root } = validate({ 'src/user-profile.ts': COMPLIANT });
   const result = spawnSync(process.execPath, [namingScript], {
     cwd: root,
     encoding: 'utf8',
