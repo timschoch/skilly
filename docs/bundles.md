@@ -11,7 +11,7 @@ bundles/<name>/
 ```
 
 - `includes`: names of other bundles pulled in recursively (subbundles). A repo that adds `project-x` gets the union of `project-x` and everything it includes. Cycles are an error.
-- `rules`: rule names declared by this bundle; each script lives in the bundle's own `rules/`. A repo enforces the union of its bundles' rules.
+- `rules`: rule names declared by this bundle; each script lives in the bundle's own `rules/`. The PR gate (`skilly / gate`) checks the union of a repo's bundles' rules on every PR. It blocks merge where it is a required check: tool and product tiers, see `setup-repo` part 4.
 - Hub-maintained skills (e.g. `orchestrate`) live in `bundles/workflow/skills/` and are listed in `config.json` with source `timschoch/skilly` like any other source.
 - Export boundary: a consumer's `skills add timschoch/skilly` sees only `bundles/*/skills/`. `.agents/skills/` is the hub's own stream — the hub is a consumer of itself. The skills CLI skips agent-dir skills named in this repo's `skills-lock.json` and scans `bundles/` only when that pass finds nothing (`skills@1.5.23`, `dist/cli.mjs` `discoverSkills`). One unlocked folder in `.agents/skills/` hides every bundle skill from every consumer; `scripts/check-agents-lock.mjs` guards the 1:1 in CI. Prove it by hand: `npx skills@1.5.23 add timschoch/skilly -l` lists exactly the bundle skills.
 - Self-source (see [CONTEXT.md](../CONTEXT.md)): a consumer whose git remote matches a source in its own bundles drops that source. `lib/resolve.js` `resolveBundles` does it, `lib/self-source.js` reads the remote. Example: `Habits-Family/habits` adds `project-habits` and gets the tech-* skills only, never its own `habits-*` skills.

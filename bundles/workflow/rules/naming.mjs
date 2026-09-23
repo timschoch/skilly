@@ -8,7 +8,7 @@
 // discriminant key and the allow list — lives in the naming skill's
 // `references/naming.json`, merged with the consumer's `.skilly/naming.json`
 // by `skills/naming/scripts/config.mjs`. Only the single-letter ban is in code.
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, realpathSync } from 'node:fs';
 import { extname, join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { loadNamingConfig } from '../skills/naming/scripts/config.mjs';
@@ -477,7 +477,8 @@ function main(argv) {
   return failures.length ? 1 : 0;
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+// realpath: import.meta.url resolves symlinks, argv[1] does not.
+if (process.argv[1] && import.meta.url === pathToFileURL(realpathSync(process.argv[1])).href) {
   try {
     process.exit(main(process.argv.slice(2)));
   } catch (failure) {

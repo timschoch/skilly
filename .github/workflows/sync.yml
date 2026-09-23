@@ -140,6 +140,8 @@ jobs:
 
       # Merge policy (design record, #17): the workflow merges a green Sync PR
       # with zero removals; a PR containing removals always waits for a human.
+      # --auto: with required checks still running, GitHub merges once they
+      # pass (needs allow_auto_merge); with none, gh merges at once.
       # Removals are read from the branch's commit subjects (skillyMessage
       # writes "chore(skilly): remove …") — intrinsic to the push, so the
       # decision cannot race a later body edit.
@@ -151,6 +153,6 @@ jobs:
           if gh pr view "${{ github.event.pull_request.number }}" --json commits --jq '.commits[].messageHeadline' | grep -q '^chore(skilly): remove'; then
             echo "Sync PR contains removals — waiting for a human"
           else
-            gh pr merge "${{ github.event.pull_request.number }}" --squash --delete-branch \
-              || echo "not mergeable yet (other checks pending or red)"
+            gh pr merge "${{ github.event.pull_request.number }}" --auto --squash --delete-branch \
+              || echo "not merged: turn on allow_auto_merge, or a required check is red"
           fi

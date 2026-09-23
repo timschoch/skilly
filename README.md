@@ -28,4 +28,4 @@ Every command guards its branch (`skilly-*`, main → `chore/skilly-setup`, anyt
 4. `npx -y github:timschoch/skilly update` — asks to drop bundle-less setup skills (e.g. `setup-project` once you're done with it); say yes.
 5. Merge the PR, then prove the workflow: `gh workflow run skilly-sync.yml && gh run watch`. No changes → no Sync PR.
 
-From then on: `add` / `remove` / `update` any time. The nightly workflow runs `update` headless and keeps one standing Sync PR (`chore/skilly-update`); the gate merges it when green and removal-free — removals always wait for you.
+From then on: `add` / `remove` / `update` any time. The nightly workflow runs `update` headless and keeps one standing Sync PR (`chore/skilly-update`); the gate merges it when green and removal-free, after the repo's required checks pass — removals always wait for you.

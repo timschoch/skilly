@@ -1,7 +1,7 @@
 // Conventional-commit gate, zero-dependency. Wire as the commit-msg hook:
 //   node <path-to>/check-commit-msg.mjs "$1"
-// One Rule, two adapters — this pattern MUST equal the PR gate's in
-// bundles/workflow/rules/conventional-commits.sh (timschoch/skilly).
+// The PR gate bundles/workflow/rules/conventional-commits.sh (timschoch/skilly)
+// runs this script on every commit, so this file is the single copy of the rule.
 // The rules' why: the writing-rules skill (workflow bundle), group 7.
 import { readFileSync } from 'node:fs';
 
