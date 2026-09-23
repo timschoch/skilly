@@ -386,6 +386,42 @@ test('checkAgentsLock flags unlocked dirs and orphan pins, passes on 1:1', async
   assert.deepEqual(checkAgentsLock(cwd), { dirs: 2, pins: 2, unlocked: [], orphans: [] });
 });
 
+test('check-branch-name: Conventional Branch passes, agent names fail, trunk, detached HEAD and bots pass', async () => {
+  const { spawnSync } = await import('node:child_process');
+  const { run } = await import('../lib/run.js');
+  const script = fileURLToPath(
+    new URL('../bundles/setup-project/skills/setup-repo/scripts/check-branch-name.mjs', import.meta.url),
+  );
+  const repo = freshDir();
+  run('git', ['init', '--initial-branch=main', repo]);
+  run('git', ['-C', repo, 'config', 'user.name', 'test']);
+  run('git', ['-C', repo, 'config', 'user.email', 'test@example.com']);
+  run('git', ['-C', repo, 'commit', '--allow-empty', '--no-verify', '-m', 'chore: seed']);
+  const check = (branch, env = {}) => {
+    if (branch) run('git', ['-C', repo, 'switch', '-C', branch]);
+    const { GITHUB_HEAD_REF, ...rest } = process.env;
+    return spawnSync(process.execPath, [script], { cwd: repo, encoding: 'utf8', env: { ...rest, ...env } });
+  };
+
+  for (const ok of ['feat/add-login', 'fix/issue-42', 'release/1.2.0', 'chore/skilly-update', 'main']) {
+    assert.equal(check(ok).status, 0, ok);
+  }
+  const bad = check('t3code/4075C2f1');
+  assert.equal(bad.status, 1);
+  assert.match(bad.stderr, /Invalid branch name: "t3code\/4075C2f1"/);
+  assert.match(bad.stderr, /not the tool or agent/);
+  assert.match(bad.stderr, /git branch -m <type>\/<description>/);
+  for (const no of ['feature/x', 'feat/Add-Login', 'feat/a--b', 'wip']) assert.equal(check(no).status, 1, no);
+
+  run('git', ['-C', repo, 'switch', '--detach']);
+  assert.equal(check(null).status, 0, 'detached HEAD, no PR');
+  assert.equal(check(null, { GITHUB_HEAD_REF: 'claude/fix-thing' }).status, 1, 'PR head read in CI');
+  assert.equal(check(null, { GITHUB_HEAD_REF: 'fix/thing' }).status, 0);
+  for (const bot of ['dependabot/npm_and_yarn/undici-5.28.5', 'release-please--branches--main', 'renovate/next-15.x']) {
+    assert.equal(check(null, { GITHUB_HEAD_REF: bot }).status, 0, bot);
+  }
+});
+
 // setup-repo wires the hook at .claude/skills/…, a symlink to .agents/skills.
 // Node loads the main module through the real path; the is-main check must still fire.
 test('inject-writing-rules runs when invoked through a symlinked skills dir', async () => {
