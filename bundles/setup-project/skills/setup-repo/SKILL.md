@@ -2,7 +2,7 @@
 name: setup-repo
 description: >
   Tier a repo and build its gate: the tier in `.skilly/config.json`, git hooks
-  (lint-staged, verify, conventional commits, protected trunk), CI / nightly /
+  (lint-staged, verify, conventional commits and branches, protected trunk), CI / nightly /
   ai-review workflows, GitHub ruleset and Dependabot, a Claude Code guard
   against work-destroying git commands, CLAUDE.md scaffold. Use when the user
   wants repo hardening, a dev process, branch protection, or CI set up.
@@ -38,6 +38,7 @@ Copy the rule scripts in — they become repo-owned, and re-running this skill r
 
 - `scripts/check-commit-msg.mjs` → `.claude/hooks/check-commit-msg.mjs` — conventional-commit gate (the why: the `writing-rules` skill, group 7)
 - `scripts/check-push-branch.mjs` → `.claude/hooks/check-push-branch.mjs` — refuses a direct push to the detected trunk
+- `scripts/check-branch-name.mjs` → `.claude/hooks/check-branch-name.mjs` — Conventional Branch gate, a `push` step in `templates/verify.json`, not a hook line
 - `scripts/block-destructive-git.sh` → `.claude/hooks/block-destructive-git.sh` (`chmod +x`) — wired in part 5
 
 Then wire the manager the repo already has — `.husky/` → husky, `lefthook.yml` → lefthook, neither → `npm i -D husky && npx husky init`:

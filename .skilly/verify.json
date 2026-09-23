@@ -8,7 +8,14 @@
     "push": {
       "extends": "commit",
       "budgetSeconds": 30,
-      "steps": [{ "name": "unit", "run": "npm test" }]
+      "steps": [
+        {
+          "name": "branch name",
+          "run": "node .claude/hooks/check-branch-name.mjs",
+          "why": "Conventional Branch: <type>/<description>. In CI it reads the PR's head branch, so --no-verify does not get past it. Bot branches pass."
+        },
+        { "name": "unit", "run": "npm test" }
+      ]
     },
     "ci": {
       "extends": "push",
