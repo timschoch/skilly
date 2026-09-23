@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, mkdirSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, symlinkSync, writeFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
@@ -370,4 +370,11 @@ test('naming.sh passes a clean branch and says so when nothing changed', () => {
   const empty = runShell(gitRepo());
   assert.equal(empty.status, 0, empty.stdout + empty.stderr);
   assert.match(empty.stdout, /nothing to check/);
+});
+
+test('the CLI still runs when started through a symlink', () => {
+  const link = join(mkdtempSync(join(tmpdir(), 'skilly-naming-link-')), 'naming.mjs');
+  symlinkSync(namingScript, link);
+  const result = spawnSync(process.execPath, [link, 'src/BadName.ts'], { encoding: 'utf8' });
+  assert.match(result.stdout, /^naming: /m, result.stdout + result.stderr);
 });

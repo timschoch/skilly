@@ -50,7 +50,7 @@ _Avoid_: install, config, onboard
 The pull request the nightly workflow opens in a consumer after `skills update`.
 
 **PR gate**:
-Checks on a sync PR that block merge when the consumer breaks its rules.
+Checks on every PR in a consumer that fail when the PR breaks the consumer's rules. They block merge where `skilly / gate` is a required check (tool and product tiers).
 
 **Rule**:
 A named workflow requirement attached to a bundle (e.g. conventional commits). A consumer enforces the union of the rules of all its bundles, via the PR gate.

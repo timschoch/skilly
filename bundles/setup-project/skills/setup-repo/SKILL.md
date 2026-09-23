@@ -18,7 +18,7 @@ Templates sit in `templates/` beside this file. **Copy** them into the repo; nev
 
 Ask the user which one this repo is:
 
-- **sandbox** — demos, spikes, dormant repos. Clean code, no gate on the server, no spend.
+- **sandbox** — demos, spikes, dormant repos. Clean code, no required checks (CI and the PR gate report, nothing blocks merge), no spend.
 - **tool** — another repo or another person consumes it. Adds required checks, `/ai-review`, dependency security.
 - **product** — deployed and depended on. Adds e2e smoke on the PR and a nightly.
 
@@ -85,12 +85,18 @@ gh api repos/{owner}/{repo}/rulesets --input - <<'JSON'
 JSON
 ```
 
-On **tool** and **product**, add the CI job as a required check — a third rule in the same array:
+On **tool** and **product**, add the CI job and the PR gate as required checks — a third rule in the same array:
 
 ```json
 { "type": "required_status_checks", "parameters": {
   "strict_required_status_checks_policy": true,
-  "required_status_checks": [{ "context": "verify" }] } }
+  "required_status_checks": [{ "context": "verify" }, { "context": "skilly / gate" }] } }
+```
+
+Then allow auto-merge. The gate merges a green Sync PR with `gh pr merge --auto`, which waits for the required checks only when this is on:
+
+```sh
+gh api -X PATCH repos/{owner}/{repo} -F allow_auto_merge=true
 ```
 
 A **403** on the rulesets call means rulesets are unavailable for this repo. Fall back without fuss: tell the user trunk protection stays local — the `pre-push` hook from part 1 — and continue. Free private repos cannot *require* checks, so the gate stays a red check rather than a hard block; GitHub Pro and Team can. State that once and move on; never push a plan or suggest making the repo public. Merge-method settings (squash, delete-branch-on-merge) live in `/setup-release-please`, not here.
