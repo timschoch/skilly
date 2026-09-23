@@ -29,7 +29,7 @@
         {
           "name": "bundles",
           "run": "node scripts/validate-bundles.mjs",
-          "why": "Every bundle config must resolve: unknown skill, missing rule script, include cycle."
+          "why": "Every bundle config must resolve: unknown include, missing rule script, include cycle."
         },
         {
           "name": "agents lock",
