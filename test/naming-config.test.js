@@ -9,7 +9,7 @@ import {
   migrateAllow,
 } from '../bundles/workflow/skills/naming/scripts/config.mjs';
 import { validateNaming } from '../bundles/workflow/rules/naming.mjs';
-import { ensureSkilly } from '../lib/ensure-skilly.js';
+import { validateAndUpdateSkilly } from '../lib/validate-and-update-skilly.js';
 
 // A consumer root holding `.skilly/naming.json` with the given content.
 const consumerWith = (override) => {
@@ -48,11 +48,11 @@ test('migrateAllow converts the old flat list and keeps the same effect', () => 
   assert.equal(migrateAllow(root), null, 'a file already in the new shape is left alone');
 });
 
-test('ensureSkilly converts the old allow list on every skilly verb', () => {
+test('validateAndUpdateSkilly converts the old allow list on every skilly verb', () => {
   const root = consumerWith({ allow: ['^opts$'] });
   writeFileSync(join(root, 'skills-lock.json'), '{}');
   writeFileSync(join(root, '.skilly', 'config.json'), JSON.stringify({ bundles: [] }));
-  ensureSkilly(root);
+  validateAndUpdateSkilly(root);
   assert.ok(!Array.isArray(readOverride(root).allow));
 });
 

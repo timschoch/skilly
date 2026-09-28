@@ -15,7 +15,7 @@ flowchart TD
 
     ENTER-UPD((("update"))) --> UPDATE
     subgraph UPDATE["UPDATE SKILLS"]
-        UPD-GUARD["run ensure-skilly"]
+        UPD-GUARD["run validate-and-update-skilly"]
             UPD-GUARD -->|ok| UPD-EB
             UPD-GUARD -->|abort| UPD-FALSE
          

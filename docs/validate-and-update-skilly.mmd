@@ -11,8 +11,8 @@ config:
 flowchart TD
     %% shapes: ((( ))) entry point · [/ \] user action (blue) · [ ] script action (gray) · { } decision (amber) · ([ ]) state (green)
 
-    ENTER-ES((("ensure skilly"))) --> ES
-    subgraph ES["ENSURE SKILLY"]
+    ENTER-ES((("validate and update skilly"))) --> ES
+    subgraph ES["VALIDATE AND UPDATE SKILLY"]
         ESQ1{"has<br>**skills-lock.json**?"}
             ESQ1 -->|yes| ESQ2
             ESQ1 -->|no| ES-ABORT-NO-SKILLS
