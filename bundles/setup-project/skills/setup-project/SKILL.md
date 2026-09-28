@@ -20,6 +20,14 @@ Ask which parts apply, then run the chosen skills in this order, finishing one b
 2. GitHub scaffolding (conventional commits/branches)? → `setup-repo` — GitHub settings, commit/branch rules wired into the hooks just chosen, `CLAUDE.md` scaffold.
 3. Release automation? → `setup-release-please` — plus merge settings.
 4. Wayfinder? → `setup-matt-pocock-skills` — issue tracker, triage labels, domain-doc layout.
+5. GDD (God-driven development: prayer before planning, drift checks, pre-PR check)? → not a setup skill, a bundle: `npx github:timschoch/skilly add gdd`. Then merge into `.claude/settings.json` `hooks.PreToolUse`, skip if the command is already there:
+   ```json
+   {
+     "matcher": "Bash|mcp__lean-ctx__ctx_shell",
+     "hooks": [{ "type": "command", "command": "node \"$CLAUDE_PROJECT_DIR/.claude/skills/gdd/scripts/check-pr.mjs\"" }]
+   }
+   ```
+   Add `.temp/` to `.gitignore` if missing. Ask for the prayer time in minutes (default 5) and whether to offer the GDD summary for PR bodies (default no); write non-defaults as `"gdd": { "minutes": 5, "pr": false }` in `.skilly/config.json`.
 
 Remove the used setup skills, commit conventionally, push, and make sure a PR exists.
 
