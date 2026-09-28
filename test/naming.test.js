@@ -52,6 +52,8 @@ test('file-case flags the file stem and every directory segment', () => {
 
   const ok = validate({
     'app/(marketing)/[slug]/_private/@modal/[...rest]/route.test.ts': 'export const handler = () => null;\n',
+    'app/[[...slug]]/llms.txt/route.ts': 'export const handler = () => null;\n',
+    'src/__tests__/[id].test.ts': 'export const handler = () => null;\n',
   });
   assert.deepEqual(ok.failures, []);
 });
