@@ -40,6 +40,7 @@ Copy the rule scripts in — they become repo-owned, and re-running this skill r
 - `scripts/check-push-branch.mjs` → `.claude/hooks/check-push-branch.mjs` — refuses a direct push to the detected trunk
 - `scripts/check-branch-name.mjs` → `.claude/hooks/check-branch-name.mjs` — Conventional Branch gate, a `push` step in `templates/verify.json`, not a hook line
 - `scripts/block-destructive-git.sh` → `.claude/hooks/block-destructive-git.sh` (`chmod +x`) — wired in part 5
+- `scripts/block-invalid-branch-push.sh` → `.claude/hooks/block-invalid-branch-push.sh` (`chmod +x`) — wired in part 5, runs `check-branch-name.mjs`
 
 Then wire the manager the repo already has — `.husky/` → husky, `lefthook.yml` → lefthook, neither → `npm i -D husky && npx husky init`:
 
@@ -122,6 +123,17 @@ Merge each entry into `.claude/settings.json` `hooks.PreToolUse`; skip an entry 
 ```
 
 Verify: `echo '{"tool_input":{"command":"git reset --hard"}}' | .claude/hooks/block-destructive-git.sh` exits 2.
+
+**Branch-name guard** — runs `check-branch-name.mjs` before the agent's `git push` or `gh pr create`. The `pre-push` hook needs `npm install`, which a fresh worktree lacks; this one needs only `node` and `jq`, and `--no-verify` does not skip it.
+
+```json
+{
+  "matcher": "Bash|mcp__lean-ctx__ctx_shell",
+  "hooks": [{ "type": "command", "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/block-invalid-branch-push.sh" }]
+}
+```
+
+Verify: on a branch named `wip`, `echo '{"tool_input":{"command":"git push"}}' | .claude/hooks/block-invalid-branch-push.sh` exits 2.
 
 **Writing-rules injection** — the `writing-rules` skill (workflow bundle) injects its rule sidecars on every file-writing tool call. The workflow bundle must be added first — the script lives in the installed skill. Not installed? Skip this entry and say so.
 
