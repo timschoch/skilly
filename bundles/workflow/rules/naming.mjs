@@ -273,13 +273,16 @@ const kebab = (text) =>
     .toLowerCase();
 
 // Framework spellings — Next.js dynamic segments, route groups, parallel slots,
-// private folders — are stripped before the case test, not exempted from it.
-const stripDecorations = (segment) =>
+// private folders, __tests__ — are stripped before the case test, not exempted
+// from it. The extension goes after, so `[...slug]` keeps its dots until then
+// and a route folder like `llms.txt` is tested as `llms`.
+const bareName = (segment) =>
   segment
-    .replace(/^[_+@]/, '')
+    .replace(/^[_+@]+/, '')
     .replace(/^\((.*)\)$/, '$1')
-    .replace(/\[[^\]]*\]/g, '')
-    .replace(/^-+|-+$/g, '');
+    .replace(/\[\[?[^\]]*\]\]?/g, '')
+    .replace(/^[-_]+|[-_]+$/g, '')
+    .split('.')[0];
 
 // A finding when `bare` matches none of `cases`; the suggestion is spelled in the first.
 function caseFinding(kind, shown, bare, cases, key) {
@@ -302,11 +305,10 @@ function fileCaseFindings(path, lists) {
   for (const segment of segments) {
     if (segment.startsWith('.')) continue;
     out.push(
-      ...caseFinding('directory', segment, stripDecorations(segment), lists.folderCases, 'artifacts.folder.case'),
+      ...caseFinding('directory', segment, bareName(segment), lists.folderCases, 'artifacts.folder.case'),
     );
   }
-  const stem = name.split('.')[0];
-  out.push(...caseFinding('file', name, stripDecorations(stem), lists.fileCases, 'artifacts.file.case'));
+  out.push(...caseFinding('file', name, bareName(name), lists.fileCases, 'artifacts.file.case'));
   return out;
 }
 
