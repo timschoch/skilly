@@ -5,17 +5,16 @@
 // to lean on. Every check stays conservative: a missed bad name costs less than
 // a false FAIL, which teaches people to ignore the gate.
 // Every word list — short words, noise words, verb synonyms, env roles, the
-// discriminant key and the allow list — lives in the naming skill's
-// `references/naming.json`, merged with the consumer's `.skilly/naming.json`
-// by `skills/naming/scripts/config.mjs`. Only the single-letter ban is in code.
+// discriminant key and the allow entries, vendored paths included — lives in
+// the naming skill's `references/naming.json`, merged with stack files and the
+// consumer's `.skilly/naming.json` by `skills/naming/scripts/config.mjs`. Only
+// the single-letter ban is in code.
 import { existsSync, readFileSync, realpathSync } from 'node:fs';
 import { extname, join } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { loadNamingConfig } from '../skills/naming/scripts/config.mjs';
+import { compileAllow, loadNamingConfig } from '../skills/naming/scripts/config.mjs';
 
-const SKIP_SEGMENTS = new Set(['node_modules', '.agents', '.claude', '.skilly-hub', 'dist', 'build', '.next']);
 const CODE_EXTENSIONS = new Set(['.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs']);
-const GENERATED = /\.generated\.|\.d\.ts$/;
 const ENV_EXAMPLE = /^\.env(\.[^.]+)*\.(example|sample)$/;
 const ENV_NAME = /^[A-Z][A-Z0-9]*(_[A-Z0-9]+)*$/;
 const VALUE_KINDS = new Set(['binding', 'function', 'param']);
@@ -164,7 +163,9 @@ function splitTopLevel(text) {
 }
 
 // The locals a binding introduces: a plain identifier, or the names a one-level
-// destructuring pattern creates. Nested patterns fall through unnamed.
+// destructuring pattern creates. Nested patterns fall through unnamed. An object
+// key taken without a rename (`{ req }`) is left out: the object's owner picked
+// that name, and the gate checks it where it is declared.
 function bindingNames(text, base) {
   const trimmed = text.trimStart();
   const lead = base + (text.length - trimmed.length);
@@ -176,6 +177,7 @@ function bindingNames(text, base) {
     for (const part of splitTopLevel(trimmed.slice(1, close))) {
       const beforeDefault = part.text.split('=')[0];
       const colon = open === '{' ? beforeDefault.lastIndexOf(':') : -1;
+      if (open === '{' && colon === -1 && !beforeDefault.trimStart().startsWith('...')) continue;
       const tail = colon === -1 ? beforeDefault : beforeDefault.slice(colon + 1);
       const match = tail.match(/^\s*(?:\.\.\.)?([A-Za-z_$][\w$]*)\s*$/);
       if (match) names.push({ name: match[1], index: lead + 1 + part.offset + colon + 1 + tail.indexOf(match[1]) });
@@ -291,6 +293,7 @@ function caseFinding(kind, shown, bare, cases, key) {
   return [
     {
       line: 1,
+      name: shown,
       rule: 'file-case',
       message: `${kind} "${shown}" does not match ${key} (${cases.join(', ')})`,
       suggestion: CASES[cases[0]].spell(words),
@@ -312,24 +315,23 @@ function fileCaseFindings(path, lists) {
   return out;
 }
 
-function identifierFindings(source, isTypeScript, isExempt, lists) {
+function identifierFindings(source, isTypeScript, lists) {
   const out = [];
   for (const { name, index, kind, isFunction } of declarations(source)) {
-    if (isExempt(name)) continue;
     const line = lineOf(source, index);
+    const report = (finding) => out.push({ line, name, ...finding });
     const word = lists.shortWords[name.toLowerCase()];
     if (VALUE_KINDS.has(kind)) {
       if (name.length === 1 && name !== '_' && name !== '$') {
-        out.push({ line, rule: 'short-word', message: `"${name}" is a single letter`, suggestion: 'a whole word' });
+        report({ rule: 'short-word', message: `"${name}" is a single letter`, suggestion: 'a whole word' });
       } else if (word) {
-        out.push({ line, rule: 'short-word', message: `"${name}" is an abbreviation`, suggestion: word });
+        report({ rule: 'short-word', message: `"${name}" is an abbreviation`, suggestion: word });
       }
     }
     if (NAMED_KINDS.has(kind) && kind !== 'param' && lists.noiseSuffix) {
       const noise = name.match(lists.noiseSuffix);
       if (noise && name !== noise[1]) {
-        out.push({
-          line,
+        report({
           rule: 'noise-word',
           message: `"${name}" ends in the filler word "${noise[1]}"`,
           suggestion: `name what it is, without "${noise[1]}"`,
@@ -337,16 +339,14 @@ function identifierFindings(source, isTypeScript, isExempt, lists) {
       }
     }
     if (kind === 'enum' && isTypeScript) {
-      out.push({
-        line,
+      report({
         rule: 'enum',
         message: `enum "${name}"`,
         suggestion: 'a string union, or a const object plus a derived type',
       });
     }
     if (TYPE_KINDS.has(kind) && /^[IT][A-Z]/.test(name)) {
-      out.push({
-        line,
+      report({
         rule: 'type-prefix',
         message: `"${name}" carries a type-marker prefix`,
         suggestion: name.slice(1),
@@ -357,7 +357,7 @@ function identifierFindings(source, isTypeScript, isExempt, lists) {
         if (!name.startsWith(prefix) || !/^[A-Z0-9_]|^$/.test(name.slice(prefix.length))) continue;
         const rest = name.slice(prefix.length);
         const suggestion = verb === 'to' ? `to${rest} or parse${rest}` : `${verb}${rest}`;
-        out.push({ line, rule: 'verb-synonym', message: `"${name}" says ${prefix}, the repo says ${verb}`, suggestion });
+        report({ rule: 'verb-synonym', message: `"${name}" says ${prefix}, the repo says ${verb}`, suggestion });
         break;
       }
     }
@@ -377,6 +377,7 @@ function discriminantFindings(source, discriminant) {
     for (const property of source.slice(open, close).matchAll(/(?:readonly\s+)?\btype\s*\??\s*:\s*['"`]/g)) {
       out.push({
         line: lineOf(source, open + property.index),
+        name: 'type',
         rule: 'discriminant',
         message: 'a string-literal property named "type"',
         suggestion: discriminant,
@@ -386,17 +387,17 @@ function discriminantFindings(source, discriminant) {
   return out;
 }
 
-function envFindings(source, isExempt, lists) {
+function envFindings(source, lists) {
   const out = [];
   source.split('\n').forEach((text, offset) => {
     const match = text.match(/^\s*(?:export\s+)?([A-Za-z_][\w]*)\s*=/);
     if (!match || text.trimStart().startsWith('#')) return;
     const name = match[1];
-    if (isExempt(name)) return;
     const line = offset + 1;
     if (!ENV_NAME.test(name)) {
       out.push({
         line,
+        name,
         rule: 'env-shape',
         message: `"${name}" is not UPPER_SNAKE_CASE`,
         suggestion: name.replace(/([a-z0-9])([A-Z])/g, '$1_$2').toUpperCase(),
@@ -407,6 +408,7 @@ function envFindings(source, isExempt, lists) {
       const roles = lists.envRoles.join('|');
       out.push({
         line,
+        name,
         rule: 'env-shape',
         message: `"${name}" does not read <SERVICE>_(${roles})_FOR_<CONSUMER>`,
         suggestion: `SERVICE_${lists.envRoles[0]}_FOR_CONSUMER`,
@@ -418,31 +420,41 @@ function envFindings(source, isExempt, lists) {
 
 // --- entry points -----------------------------------------------------------
 
-// `allow` in the config: one regex per entry, matched against an identifier, an
-// env var name or a path. A match exempts it.
-export function validateNaming({ root, files, config = loadNamingConfig(root), allow = config.allow ?? [] }) {
+// `allow` in the config: named entries, each a set of path and name regexes
+// plus the rules it silences. A finding is dropped when every regex list the
+// entry gives matches it and the entry names its rule. An entry with only
+// paths and rules "*" skips the file before it is read.
+export function validateNaming({ root, files, config = loadNamingConfig(root), allow = config.allow }) {
   const lists = toCheckLists(config);
-  const patterns = allow.map((entry) => (entry instanceof RegExp ? entry : new RegExp(entry)));
-  const isExempt = (name) => patterns.some((pattern) => pattern.test(name));
+  const entries = compileAllow(allow);
+  const matches = (patterns, text) => patterns.some((pattern) => pattern.test(text));
+  const isAllowed = (finding) =>
+    entries.some(
+      ({ paths, names, rules }) =>
+        (!paths || matches(paths, finding.file)) &&
+        (!names || (finding.name !== undefined && matches(names, finding.name))) &&
+        (rules === '*' || rules.includes(finding.rule)),
+    );
+  const isSkipped = (file) =>
+    entries.some(({ paths, names, rules }) => rules === '*' && paths && !names && matches(paths, file));
   const failures = [];
   const warnings = [];
 
   for (const file of files) {
-    const segments = file.split('/');
-    const name = segments[segments.length - 1];
-    if (segments.some((segment) => SKIP_SEGMENTS.has(segment)) || GENERATED.test(name)) continue;
+    if (isSkipped(file)) continue;
+    const name = file.split('/').pop();
     const path = join(root, file);
     if (!existsSync(path)) continue;
     // Findings are harvested per declaration kind; a reader wants them by line.
     const found = [];
-    const collect = (findings) => found.push(...findings);
+    const collect = (findings) => found.push(...findings.map((finding) => ({ file, ...finding })));
     const flush = () => {
       found.sort((left, right) => left.line - right.line);
-      for (const finding of found) failures.push({ file, ...finding });
+      failures.push(...found.filter((finding) => !isAllowed(finding)));
     };
 
     if (ENV_EXAMPLE.test(name)) {
-      collect(envFindings(readFileSync(path, 'utf8'), isExempt, lists));
+      collect(envFindings(readFileSync(path, 'utf8'), lists));
       flush();
       continue;
     }
@@ -451,11 +463,13 @@ export function validateNaming({ root, files, config = loadNamingConfig(root), a
 
     const source = blankNoise(readFileSync(path, 'utf8'));
     const isTypeScript = extension === '.ts' || extension === '.tsx';
-    if (!isExempt(file)) collect(fileCaseFindings(file, lists));
-    collect(identifierFindings(source, isTypeScript, isExempt, lists));
+    collect(fileCaseFindings(file, lists));
+    collect(identifierFindings(source, isTypeScript, lists));
     flush();
     if (isTypeScript) {
-      for (const finding of discriminantFindings(source, lists.discriminant)) warnings.push({ file, ...finding });
+      for (const finding of discriminantFindings(source, lists.discriminant)) {
+        if (!isAllowed({ file, ...finding })) warnings.push({ file, ...finding });
+      }
     }
   }
   return { failures, warnings };
