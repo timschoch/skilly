@@ -40,8 +40,11 @@ flowchart LR
             WFQ3 -->|yes| WF3["/setup-release-please"] --> WFQ4
             WFQ3 -->|no| WFQ4
         WFQ4{"use wayfinder?"}
-            WFQ4 -->|yes| WF4["/setup-matt-pocock-skills"] --> WF6
-            WFQ4 -->|no| WF6
+            WFQ4 -->|yes| WF4["/setup-matt-pocock-skills"] --> WFQ5
+            WFQ4 -->|no| WFQ5
+        WFQ5{"use GDD?"}
+            WFQ5 -->|yes| WF5["skilly add gdd<br>+ gdd setup.mjs"] --> WF6
+            WFQ5 -->|no| WF6
             %% WFQ2 is here to make the line go behind the other steps %%
             WFQ2 -->|no| WFQ4
         WF6["remove setup skills"]

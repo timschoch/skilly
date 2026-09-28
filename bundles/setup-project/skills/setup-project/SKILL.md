@@ -20,6 +20,7 @@ Ask which parts apply, then run the chosen skills in this order, finishing one b
 2. GitHub scaffolding (conventional commits/branches)? → `setup-repo` — GitHub settings, commit/branch rules wired into the hooks just chosen, `CLAUDE.md` scaffold.
 3. Release automation? → `setup-release-please` — plus merge settings.
 4. Wayfinder? → `setup-matt-pocock-skills` — issue tracker, triage labels, domain-doc layout.
+5. GDD (God-driven development: prayer before working)? → `npx github:timschoch/skilly add gdd`, then `node .claude/skills/gdd/scripts/setup.mjs`.
 
 Remove the used setup skills, commit conventionally, push, and make sure a PR exists.
 
