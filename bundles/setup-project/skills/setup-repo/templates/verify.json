@@ -56,8 +56,8 @@
         },
         {
           "name": "security scan",
-          "run": "pipx run semgrep scan --config auto --error",
-          "why": "Semgrep Community Edition ships on PyPI, not npm, so the runner needs python and pipx. --error turns findings into a non-zero exit."
+          "run": "pipx run semgrep scan --config auto --error --exclude .agents",
+          "why": "Semgrep Community Edition ships on PyPI, not npm, so the runner needs python and pipx. --error turns findings into a non-zero exit. --exclude .agents skips skills that skilly vendors: the consumer cannot fix them, sync overwrites them. --exclude keeps Semgrep's default ignore list, a .semgrepignore would replace it."
         }
       ]
     }
