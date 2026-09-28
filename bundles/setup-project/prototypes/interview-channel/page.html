@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>skilly setup interview (PROTOTYPE)</title>
+<style>
+  :root { --accent: #2f6fdd; --muted: #6b7280; --line: #e5e7eb; }
+  * { box-sizing: border-box; }
+  body { font: 15px/1.5 -apple-system, system-ui, sans-serif; margin: 0; background: #fafafa; color: #111; height: 100vh; display: flex; flex-direction: column; }
+  header { padding: 12px 24px; border-bottom: 1px solid var(--line); background: #fff; display: flex; gap: 12px; align-items: center; }
+  header h1 { font-size: 17px; margin: 0; flex: 1; }
+  .badge { background: #fde68a; color: #7c5700; font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 99px; }
+  .cols { flex: 1; display: grid; grid-template-columns: 1.2fr 1fr; min-height: 0; }
+  .left { overflow: auto; padding: 16px 24px; }
+  .right { border-left: 1px solid var(--line); background: #fff; display: flex; flex-direction: column; min-height: 0; }
+  h3 { font-size: 13px; text-transform: uppercase; letter-spacing: .05em; color: var(--accent); margin: 18px 0 6px; }
+  .q { margin: 8px 0; padding: 6px 8px; border-radius: 8px; transition: background .2s; }
+  .q .t { font-weight: 600; }
+  .q .why { color: var(--muted); font-size: 13px; }
+  .tip { position: relative; cursor: help; }
+  .tip .i { color: var(--muted); font-weight: 400; font-size: 13px; }
+  .tip:hover::after { content: attr(data-tip); position: absolute; left: 0; top: 100%; margin-top: 4px; z-index: 10; width: max-content; max-width: 360px;
+    background: #111827; color: #fff; font-size: 13px; font-weight: 400; padding: 6px 10px; border-radius: 6px; }
+  .q.info { color: var(--muted); font-size: 14px; }
+  .q.agent { background: #eef4ff; }
+  .q.agent .t::after { content: '  · set by Claude'; color: var(--accent); font-weight: 400; font-size: 12px; }
+  .cat { font-size: 12px; color: var(--muted); margin-top: 4px; }
+  textarea, input { font: inherit; width: 100%; padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px; }
+  pre { background: #111827; color: #e5e7eb; border-radius: 8px; padding: 10px 12px; white-space: pre-wrap; font-size: 13px; margin: 4px 0 0; min-height: 40px; }
+  button { font: inherit; border: 1px solid var(--line); background: #fff; border-radius: 8px; padding: 4px 10px; cursor: pointer; margin: 4px 6px 0 0; }
+  button.on, button.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+  button:disabled { opacity: .6; cursor: default; }
+  button.step.next { background: var(--accent); color: #fff; border-color: var(--accent); font-weight: 600; }
+  button.step.next:disabled { opacity: .8; }
+  button.step.done { background: #f0fdf4; color: #15803d; border-color: #86efac; }
+  button.step.upcoming { background: transparent; color: #9ca3af; border-style: dashed; opacity: 1; }
+  /* after done/upcoming so it wins: Claude works on this step */
+  button.step.busy, button.step.busy:disabled { background: #fef3c7; color: #92400e; border-color: #fcd34d; opacity: 1; }
+  .spin { display: inline-block; width: 12px; height: 12px; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: spin .8s linear infinite; vertical-align: -1px; margin-right: 6px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .log { flex: 1; overflow: auto; padding: 16px; }
+  .msg { max-width: 85%; padding: 8px 12px; border-radius: 12px; margin: 6px 0; white-space: pre-wrap; }
+  .msg.user { background: var(--accent); color: #fff; margin-left: auto; }
+  .msg.agent { background: #f3f4f6; }
+  .msg.busy { background: #f3f4f6; color: var(--muted); }
+  .compose { display: flex; gap: 8px; padding: 12px; border-top: 1px solid var(--line); }
+  .compose button { margin: 0; align-self: flex-end; }
+  .status { font-size: 13px; color: var(--muted); }
+  .actions { scroll-margin-top: 16px; margin: 20px 0 8px; padding-top: 12px; border-top: 1px solid var(--line); display: flex; gap: 12px; align-items: center; }
+  .check.ok::before { content: '✓ '; color: #16a34a; font-weight: 700; }
+  .check.fail::before { content: '✗ '; color: #dc2626; font-weight: 700; }
+  fieldset { border: 0; padding: 0; margin: 0; min-width: 0; }
+  fieldset:disabled .q { opacity: .7; }
+  .card { background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 12px 16px; margin: 0 0 14px; scroll-margin-top: 16px; }
+  .card.current { border: 2px solid var(--accent); box-shadow: 0 2px 10px rgb(47 111 221 / .15); }
+  .card.done { border-color: #86efac; }
+  .card.locked { opacity: .45; }
+  .card-head { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 16px; margin-bottom: 4px; }
+  .card-head .num { width: 24px; height: 24px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 13px; background: #e5e7eb; color: #374151; }
+  .card.current .num { background: var(--accent); color: #fff; }
+  .card.done .num { background: #16a34a; color: #fff; }
+  .card-head .tag { margin-left: auto; font-size: 12px; font-weight: 500; color: var(--muted); }
+  .card-foot { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line); display: flex; gap: 12px; align-items: center; }
+  .locked { color: var(--muted); font-size: 13px; margin-top: 8px; }
+</style>
+</head>
+<body>
+<header>
+  <span class="badge">PROTOTYPE</span>
+  <h1>skilly setup interview</h1>
+</header>
+<div class="cols">
+  <div class="left">
+    <fieldset id="form"></fieldset>
+    <div id="steps"></div>
+    <div class="actions"><span id="phaseBtns"></span><span class="status" id="status">connecting…</span></div>
+  </div>
+  <div class="right">
+    <div class="log" id="log"></div>
+    <form class="compose" onsubmit="event.preventDefault(); chat()">
+      <textarea id="msg" rows="3" placeholder="Message Claude…" style="resize: vertical"
+        onkeydown="if (event.key === 'Enter' && !event.shiftKey && !event.isComposing) { event.preventDefault(); chat(); }"></textarea>
+      <button class="primary">Send</button>
+    </form>
+  </div>
+</div>
+<script src="/interview-logic.js"></script>
+<script>
+const TOKEN = new URLSearchParams(location.search).get('t');
+let state = null;
+
+const esc = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+async function send(event) {
+  const res = await fetch(`/event?t=${TOKEN}`, { method: 'POST', body: JSON.stringify(event) });
+  if (res.ok) { state = await res.json(); render(); }
+}
+const answer = (id, value) => send({ kind: 'answer', id, value });
+const generate = () => send({ kind: 'generate', text: document.getElementById('goal').value });
+function chat() {
+  const input = document.getElementById('msg');
+  if (input.value.trim()) send({ kind: 'chat', text: input.value });
+  input.value = '';
+}
+// After "Looks good", scroll to the next section (or to the step buttons after the last one) once the server confirms.
+let scrollToCurrent = false;
+function confirmSection(group) {
+  scrollToCurrent = true;
+  send({ kind: 'confirm', group });
+}
+// A step button reacts at once (spinner + what Claude does) instead of waiting for the server round trip.
+const BUSY = { prepare: 'Claude prepares the plan…', check: 'Claude checks the logins…', run: 'Claude runs the setup…' };
+const BUSY_PHASE = { preparing: 'prepare', checking: 'check', running: 'run' };
+function stepClick(button, kind) {
+  if (BUSY[kind]) {
+    document.querySelectorAll('button.step').forEach((b) => { b.disabled = true; });
+    button.innerHTML = `<span class="spin"></span>${BUSY[kind]}`;
+    button.classList.add('busy');
+  }
+  send({ kind });
+}
+function copyFix(button) {
+  navigator.clipboard.writeText(button.previousElementSibling.textContent);
+  button.textContent = 'Copied';
+}
+function toggleTool(id) {
+  const tools = new Set(setupPlan.resolve(state.sit, state.answers).tools);
+  tools.has(id) ? tools.delete(id) : tools.add(id);
+  answer('tools', [...tools]);
+}
+
+function renderQuestion(q, a) {
+  if (q.kind === 'info') return `<div class="q info">${q.text}${q.why ? ` · ${q.why}` : ''}</div>`;
+  let body;
+  if (q.id === 'goal') {
+    body = `<textarea id="goal" rows="2" onchange="answer('goal', this.value)">${esc(a.goal)}</textarea>` +
+      `<button class="primary" onclick="generate()" ${state.working ? 'disabled' : ''}>` +
+      (state.working ? '<span class="spin"></span>Claude is working…' : 'Generate README and answers') + `</button>`;
+  } else if (q.kind === 'text') {
+    body = `<input value="${esc(a[q.id])}" placeholder="${q.optional ? 'optional' : ''}" onchange="answer('${q.id}', this.value)">`;
+  } else if (q.kind === 'multi') {
+    body = [...new Set(TOOLS.map((t) => t.cat))].map((c) => `<div class="cat">${c}</div>` + TOOLS.filter((t) => t.cat === c).map((t) =>
+      `<button class="${a.tools.includes(t.id) ? 'on' : ''}" onclick="toggleTool('${t.id}')">${t.label}</button>`).join('')).join('');
+  } else {
+    body = q.options.map((o) => `<button class="${a[q.id] === o ? 'on' : ''}" onclick="answer('${q.id}','${o}')">${o}</button>`).join('');
+  }
+  const readme = q.id === 'goal'
+    ? `<div class="q ${state.changedByAgent.includes('readme') ? 'agent' : ''}"><div class="t">README.md</div>` +
+      `<pre>${esc(state.readme || setupPlan.readmeDraft(a.appName || a.name, a.goal, a.url)) || '<span style="color:#9ca3af">Press Generate: Claude writes this from the app concept</span>'}</pre></div>`
+    : '';
+  const title = q.why ? `<span class="tip" data-tip="${esc(q.why)}">${q.text} <span class="i">ⓘ</span></span>` : q.text;
+  return `<div class="q ${state.changedByAgent.includes(q.id) ? 'agent' : ''}"><div class="t">${title}</div>${body}</div>${readme}`;
+}
+
+function render() {
+  // Don't replace a field while the user types in it; focusout renders again.
+  const typing = document.activeElement && document.getElementById('form').contains(document.activeElement) &&
+    ['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName);
+  if (!typing) {
+    const a = setupPlan.resolve(state.sit, state.answers);
+    const list = sections(state.sit, a, state.confirmed);
+    document.getElementById('form').innerHTML = list.map((s, i) => {
+      // App concept is done only once the README exists.
+      const needsReadme = s.id === 'concept' && s.questions.some((q) => q.id === 'goal') && !state.readme;
+      const foot = s.status !== 'current' ? '' : `<div class="card-foot">` +
+        `<button class="primary" onclick="confirmSection('${s.id}')" ${needsReadme ? 'disabled' : ''}>` +
+        `${i === list.length - 1 ? 'Looks good' : 'Looks good → next'}</button>` +
+        (needsReadme ? `<span class="status">Generate the README first</span>` : '') + `</div>`;
+      return `<fieldset class="card ${s.status}" ${s.status === 'locked' ? 'disabled' : ''}>` +
+        `<div class="card-head"><span class="num">${s.status === 'done' ? '✓' : i + 1}</span>${s.title}` +
+        `<span class="tag">${{ done: 'done', current: 'now', locked: 'after the section above' }[s.status]}</span></div>` +
+        s.questions.map((q) => renderQuestion(q, a)).join('') + foot + `</fieldset>`;
+    }).join('');
+    if (scrollToCurrent) {
+      scrollToCurrent = false;
+      (document.querySelector('.card.current') ?? document.querySelector('.actions')).scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }
+  const sectionsDone = sections(state.sit, setupPlan.resolve(state.sit, state.answers), state.confirmed).every((s) => s.status === 'done');
+  const p = state.phase;
+  const locked = ['planned', 'checking', 'ready', 'running'].includes(p);
+  document.getElementById('form').disabled = locked;
+  const failed = state.checks.filter((c) => !c.ok);
+  document.getElementById('steps').innerHTML =
+    locked && p !== 'running' ? `<div class="locked">Answers are locked. Press "✓ 1. Edit answers" to change them.</div>` : '';
+  // Each step is done (✓, still clickable to go back), next (the one primary button) or upcoming (disabled).
+  const current = { interview: 1, preparing: 1, planned: 2, checking: 2, ready: 3, running: 4 }[p];
+  const steps = [
+    { n: 1, next: 'Prepare installation', done: 'Edit answers', kind: current === 1 ? 'prepare' : 'unlock' },
+    { n: 2, next: failed.length ? 'Check logins again' : 'Prepare AFK', done: 'Recheck logins', kind: 'check' },
+    { n: 3, next: 'Run AFK', done: 'Running', kind: 'run' },
+  ];
+  const stepButton = (s) => {
+    // Step 1 waits until every section is done; until then the section's own button is the next action.
+    const role = s.n < current ? 'done' : s.n === current && (s.n > 1 || sectionsDone) ? 'next' : 'upcoming';
+    const enabled = !state.working && (role === 'next' || (role === 'done' && p !== 'running'));
+    const busy = state.working && BUSY_PHASE[p] === (s.n === 1 ? 'prepare' : s.kind);
+    const label = busy ? `<span class="spin"></span>${BUSY[BUSY_PHASE[p]]}` : role === 'done' ? `✓ ${s.n}. ${s.done}` : `${s.n}. ${s.next}`;
+    return `<button class="step ${role}${busy ? ' busy' : ''}" onclick="stepClick(this, '${s.kind}')" ${enabled ? '' : 'disabled'}>${label}</button>`;
+  };
+  document.getElementById('phaseBtns').innerHTML = steps.map(stepButton).join('');
+  // Plan and login checks arrive as chat messages; only the latest one carries the next-step button.
+  const lastAction = state.chat.findLastIndex((m) => m.action);
+  const renderMsg = (m, i) => {
+    const fix = (m.checks ?? []).filter((c) => !c.ok).map((c) => c.fix).filter(Boolean).join('\n\n');
+    return `<div class="msg ${m.from}">${esc(m.text)}` +
+      (m.checks ?? []).map((c) => `<div class="check ${c.ok ? 'ok' : 'fail'}">${esc(c.label)}</div>`).join('') +
+      (fix ? `<div class="why">Run this in a terminal, then check again:</div><pre>${esc(fix)}</pre>` +
+        `<button onclick="copyFix(this)">Copy</button>` : '') +
+      (i === lastAction ? `<div>${stepButton(steps.find((s) => s.kind === m.action))}</div>` : '') + `</div>`;
+  };
+  document.getElementById('log').innerHTML = (state.chat.map(renderMsg).join('') ||
+    '<div class="status">Type the app concept on the left and press Generate, or write to Claude here.</div>') +
+    (state.working ? '<div class="msg busy"><span class="spin"></span>Claude is working…</div>' : '');
+  document.getElementById('log').scrollTop = 1e9;
+  document.getElementById('status').textContent = state.working ? 'Claude is working…' : {
+    interview: sectionsDone ? 'all sections done — prepare the installation' : 'finish the sections above first', preparing: 'answer Claude in the chat',
+    planned: failed.length ? 'fix the logins, then check again' : 'next: check the logins', checking: 'Claude checks the logins…',
+    ready: 'all logins ok — you can go AFK', running: 'running — you can leave',
+  }[p];
+}
+
+document.getElementById('form').addEventListener('focusout', () => setTimeout(() => state && render()));
+// Live stream from the server. The server pings every 10 s; 25 s of silence means the stream is dead, so connect again.
+let events, lastSeen = Date.now();
+function connect() {
+  events?.close();
+  lastSeen = Date.now();
+  events = new EventSource(`/events?t=${TOKEN}`);
+  events.onmessage = (e) => { lastSeen = Date.now(); state = JSON.parse(e.data); render(); };
+  events.addEventListener('ping', () => { lastSeen = Date.now(); });
+  events.onerror = () => { document.getElementById('status').textContent = 'disconnected — is Claude still running?'; };
+}
+connect();
+setInterval(() => { if (Date.now() - lastSeen > 25_000) connect(); }, 5_000);
+</script>
+</body>
+</html>

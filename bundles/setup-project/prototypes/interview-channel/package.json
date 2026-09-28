@@ -1,0 +1,12 @@
+{
+  "name": "interview-channel-prototype",
+  "private": true,
+  "description": "PROTOTYPE: two-way browser channel for the setup interview. Throwaway.",
+  "type": "module",
+  "scripts": {
+    "e2e": "node e2e.mjs"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.30.1"
+  }
+}

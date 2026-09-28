@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>PROTOTYPE — setup: ask everything first, then run alone</title>
+<style>
+  :root { --accent: #2f6fdd; --muted: #6b7280; --line: #e5e7eb; --bg: #fafafa; --ok: #15803d; --warn: #b45309; --bad: #b91c1c; }
+  * { box-sizing: border-box; }
+  body { font: 15px/1.5 -apple-system, system-ui, sans-serif; margin: 0; background: var(--bg); color: #111; }
+  main { max-width: 1200px; margin: 0 auto; padding: 32px 24px 64px; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  h2 { font-size: 14px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin: 28px 0 10px; }
+  h3 { font-size: 13px; text-transform: uppercase; letter-spacing: .05em; color: var(--accent); margin: 18px 0 2px; padding-top: 10px; border-top: 2px solid var(--line); }
+  h3:first-of-type { border-top: 0; padding-top: 0; }
+  h3 .n { color: var(--muted); font-weight: 400; }
+  .badge { display: inline-block; background: #fde68a; color: #7c5700; font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 99px; }
+  .intro { color: #374151; max-width: 860px; }
+  .grid { display: grid; grid-template-columns: 1.1fr 1fr; gap: 24px; align-items: start; }
+  .card { background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 14px 18px; }
+  .q { padding: 8px 0; border-bottom: 1px solid var(--line); }
+  .q:last-child { border-bottom: 0; }
+  .q .t { font-weight: 600; }
+  .q .why { color: var(--muted); font-size: 13px; }
+  .q.info { color: var(--muted); font-size: 14px; }
+  .q.info b { color: #111; }
+  .opts { margin-top: 4px; }
+  .opts button { padding: 3px 10px; font-size: 13px; }
+  .opts button.on { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .cat { font-size: 12px; color: var(--muted); margin: 6px 0 2px; }
+  button { font: inherit; border: 1px solid var(--line); background: #fff; border-radius: 8px; padding: 6px 12px; cursor: pointer; margin: 0 6px 6px 0; }
+  button:hover:not(:disabled) { border-color: var(--accent); }
+  button:disabled { opacity: .35; cursor: default; }
+  button.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+  input, select { font: inherit; padding: 4px 8px; border: 1px solid var(--line); border-radius: 6px; }
+  label.tog { display: flex; gap: 8px; align-items: center; margin: 4px 0; }
+  .phase { font-size: 18px; font-weight: 600; color: var(--accent); margin-bottom: 8px; }
+  .step { display: flex; gap: 10px; padding: 4px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
+  .step:last-child { border-bottom: 0; }
+  .step .s { width: 64px; flex: none; font-weight: 600; }
+  .ok { color: var(--ok); } .warn { color: var(--warn); } .bad { color: var(--bad); } .todo { color: var(--muted); }
+  .human { border-left: 3px solid var(--warn); padding: 4px 10px; margin: 6px 0; font-size: 14px; }
+  .human.done { border-color: var(--ok); color: var(--muted); text-decoration: line-through; }
+  code { background: #f3f4f6; padding: 1px 5px; border-radius: 4px; font-size: 13px; }
+  pre { background: #111827; color: #e5e7eb; border-radius: 8px; padding: 10px 12px; margin: 6px 0 0; white-space: pre-wrap; font-size: 13px; }
+  .tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+  .tabs button.on { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .oq { border-left: 3px solid #f59e0b; padding: 2px 10px; margin: 8px 0; }
+  .count { font-size: 28px; font-weight: 700; color: var(--accent); }
+</style>
+</head>
+<body>
+<main>
+  <span class="badge">PROTOTYPE — throwaway, not shipped</span>
+  <h1>Setup: ask everything first, then run alone</h1>
+  <p class="intro">
+    <b>Question:</b> one <b>interview</b> at the start asks every setup question, in five groups:
+    app concept, repo, stack, output/deployment, misc. Inside a group, the question with the biggest impact comes first.
+    A question that depends on an earlier answer always sits below it.
+    Then a short <b>"before you go"</b> list holds the things only a human can do. Then the agent <b>runs alone</b>, and
+    the user comes back to a repo on GitHub, deployed on Vercel, with one PR to merge.
+  </p>
+
+  <div class="grid">
+    <section>
+      <h2>1 · The situation (set before you start)</h2>
+      <div class="card" id="situation"></div>
+
+      <h2>2 · The interview</h2>
+      <div class="card">
+        <div><span class="count" id="qcount">0</span> questions · the highlighted choice is the default</div>
+        <div id="questions"></div>
+      </div>
+    </section>
+
+    <section>
+      <h2>3 · Before you go (human only)</h2>
+      <div class="card" id="preflight"></div>
+
+      <h2>4 · The unattended run</h2>
+      <div class="card">
+        <div class="phase" id="phase"></div>
+        <div id="run"></div>
+        <div style="margin-top:10px">
+          <button class="primary" id="goBtn" onclick="ui.go()">Go AFK — run the setup</button>
+          <button onclick="ui.resetRun()">Reset run</button>
+        </div>
+      </div>
+
+      <h2>5 · When you come back</h2>
+      <div class="card" id="back"></div>
+    </section>
+  </div>
+
+  <h2>6 · Guided walkthroughs</h2>
+  <div class="card">
+    <div class="tabs" id="tabs"></div>
+    <div id="scenario"></div>
+  </div>
+
+  <h2>Open questions this raises</h2>
+  <div class="card" id="openq"></div>
+</main>
+
+<!-- ============ Portable logic: no DOM below until the page shell ============ -->
+<script src="interview-logic.js"></script>
+
+<!-- ============ Page shell: throwaway ============ -->
+<script>
+const SIT_FIELDS = [
+  ['remote', 'GitHub remote', [['none', 'none (local folder)'], ['github', 'exists']]],
+  ['readme', 'README', [['none', 'none'], ['title-only', 'only a title'], ['real', 'real text']]],
+  ['stack', 'Stack files', [['none', 'none'], ['deps', 'package.json with deps']]],
+];
+const SIT_FLAGS = [
+  ['ghLogin', 'Logged in to GitHub'], ['vercelLogin', 'Logged in to Vercel'], ['neonLogin', 'Logged in to Neon'], ['claudeToken', 'AI-review token already set'],
+];
+const FAULTS = [['scaffold', 'Starter app install fails'], ['repo', 'Rulesets give 403 (warn)', 'warn'], ['deploy', 'Preview build fails']];
+const BASE_SIT = { folder: 'family-habits', remoteName: 'timschoch/family-habits', detectedTools: ['nextjs', 'typescript', 'react', 'vercel'] };
+
+const SCENARIOS = [
+  { name: 'Empty folder → live preview', sit: { remote: 'none', readme: 'none', stack: 'none', ghLogin: true, vercelLogin: true, neonLogin: true, claudeToken: false },
+    answers: { goal: 'A habit tracker app for families, with login' },
+    text: 'A new empty folder. The user types the app concept, keeps every default, goes AFK. Watch: the stack preselects, Neon wiring shows up, the repo name comes from the folder.' },
+  { name: 'Existing code repo', sit: { remote: 'github', readme: 'real', stack: 'deps', ghLogin: true, vercelLogin: true, neonLogin: true, claudeToken: true },
+    answers: {},
+    text: 'A repo with a README and code. Watch: no concept question, the repo name is shown (not asked), the stack is preselected from package.json.' },
+  { name: 'Product, not logged in', sit: { remote: 'none', readme: 'none', stack: 'none', ghLogin: true, vercelLogin: false, neonLogin: false, claudeToken: false },
+    answers: { goal: 'A habit tracker app for families, with login', tier: 'product', url: 'habits.family' },
+    text: 'Scope "product": main → preview, release → production. Logins for Vercel and Neon plus the AI-review token land in "before you go".' },
+  { name: 'Build fails while AFK', sit: { remote: 'none', readme: 'none', stack: 'none', ghLogin: true, vercelLogin: true, neonLogin: true, claudeToken: true },
+    answers: { goal: 'An AI chat agent for support tickets' }, faults: { deploy: 'fail', repo: 'warn' },
+    text: 'The preview build fails while the user is away. Watch: the other steps still finish; the failure waits in the "come back" list.' },
+  { name: 'Library, no Vercel', sit: { remote: 'none', readme: 'none', stack: 'none', ghLogin: true, vercelLogin: false, neonLogin: false, claudeToken: false },
+    answers: { goal: 'A small npm library for date parsing', tier: 'tool' },
+    text: 'A concept that does not deploy. Watch: the output group shows "no deployment", no Vercel login needed.' },
+];
+
+const OPEN_QUESTIONS = [
+  'Monorepo: which tool (npm workspaces, pnpm, Turborepo)? Where does the app go (apps/web)?',
+  '"tool: release → production" — does main deploy anywhere (preview) or nothing at all?',
+  'Release → production on Vercel: set the production branch to a "production" branch that the release workflow pushes, or a GitHub Action with vercel deploy --prod on release? Draft: the Action.',
+  'Vercel teams in the question are guesses. Read them from `vercel teams ls` instead?',
+  'Scaffold: which official starter per framework goes into stacks.json?',
+];
+
+const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+
+const ui = {
+  sit: {}, answers: {}, done: new Set(), faults: {}, results: null, tab: 0,
+
+  init() {
+    this.loadScenario(0);
+    document.getElementById('openq').innerHTML = OPEN_QUESTIONS.map((q) => `<div class="oq">${q}</div>`).join('');
+  },
+  loadScenario(i) {
+    const sc = SCENARIOS[i];
+    this.tab = i; this.sit = { ...BASE_SIT, ...sc.sit }; this.answers = { ...sc.answers }; this.faults = { ...(sc.faults || {}) };
+    this.done = new Set(); this.results = null;
+    this.render();
+  },
+  setSit(k, v) { this.sit[k] = v; this.results = null; this.render(); },
+  answer(id, v) { this.answers[id] = v; this.results = null; this.render(); },
+  toggleTool(id) {
+    const a = setupPlan.resolve(this.sit, this.answers);
+    const tools = new Set(a.tools);
+    tools.has(id) ? tools.delete(id) : tools.add(id);
+    this.answer('tools', [...tools]);
+  },
+  toggleFault(id, kind) { if (this.faults[id]) delete this.faults[id]; else this.faults[id] = kind; this.results = null; this.render(); },
+  humanDone(id) { this.done.add(id); this.render(); },
+  go() {
+    const a = setupPlan.resolve(this.sit, this.answers);
+    this.results = setupPlan.run(setupPlan.steps(this.sit, a), this.faults);
+    this.render();
+  },
+  resetRun() { this.results = null; this.render(); },
+
+  renderQuestion(q, a) {
+    if (q.kind === 'info') return `<div class="q info">${q.text}${q.why ? ` <span class="why">· ${q.why}</span>` : ''}</div>`;
+    let body;
+    if (q.kind === 'text') {
+      body = `<input style="width:95%" value="${esc(a[q.id] ?? '')}" placeholder="${q.optional ? 'optional — ' : ''}type, then press Enter" onchange="ui.answer('${q.id}', this.value)">`;
+      if (q.id === 'goal' && a.goal) body += `<pre>${esc(setupPlan.readmeDraft(a.appName || a.name, a.goal, a.url))}</pre>`;
+    } else if (q.kind === 'multi') {
+      const cats = [...new Set(TOOLS.map((t) => t.cat))];
+      body = cats.map((c) => `<div class="cat">${c}</div>` + TOOLS.filter((t) => t.cat === c).map((t) =>
+        `<button class="${a.tools.includes(t.id) ? 'on' : ''}" onclick="ui.toggleTool('${t.id}')">${t.label}</button>`).join('')).join('');
+    } else {
+      body = q.options.map((o) => `<button class="${a[q.id] === o ? 'on' : ''}" onclick="ui.answer('${q.id}','${o}')">${o}</button>`).join('');
+    }
+    return `<div class="q"><div class="t">${q.text}</div>${q.why ? `<div class="why">${q.why}</div>` : ''}<div class="opts">${body}</div></div>`;
+  },
+
+  render() {
+    const sit = this.sit;
+    document.getElementById('situation').innerHTML =
+      `<div style="margin:4px 0">Folder name: <input value="${esc(sit.folder)}" onchange="ui.setSit('folder', this.value)"></div>` +
+      SIT_FIELDS.map(([k, l, opts]) => `<div style="margin:4px 0">${l}: <select onchange="ui.setSit('${k}', this.value)">` +
+        opts.map(([v, t]) => `<option value="${v}" ${sit[k] === v ? 'selected' : ''}>${t}</option>`).join('') + `</select></div>`).join('') +
+      SIT_FLAGS.map(([k, l]) => `<label class="tog"><input type="checkbox" ${sit[k] ? 'checked' : ''} onchange="ui.setSit('${k}', this.checked)">${l}</label>`).join('') +
+      `<div style="margin-top:6px;color:var(--muted);font-size:13px">Things that go wrong while AFK:</div>` +
+      FAULTS.map(([id, l, kind]) => `<label class="tog"><input type="checkbox" ${this.faults[id] ? 'checked' : ''} onchange="ui.toggleFault('${id}','${kind || 'fail'}')">${l}</label>`).join('');
+
+    const a = setupPlan.resolve(sit, this.answers);
+    const qs = setupPlan.questions(sit, a);
+    document.getElementById('qcount').textContent = setupPlan.countAsked(qs);
+    document.getElementById('questions').innerHTML = GROUPS.map(([g, title]) => {
+      const inGroup = qs.filter((q) => q.group === g);
+      if (!inGroup.length) return '';
+      return `<h3>${title} <span class="n">· ${setupPlan.countAsked(inGroup)}</span></h3>` + inGroup.map((q) => this.renderQuestion(q, a)).join('');
+    }).join('');
+
+    const pre = setupPlan.beforeYouGo(sit, a);
+    const open = pre.filter((p) => !p.auto && !this.done.has(p.id));
+    document.getElementById('preflight').innerHTML = pre.length
+      ? pre.map((p) => `<div class="human ${p.auto || this.done.has(p.id) ? 'done' : ''}">${p.text}<br><code>${esc(p.cmd)}</code>` +
+          (p.auto || this.done.has(p.id) ? '' : ` <button style="margin:4px 0 0" onclick="ui.humanDone('${p.id}')">Done</button>`) + `</div>`).join('')
+      : '<i>Nothing. You can leave right after the interview.</i>';
+
+    const missingGoal = qs.some((q) => q.kind === 'text' && !q.optional && !a[q.id]);
+    document.getElementById('goBtn').disabled = open.length > 0 || missingGoal;
+    document.getElementById('phase').textContent = missingGoal ? 'Waiting: answer the app concept' : open.length ? `Waiting: ${open.length} human step(s) left` : this.results ? 'Run finished' : 'Ready — the user can leave now';
+
+    const steps = this.results || setupPlan.steps(sit, a).map((s) => ({ ...s, status: 'todo', note: '' }));
+    document.getElementById('run').innerHTML = steps.map((s) =>
+      `<div class="step"><div class="s ${s.status === 'blocked' ? 'bad' : s.status}">${s.status}</div><div>${esc(s.text)}${s.note ? `<br><span class="${s.status === 'warn' ? 'warn' : 'bad'}" style="font-size:13px">${esc(s.note)}</span>` : ''}</div></div>`).join('');
+
+    document.getElementById('back').innerHTML = this.results
+      ? '<ol>' + setupPlan.whenBack(this.results).map((x) => `<li>${esc(x)}</li>`).join('') + '</ol>'
+      : '<i>Run the setup to see this.</i>';
+
+    document.getElementById('tabs').innerHTML = SCENARIOS.map((sc, i) =>
+      `<button class="${i === this.tab ? 'on' : ''}" onclick="ui.loadScenario(${i})">${sc.name}</button>`).join('');
+    document.getElementById('scenario').innerHTML = `<p>${SCENARIOS[this.tab].text}</p>` +
+      `<p style="color:var(--muted);font-size:13px">Steps: check the interview (left) → press "Done" on each human step → press "Go AFK" → read "When you come back".</p>`;
+  },
+};
+ui.init();
+</script>
+</body>
+</html>
