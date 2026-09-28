@@ -434,6 +434,43 @@ test('check-branch-name: Conventional Branch passes, agent names fail, trunk, de
   }
 });
 
+test('block-invalid-branch-push: blocks push and PR on a bad branch name, through check-branch-name.mjs', async () => {
+  const { spawnSync } = await import('node:child_process');
+  const { run } = await import('../lib/run.js');
+  const scripts = fileURLToPath(new URL('../bundles/setup-project/skills/setup-repo/scripts/', import.meta.url));
+  const hook = join(scripts, 'block-invalid-branch-push.sh');
+  // One rule file: the hook calls the gate, it holds no copy of the rule.
+  const source = readFileSync(hook, 'utf8');
+  assert.match(source, /check-branch-name\.mjs/);
+  assert.doesNotMatch(source, /feat|hotfix/);
+
+  const repo = freshDir();
+  run('git', ['init', '--initial-branch=main', repo]);
+  run('git', ['-C', repo, 'config', 'user.name', 'test']);
+  run('git', ['-C', repo, 'config', 'user.email', 'test@example.com']);
+  run('git', ['-C', repo, 'commit', '--allow-empty', '--no-verify', '-m', 'chore: seed']);
+  const runHook = (branch, command, input = {}) => {
+    run('git', ['-C', repo, 'switch', '-C', branch]);
+    const { GITHUB_HEAD_REF, ...env } = process.env;
+    const event = JSON.stringify({ cwd: repo, tool_input: { command }, ...input });
+    return spawnSync(hook, { input: event, encoding: 'utf8', env });
+  };
+
+  const blocked = runHook('t3code/f087e4bc', 'git push -u origin HEAD');
+  assert.equal(blocked.status, 2);
+  assert.match(blocked.stderr, /Invalid branch name: "t3code\/f087e4bc"/);
+  assert.equal(runHook('wip', 'gh pr create --fill').status, 2);
+  assert.equal(runHook('wip', 'git push --no-verify').status, 2);
+  assert.equal(runHook('feat/add-login', 'git push').status, 0);
+  assert.equal(runHook('wip', 'git status').status, 0);
+  assert.equal(runHook('wip', 'git pushd').status, 0);
+  assert.equal(runHook('wip', 'npm test && git -C . push').status, 2);
+  assert.equal(runHook('wip', 'echo \'{"command":"git push"}\' | cat').status, 0, 'quoted text is no push');
+  // ctx_shell passes its own cwd; it wins over the session cwd.
+  const ctxShell = runHook('wip', 'git push', { cwd: tmpdir(), tool_input: { command: 'git push', cwd: repo } });
+  assert.equal(ctxShell.status, 2);
+});
+
 // setup-repo wires the hook at .claude/skills/…, a symlink to .agents/skills.
 // Node loads the main module through the real path; the is-main check must still fire.
 test('inject-writing-rules runs when invoked through a symlinked skills dir', async () => {
