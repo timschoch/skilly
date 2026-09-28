@@ -13,7 +13,7 @@ flowchart TD
 
     ENTER-ADD((("add"))) --> ADD
     subgraph ADD["ADD SKILL OR BUNDLE"]
-        ADD-GUARD["run ensure-skilly"]
+        ADD-GUARD["run validate-and-update-skilly"]
             ADD-GUARD -->|ok| ADD-EB
             ADD-GUARD -->|abort| ADD-FALSE
 

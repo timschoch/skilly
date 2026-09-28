@@ -13,7 +13,7 @@ flowchart TD
 
     ENTER-REM((("remove"))) --> REM
     subgraph REM["REMOVE SKILL OR BUNDLE"]
-        REM-GUARD["run ensure-skilly"]
+        REM-GUARD["run validate-and-update-skilly"]
             REM-GUARD -->|ok| REM-EB
             REM-GUARD -->|abort| REM-FALSE
 

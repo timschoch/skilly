@@ -190,23 +190,126 @@ type Box<T> = { value: T };
   assert.deepEqual(result.failures, []);
 });
 
-test('an allow entry suppresses a matching identifier, path or env name', () => {
-  assert.deepEqual(validate({ 'a.ts': 'const opts = 1;\n' }, ['^opts$']).failures, []);
-  assert.deepEqual(validate({ 'src/UserProfile.ts': COMPLIANT }, ['UserProfile']).failures, []);
-  assert.deepEqual(validate({ '.env.example': 'stripeKey=1\n' }, ['^stripeKey$']).failures, []);
+test("a destructured key without a rename is the object owner's name, not checked", () => {
+  const result = validate({
+    'a.ts': `export async function up({ db, payload, req }) {
+  return [db, payload, req];
+}
+const { req: r } = payload;
+const { ...opts } = payload;
+const [err] = list;
+`,
+  });
+  assert.deepEqual(
+    result.failures.map((finding) => `${finding.name}:${finding.line}`),
+    ['r:4', 'opts:5', 'err:6'],
+  );
 });
 
-// Writes the consumer override into a fresh root, then checks the same files.
-const withOverride = (files, override) => {
+const why = 'a test reason';
+
+test('an allow entry silences a matching identifier, path or env name', () => {
+  const names = { opts: { names: ['^opts$'], rules: '*', why } };
+  assert.deepEqual(validate({ 'a.ts': 'const opts = 1;\n' }, names).failures, []);
+  const paths = { profile: { paths: ['UserProfile'], rules: ['file-case'], why } };
+  assert.deepEqual(validate({ 'src/UserProfile.ts': COMPLIANT }, paths).failures, []);
+  const env = { stripe: { names: ['^stripeKey$'], rules: ['env-shape'], why } };
+  assert.deepEqual(validate({ '.env.example': 'stripeKey=1\n' }, env).failures, []);
+});
+
+test('an allow entry scoped to paths and rules leaves the other rules and paths alone', () => {
+  const allow = { migrations: { paths: ['^src/migrations/'], rules: ['short-word', 'file-case'], why } };
+  const source = 'const opts = 1;\nconst userData = 2;\n';
+  const inside = validate({ 'src/migrations/20240101_120000.ts': source }, allow);
+  assert.deepEqual(rules(inside), ['noise-word']);
+  const outside = validate({ 'src/seeds/20240101_120000.ts': source }, allow);
+  assert.deepEqual(rules(outside), ['file-case', 'noise-word', 'short-word']);
+});
+
+test('an allow entry with paths and names needs both to match', () => {
+  const allow = { legacy: { paths: ['^src/legacy/'], names: ['^opts$'], rules: ['short-word'], why } };
+  const source = 'const opts = 1;\nconst err = 2;\n';
+  const legacy = validate({ 'src/legacy/a.ts': source }, allow);
+  assert.deepEqual(
+    legacy.failures.map((finding) => finding.name),
+    ['err'],
+  );
+  assert.deepEqual(rules(validate({ 'src/other/a.ts': source }, allow)), ['short-word', 'short-word']);
+});
+
+test('an allow entry with rules "*" also silences the discriminant warning', () => {
+  const source = "interface Message {\n  readonly type: 'ping';\n}\n";
+  assert.equal(validate({ 'a.ts': source }, {}).warnings.length, 1);
+  const allow = { wire: { paths: ['^a\\.ts$'], rules: '*', why } };
+  assert.deepEqual(validate({ 'a.ts': source }, allow).warnings, []);
+});
+
+test('a malformed allow entry fails the gate and names its key', () => {
+  const validateEntry = (entry) => () => validate({ 'a.ts': COMPLIANT }, { broken: entry });
+  assert.throws(validateEntry({ names: ['^opts$'], rules: '*' }), /allow "broken": "why" must say why/);
+  assert.throws(
+    validateEntry({ names: ['^opts$'], rules: ['short-words'], why }),
+    /allow "broken": unknown rule "short-words"/,
+  );
+  assert.throws(validateEntry({ rules: '*', why }), /allow "broken": needs "paths", "names" or both/);
+  assert.throws(validateEntry({ names: ['('], rules: '*', why }), /allow "broken": "names" has a bad regex/);
+});
+
+// Writes the consumer override and its picked bundles into a fresh root, then
+// checks the same files.
+const withOverride = (files, override, bundles) => {
   const { root } = validate(files);
   mkdirSync(join(root, '.skilly'), { recursive: true });
-  const text = typeof override === 'string' ? override : JSON.stringify(override, null, 2);
-  writeFileSync(join(root, '.skilly', 'naming.json'), text);
+  if (override !== undefined) {
+    const text = typeof override === 'string' ? override : JSON.stringify(override, null, 2);
+    writeFileSync(join(root, '.skilly', 'naming.json'), text);
+  }
+  if (bundles) writeFileSync(join(root, '.skilly', 'config.json'), JSON.stringify({ bundles }));
   return { root, ...validateNaming({ root, files: Object.keys(files) }) };
 };
 
 test('.skilly/naming.json allow silences a name the defaults flag', () => {
-  assert.deepEqual(withOverride({ 'a.ts': 'const opts = 1;\n' }, { allow: ['^opts$'] }).failures, []);
+  const allow = { opts: { names: ['^opts$'], rules: ['short-word'], why } };
+  assert.deepEqual(withOverride({ 'a.ts': 'const opts = 1;\n' }, { allow }).failures, []);
+});
+
+test('.skilly/naming.json with the old flat allow list fails and points to skilly update', () => {
+  assert.throws(
+    () => withOverride({ 'a.ts': 'const opts = 1;\n' }, { allow: ['^opts$'] }),
+    /"allow" is an old flat list — run `npx github:timschoch\/skilly update`/,
+  );
+});
+
+test('null on a default allow entry turns the check back on', () => {
+  const result = withOverride({ 'node_modules/pkg/Bad.ts': 'const opts = 1;\n' }, { allow: { vendored: null } });
+  assert.deepEqual(
+    result.failures.map((finding) => `${finding.rule} ${finding.name}`),
+    ['file-case node_modules', 'file-case Bad.ts', 'short-word opts'],
+  );
+});
+
+const MIGRATION = `import type { MigrateUpArgs } from '@payloadcms/db-postgres';
+
+export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
+  await db.execute(payload, req);
+}
+`;
+
+test('the tech-payload stack file allows Payload migrations, and only when the bundle is picked', () => {
+  const files = { 'src/migrations/20240523_120000.ts': MIGRATION };
+  assert.deepEqual(withOverride(files, undefined, ['workflow', 'tech-payload']).failures, []);
+  assert.deepEqual(rules(withOverride(files, undefined, ['workflow'])), ['file-case']);
+  const off = withOverride(files, { allow: { 'payload/migrations': null } }, ['tech-payload']);
+  assert.deepEqual(rules(off), ['file-case']);
+});
+
+test('the tech-payload stack file allows the files Payload generates', () => {
+  const files = {
+    'src/payload-types.ts': 'export interface UserData {}\n',
+    'src/app/(payload)/admin/importMap.js': 'export const importMap = {};\n',
+  };
+  assert.deepEqual(withOverride(files, undefined, ['tech-payload']).failures, []);
+  assert.deepEqual(rules(withOverride(files, undefined, [])), ['file-case', 'noise-word']);
 });
 
 test('.skilly/naming.json drops a default noise word and a default short word', () => {
@@ -270,7 +373,10 @@ test('an unknown case name fails the gate and names the key', () => {
 test('the gate still reads an override left at the pre-.skilly path', () => {
   const { root } = validate({ 'a.ts': 'const opts = 1;\n' });
   mkdirSync(join(root, 'docs', 'agents'), { recursive: true });
-  writeFileSync(join(root, 'docs', 'agents', 'naming.json'), JSON.stringify({ allow: ['^opts$'] }));
+  writeFileSync(
+    join(root, 'docs', 'agents', 'naming.json'),
+    JSON.stringify({ allow: { opts: { names: ['^opts$'], rules: '*', why } } }),
+  );
   assert.deepEqual(validateNaming({ root, files: ['a.ts'] }).failures, []);
 });
 
