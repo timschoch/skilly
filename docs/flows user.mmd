@@ -43,7 +43,7 @@ flowchart LR
             WFQ4 -->|yes| WF4["/setup-matt-pocock-skills"] --> WFQ5
             WFQ4 -->|no| WFQ5
         WFQ5{"use GDD?"}
-            WFQ5 -->|yes| WF5["skilly add gdd<br>+ PR hook"] --> WF6
+            WFQ5 -->|yes| WF5["skilly add gdd<br>+ gdd setup.mjs"] --> WF6
             WFQ5 -->|no| WF6
             %% WFQ2 is here to make the line go behind the other steps %%
             WFQ2 -->|no| WFQ4

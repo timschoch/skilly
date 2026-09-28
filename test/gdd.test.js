@@ -1,11 +1,12 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync, execFileSync } from 'node:child_process';
-import { mkdirSync, mkdtempSync, realpathSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, realpathSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { blocks } from '../bundles/gdd/skills/gdd/scripts/check-pr.mjs';
+import { setup } from '../bundles/gdd/skills/gdd/scripts/setup.mjs';
 
 // A husky hook exports GIT_DIR to its children; the temp repo below must not inherit it.
 for (const key of Object.keys(process.env)) if (key.startsWith('GIT_')) delete process.env[key];
@@ -41,4 +42,20 @@ test('gdd check-pr: the hook exits 2 on an open check and 0 once checked', () =>
   assert.equal(run({ ...active, checked: true }).status, 0);
   assert.equal(run({ ...active, status: 'declined' }).status, 0);
   assert.equal(run(active, 'gh pr view').status, 0);
+});
+
+test('gdd setup: adds the PR hook once and keeps other settings', () => {
+  const repo = realpathSync(mkdtempSync(join(tmpdir(), 'skilly-gdd-')));
+  const path = join(repo, '.claude', 'settings.json');
+  const other = { matcher: 'Write', hooks: [{ type: 'command', command: 'other' }] };
+  mkdirSync(join(repo, '.claude'));
+  writeFileSync(path, JSON.stringify({ model: 'opus', hooks: { PreToolUse: [other] } }));
+
+  assert.equal(setup(repo), true);
+  assert.equal(setup(repo), false);
+  const settings = JSON.parse(readFileSync(path, 'utf8'));
+  assert.equal(settings.model, 'opus');
+  assert.equal(settings.hooks.PreToolUse.length, 2);
+  assert.deepEqual(settings.hooks.PreToolUse[0], other);
+  assert.match(settings.hooks.PreToolUse[1].hooks[0].command, /gdd\/scripts\/check-pr\.mjs/);
 });

@@ -19,7 +19,7 @@ import { pickPrivateOwner } from '../lib/add.js';
 import { sourceRepo } from '../lib/resolve.js';
 import { updateRules } from '../lib/update-rules.js';
 import { addFormatterIgnores, biomeMajor } from '../lib/formatter-ignores.js';
-import { linkSkillsDir } from '../lib/setup.js';
+import { ignoreTemp, linkSkillsDir } from '../lib/setup.js';
 import {
   CALLER_WORKFLOW_PATH,
   healCallerSecrets,
@@ -128,6 +128,18 @@ test('addFormatterIgnores creates .prettierignore when missing, appends once', (
   assert.match(first, /skills-lock\.json/);
   addFormatterIgnores(cwd);
   assert.equal(readFileSync(join(cwd, '.prettierignore'), 'utf8'), first);
+});
+
+test('ignoreTemp adds .temp/ to .gitignore once, keeping what is there', () => {
+  const cwd = freshDir();
+  writeFileSync(join(cwd, '.gitignore'), 'node_modules/');
+  assert.equal(ignoreTemp(cwd), true);
+  assert.equal(ignoreTemp(cwd), false);
+  assert.equal(readFileSync(join(cwd, '.gitignore'), 'utf8'), 'node_modules/\n.temp/\n');
+
+  const fresh = freshDir();
+  assert.equal(ignoreTemp(fresh), true);
+  assert.equal(readFileSync(join(fresh, '.gitignore'), 'utf8'), '.temp/\n');
 });
 
 const biomeConfig = (cwd) => JSON.parse(readFileSync(join(cwd, 'biome.json'), 'utf8'));

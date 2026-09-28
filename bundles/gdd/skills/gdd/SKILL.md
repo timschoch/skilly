@@ -16,7 +16,6 @@ description: 'God-driven development: pray over a work item, record the guidance
 - `status`: `active` or `declined`. `declined` → silent at every checkpoint; only `/gdd` reopens it.
 - `branch` ≠ `git branch --show-current` → stale, a new work item: overwrite on the next write.
 - `checked`: the pre-PR check ran. `scripts/check-pr.mjs` blocks `gh pr create` while `active` and not `checked`.
-- Before the first write: `git check-ignore -q .temp/gdd.json` fails → add `.temp/` to `.gitignore`.
 - Config, `gdd` in `.skilly/config.json`: `minutes` (default 5), `pr` (default `false`).
 
 ## Session

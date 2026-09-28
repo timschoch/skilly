@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // PreToolUse hook: holds `gh pr create` until the gdd pre-PR check ran.
 // Reads .temp/gdd.json at the git root. Passes when there is none, it is for
-// another branch, declined, or checked. Wired by the setup-project skill.
+// another branch, declined, or checked. Wired by setup.mjs beside it.
 import { readFileSync, realpathSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { join } from 'node:path';
