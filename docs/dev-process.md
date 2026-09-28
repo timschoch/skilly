@@ -31,7 +31,7 @@ flowchart TD
   ai --> babysit["/babysit-pr loop"]
   babysit --> clean[green + threads clean]
   clean --> ask[user says merge]
-  ask --> merge[gh pr merge --auto --squash]
+  ask --> merge["/babysit-pr --merge: gh pr merge --squash at green"]
   merge --> main[main]
   main --> nightly[nightly, product only]
 ```
@@ -53,7 +53,7 @@ flowchart TD
   report --> poll
 ```
 
-Green plus clean is a milestone, not a terminal state: new review items still land. Terminal states are merged, closed, needs-user. Retry budget is 3.
+Green plus clean is a milestone, not a terminal state: new review items still land. Terminal states are merged, closed, needs-user. The CI budget is 3 attempts per PR, fix pushes and reruns together; the third red ends at needs-user. Merge mode (`--merge`, or `m` in `git-shortcuts`) merges at green.
 
 ## `.skilly/`
 
@@ -69,7 +69,7 @@ Green plus clean is a milestone, not a terminal state: new review items still la
 - Add a check as one line in `.skilly/verify.json`, never as a line in a hook or a workflow.
 - Hold sandbox to the same code quality as product. The tier sets the size of the net, not the standard.
 - Run review on request: `/code-review` locally, `/ai-review` as a PR comment on tool and product repos.
-- Leave the merge to the user. Stop at green and report, per [workflow-sign-off](../.claude/rules/workflow-sign-off.md).
+- Leave the merge to the user. Stop at green and report, per [workflow-sign-off](../.claude/rules/workflow-sign-off.md). Merge only when the user says so; babysit-pr then merges at green.
 - Give the product tier its nightly and its security scan. Never gate a merge on either.
 
 ## Terms
