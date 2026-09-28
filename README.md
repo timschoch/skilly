@@ -24,6 +24,7 @@ Every command guards its branch (`skilly-*`, main → `chore/skilly-setup`, anyt
    ```
 
 2. `npx -y github:timschoch/skilly setup` — switches to `chore/skilly-setup`, sets the App secrets, writes `.skilly/config.json` (no bundles), writes `.github/workflows/skilly-sync.yml`, adds formatter ignores, gitignores `.temp/` (agent scratch space), installs the `setup-project` skill, commits, opens the PR — then launches Claude Code (Opus) with `/setup-project`.
+   New repo (no README text, no stack file): opens the [setup interview](lib/interview/server.js) in the browser instead. Answer every question there, press Run AFK, walk away. Claude runs the whole setup and opens one setup PR. Steps 3–4 are then done.
 3. `/setup-project` — asks: setup workflow? tech stack? Drives the setup skills in order and adds Bundles via `skilly add`. (Or by hand: `npx -y github:timschoch/skilly add workflow` plus your `tech-*`/`project-*` bundles.)
 4. `npx -y github:timschoch/skilly update` — asks to drop bundle-less setup skills (e.g. `setup-project` once you're done with it); say yes.
 5. Merge the PR, then prove the workflow: `gh workflow run skilly-sync.yml && gh run watch`. No changes → no Sync PR.

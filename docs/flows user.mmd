@@ -14,7 +14,9 @@ flowchart LR
     ENTER-SKILLY((("setup skilly"))) --> SKILLY-SETUP
     subgraph SKILLY-SETUP["SKILLY SETUP"]
         ON1[/"npx github:timschoch/skilly setup<br>(once per repo)"\]
-        ON1 --> ON-EB["run ensure-branch"]
+        ON1 --> ON-NEW{"new repo?<br>(no README text, no stack file)"}
+        ON-NEW -->|yes| ON-IV["launch claude (opus) with the setup interview channel<br>browser: all questions, then Claude runs the whole setup AFK<br>(skilly setup included) → one setup PR"]
+        ON-NEW -->|no| ON-EB["run ensure-branch"]
         ON-EB --> ON-LN["symlink .claude/skills → .agents/skills"]
         ON-LN --> ON2["install github app + secrets"]
         ON2 --> ON3[".skilly/config.json (no bundles)"]
