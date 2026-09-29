@@ -13,7 +13,7 @@
           "run": "node .claude/hooks/check-branch-name.mjs",
           "why": "Conventional Branch: <type>/<description>. In CI it reads the PR's head branch, so --no-verify does not get past it. Bot branches pass."
         },
-        { "name": "typecheck", "run": "npm run typecheck --if-present" },
+        { "name": "typecheck", "run": "npm run --if-present typecheck" },
         {
           "name": "unit (changed)",
           "run": "npx vitest run --changed origin/main --passWithNoTests",
@@ -26,9 +26,9 @@
       "extends": "push",
       "budgetSeconds": 300,
       "steps": [
-        { "name": "lint", "run": "npm run lint --if-present" },
+        { "name": "lint", "run": "npm run --if-present lint" },
         { "name": "unit", "run": "npx vitest run --passWithNoTests", "target": "vitest.config.ts" },
-        { "name": "build", "run": "npm run build --if-present" },
+        { "name": "build", "run": "npm run --if-present build" },
         {
           "name": "audit",
           "run": "npm audit --audit-level=high",

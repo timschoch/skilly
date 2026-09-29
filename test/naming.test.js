@@ -400,6 +400,7 @@ test('vendored, generated and non-code paths are skipped', () => {
     'build/Bad.ts': bad,
     '.next/Bad.ts': bad,
     'src/Api.generated.ts': bad,
+    'src/routeTree.gen.ts': bad,
     'src/Types.d.ts': bad,
     'docs/Bad.md': bad,
   });

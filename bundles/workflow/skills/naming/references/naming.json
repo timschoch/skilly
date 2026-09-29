@@ -372,7 +372,7 @@
       "why": "Skills and hub files that skilly vendors. Sync overwrites them."
     },
     "generated": {
-      "paths": ["\\.generated\\.[^/]*$", "\\.d\\.ts$"],
+      "paths": ["\\.generated\\.[^/]*$", "\\.gen\\.[^/]*$", "\\.d\\.ts$"],
       "rules": "*",
       "why": "Generated code. The generator picks the names."
     }
