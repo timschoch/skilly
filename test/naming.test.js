@@ -312,6 +312,12 @@ test('the tech-payload stack file allows the files Payload generates', () => {
   assert.deepEqual(rules(withOverride(files, undefined, [])), ['file-case', 'noise-word']);
 });
 
+test('the tech-tanstack stack file allows the route tree, and only when the bundle is picked', () => {
+  const files = { 'src/routeTree.gen.ts': 'export const routeTree = {};\n' };
+  assert.deepEqual(withOverride(files, undefined, ['tech-tanstack']).failures, []);
+  assert.deepEqual(rules(withOverride(files, undefined, [])), ['file-case']);
+});
+
 test('.skilly/naming.json drops a default noise word and a default short word', () => {
   assert.deepEqual(withOverride({ 'a.ts': 'const userData = 1;\n' }, { noiseWords: ['-Data'] }).failures, []);
   assert.deepEqual(withOverride({ 'a.ts': 'const opts = 1;\n' }, { shortWords: { opts: null } }).failures, []);

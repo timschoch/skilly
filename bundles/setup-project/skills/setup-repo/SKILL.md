@@ -53,8 +53,10 @@ Then wire the manager the repo already has — `.husky/` → husky, `lefthook.ym
 
 Copy `templates/verify.json`. Make two edits and nothing else — the tier gates ship correct, and `verify` skips whatever sits above the repo's tier:
 
-- **Package manager.** The template is npm. A `pnpm-lock.yaml` or `yarn.lock` → swap `npm run` for `pnpm run` / `yarn`, `npx` for `pnpm dlx` / `yarn dlx`.
-- **`target`.** One path per step, the file whose absence skips it. Point each at the file this repo has: `vitest.config.ts` may be `vite.config.ts`, `playwright.config.ts` may be `.mjs`.
+- **Package manager.** The template is npm. A `pnpm-lock.yaml` → swap `npm run` for `pnpm run`, `npx` for `pnpm dlx`; keep `--if-present` before the script name, pnpm passes it to the script otherwise. A `yarn.lock` → swap `npx` for `yarn dlx`, `npm run --if-present <script>` for `yarn <script>`, and drop each step whose script `package.json` lacks: yarn has no `--if-present`.
+- **`target`.** One path per step, the file whose absence skips it. Point each at the file this repo has: `playwright.config.ts` may be `.mjs`; `vitest.config.ts` may be `vite.config.ts` only when that file holds a `test` block, a Vite app without Vitest keeps `vitest.config.ts` so the step skips.
+
+The `lint` step runs the repo's own linter. `skilly setup` keeps formatters off `.agents/` and `.claude/`, not linters. An `eslint.config.*` → add `{ ignores: ['.agents/', '.claude/'] }` as its first entry; a typed config otherwise fails on vendored skill examples outside `tsconfig.json`.
 
 ## 3. Workflows
 
@@ -117,7 +119,7 @@ Merge each entry into `.claude/settings.json` `hooks.PreToolUse`; skip an entry 
 
 ```json
 {
-  "matcher": "Bash|mcp__lean-ctx__ctx_shell",
+  "matcher": "Bash|mcp__lean-ctx__ctx_shell|mcp__lean-ctx__shell",
   "hooks": [{ "type": "command", "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/block-destructive-git.sh" }]
 }
 ```
@@ -128,7 +130,7 @@ Verify: `echo '{"tool_input":{"command":"git reset --hard"}}' | .claude/hooks/bl
 
 ```json
 {
-  "matcher": "Bash|mcp__lean-ctx__ctx_shell",
+  "matcher": "Bash|mcp__lean-ctx__ctx_shell|mcp__lean-ctx__shell",
   "hooks": [{ "type": "command", "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/block-invalid-branch-push.sh" }]
 }
 ```

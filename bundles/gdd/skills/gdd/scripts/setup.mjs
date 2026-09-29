@@ -8,7 +8,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const COMMAND = 'node "$CLAUDE_PROJECT_DIR/.claude/skills/gdd/scripts/check-pr.mjs"';
-const ENTRY = { matcher: 'Bash|mcp__lean-ctx__ctx_shell', hooks: [{ type: 'command', command: COMMAND }] };
+const ENTRY = { matcher: 'Bash|mcp__lean-ctx__ctx_shell|mcp__lean-ctx__shell', hooks: [{ type: 'command', command: COMMAND }] };
 
 // Returns true when it wrote the hook, false when it was already there.
 export function setup(root) {
