@@ -8,7 +8,7 @@ import {
   mergeNamingConfig,
   migrateAllow,
 } from '../bundles/workflow/skills/naming/scripts/config.mjs';
-import { validateNaming } from '../bundles/workflow/rules/naming.mjs';
+import { validateNaming } from '../bundles/workflow/skills/naming/scripts/check.mjs';
 import { validateAndUpdateSkilly } from '../lib/validate-and-update-skilly.js';
 
 // A consumer root holding `.skilly/naming.json` with the given content.

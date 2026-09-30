@@ -4,7 +4,7 @@ Status: accepted, 2026-09-28
 
 ## Context
 
-The naming gate failed Payload consumers on names they cannot change: `{ db, payload, req }` in the migration signature Payload defines, `20240523_120000.ts` migration files, a generated `importMap.js`. The only exception was a flat `allow` list of regexes. It silenced every rule for a name, could not tie a name to a path, carried no reason, and could not be dropped by key. Vendored and generated paths were hard-coded in [naming.mjs](../../bundles/workflow/rules/naming.mjs), beyond the consumer's reach.
+The naming gate failed Payload consumers on names they cannot change: `{ db, payload, req }` in the migration signature Payload defines, `20240523_120000.ts` migration files, a generated `importMap.js`. The only exception was a flat `allow` list of regexes. It silenced every rule for a name, could not tie a name to a path, carried no reason, and could not be dropped by key. Vendored and generated paths were hard-coded in [check.mjs](../../bundles/workflow/skills/naming/scripts/check.mjs), beyond the consumer's reach.
 
 ## Decision
 

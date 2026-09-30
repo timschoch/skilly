@@ -13,6 +13,12 @@
           "run": "node .claude/hooks/check-branch-name.mjs",
           "why": "Conventional Branch: <type>/<description>. In CI it reads the PR's head branch, so --no-verify does not get past it. Bot branches pass."
         },
+        {
+          "name": "naming",
+          "run": "node .agents/skills/naming/scripts/check.mjs",
+          "target": ".agents/skills/naming/scripts/check.mjs",
+          "why": "The skilly / gate naming check on the files the branch changes, run before the push instead of after it. Fix a finding, or add an allow entry to .skilly/naming.json."
+        },
         { "name": "typecheck", "run": "npm run --if-present typecheck" },
         {
           "name": "unit (changed)",
