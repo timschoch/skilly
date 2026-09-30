@@ -415,7 +415,16 @@ test('check-branch-name: Conventional Branch passes, agent names fail, trunk, de
     return spawnSync(process.execPath, [script], { cwd: repo, encoding: 'utf8', env: { ...rest, ...env } });
   };
 
-  for (const ok of ['feat/add-login', 'fix/issue-42', 'release/1.2.0', 'chore/skilly-update', 'main']) {
+  for (const ok of [
+    'feat/add-login',
+    'fix/issue-42',
+    'release/1.2.0',
+    'chore/skilly-update',
+    'docs/readme',
+    'ci/cache-deps',
+    'research/web-push-reminders',
+    'main',
+  ]) {
     assert.equal(validateBranch(ok).status, 0, ok);
   }
   const bad = validateBranch('t3code/4075C2f1');

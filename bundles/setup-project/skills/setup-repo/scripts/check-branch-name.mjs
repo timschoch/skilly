@@ -5,7 +5,7 @@
 // the PR's head branch from GITHUB_HEAD_REF; a push build has neither and passes.
 import { execFileSync } from 'node:child_process';
 
-const TYPES = ['feat', 'fix', 'hotfix', 'epic', 'release', 'chore'];
+const TYPES = ['feat', 'fix', 'hotfix', 'epic', 'release', 'chore', 'docs', 'ci', 'research'];
 const NAME = new RegExp(`^(${TYPES.join('|')})/[a-z0-9]+([.-][a-z0-9]+)*$`);
 // Bots name their own branches and cannot be told otherwise.
 const BOT_PREFIXES = ['dependabot/', 'renovate/', 'release-please--'];
