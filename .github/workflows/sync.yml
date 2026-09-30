@@ -4,7 +4,7 @@
 #            runs `skilly update --headless`, refreshes the one Sync PR
 #   gate   — pull_request: runs the gate Rules of the repo's bundles, then
 #            merges a green Sync PR that contains no removals
-name: skilly sync
+name: skilly sync (shared)
 
 on:
   workflow_call:
