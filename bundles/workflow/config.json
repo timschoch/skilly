@@ -21,7 +21,8 @@
         "audit-skilly-workflow",
         "writing-rules",
         "skilly-cli",
-        "verify"
+        "verify",
+        "wdyt"
       ]
     },
     {
