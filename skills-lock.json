@@ -19,6 +19,24 @@
       "skillPath": "skills/engineering/ask-matt/SKILL.md",
       "computedHash": "f9018507a53d76c325ee1af0e11be82c4df3fb071f1e881485196a7c733edb7c"
     },
+    "audit-agent-history": {
+      "source": "timschoch/skilly",
+      "sourceType": "github",
+      "skillPath": "bundles/workflow/skills/audit-agent-history/SKILL.md",
+      "computedHash": "99fd53d98b51f75937862c22f50dfb43789eee6db8074c7d903d5f6e063ed5a1"
+    },
+    "audit-skilly-workflow": {
+      "source": "timschoch/skilly",
+      "sourceType": "github",
+      "skillPath": "bundles/workflow/skills/audit-skilly-workflow/SKILL.md",
+      "computedHash": "f1ff96eb7d865377973b61178e0a57b2a3b3a7c0a25b1df528f30347a7acc993"
+    },
+    "babysit-pr": {
+      "source": "timschoch/skilly",
+      "sourceType": "github",
+      "skillPath": "bundles/workflow/skills/babysit-pr/SKILL.md",
+      "computedHash": "1a24c0ad5b53ddf37fd9b82ac05f0c0b45048f56d2d7b469ea78f2fc1fbc6fbd"
+    },
     "blast-radius": {
       "source": "cursor/plugins",
       "sourceType": "github",
@@ -115,6 +133,12 @@
       "skillPath": "cursor-team-kit/skills/make-pr-easy-to-review/SKILL.md",
       "computedHash": "8b3e62ce5609388731966d66725a0962e6d6c249bf384b84e131eb24de3c2b27"
     },
+    "naming": {
+      "source": "timschoch/skilly",
+      "sourceType": "github",
+      "skillPath": "bundles/workflow/skills/naming/SKILL.md",
+      "computedHash": "0c7a189520065d62a6758df315b62aabd6d8fcbcb8a1f523b623d674fe606259"
+    },
     "orchestrate": {
       "source": "timschoch/skilly",
       "sourceType": "github",
@@ -150,6 +174,12 @@
       "sourceType": "github",
       "skillPath": "pstack/skills/principle-prove-it-works/SKILL.md",
       "computedHash": "6777a72ed3c15bbd73f0d264ba4eb701e5e733de70dd519c72fc2698a32379a2"
+    },
+    "progress": {
+      "source": "timschoch/skilly",
+      "sourceType": "github",
+      "skillPath": "bundles/workflow/skills/progress/SKILL.md",
+      "computedHash": "a544b46c89283795f29b9ed2be45acf69c275862e7bd44d63d201aefe401508d"
     },
     "prototype": {
       "source": "timschoch/mattpocock-skills",
@@ -246,6 +276,12 @@
       "sourceType": "github",
       "skillPath": "pstack/skills/unslop/SKILL.md",
       "computedHash": "6018ca8c329ba87c6b4298207f58d6b773fe23e44ff52a00a9a4d160c19bedc0"
+    },
+    "verify": {
+      "source": "timschoch/skilly",
+      "sourceType": "github",
+      "skillPath": "bundles/workflow/skills/verify/SKILL.md",
+      "computedHash": "dbce3d68c601de32b0f98be07d8314553a539bd968d44d777b802a112330ea9e"
     },
     "wait-what": {
       "source": "timschoch/mattpocock-skills",
