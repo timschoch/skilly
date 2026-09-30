@@ -1,32 +1,39 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, mkdirSync, writeFileSync } from 'node:fs';
+import { copyFileSync, mkdtempSync, mkdirSync, writeFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const script = fileURLToPath(new URL('../bundles/workflow/skills/verify/scripts/verify.mjs', import.meta.url));
+const skillDir = fileURLToPath(new URL('../bundles/workflow/skills/verify/', import.meta.url));
+const shippedScript = join(skillDir, 'scripts', 'verify.mjs');
 
-// Writes a fake Consumer and returns its root.
-const makeRepo = ({ verify, tier, files = [] } = {}) => {
+// Writes a fake Consumer and returns its root. The verify skill is copied in
+// with `defaults` as its references/verify.json, so a test sees only its own steps.
+const makeRepo = ({ verify, defaults = {}, tier, files = [] } = {}) => {
   const root = mkdtempSync(join(tmpdir(), 'skilly-verify-'));
-  if (verify) {
-    mkdirSync(join(root, '.skilly'), { recursive: true });
-    writeFileSync(join(root, '.skilly', 'verify.json'), JSON.stringify(verify));
-    if (tier) writeFileSync(join(root, '.skilly', 'config.json'), JSON.stringify({ tier }));
-  }
+  const scripts = join(root, '.agents', 'skills', 'verify', 'scripts');
+  mkdirSync(scripts, { recursive: true });
+  mkdirSync(join(root, '.agents', 'skills', 'verify', 'references'));
+  for (const file of ['verify.mjs', 'merge-config.mjs'])
+    copyFileSync(join(skillDir, 'scripts', file), join(scripts, file));
+  writeFileSync(join(root, '.agents', 'skills', 'verify', 'references', 'verify.json'), JSON.stringify(defaults));
+  if (verify || tier) mkdirSync(join(root, '.skilly'), { recursive: true });
+  if (verify) writeFileSync(join(root, '.skilly', 'verify.json'), JSON.stringify(verify));
+  if (tier) writeFileSync(join(root, '.skilly', 'config.json'), JSON.stringify({ tier }));
   for (const file of files) writeFileSync(join(root, file), '');
   return root;
 };
 
-const run = (root, ...args) => spawnSync(process.execPath, [script, ...args], { cwd: root, encoding: 'utf8' });
+const scriptIn = (root) => join(root, '.agents', 'skills', 'verify', 'scripts', 'verify.mjs');
+const run = (root, ...args) => spawnSync(process.execPath, [scriptIn(root), ...args], { cwd: root, encoding: 'utf8' });
 
 test('a step does not inherit the git hook env', () => {
   const root = makeRepo({
     verify: { stages: { commit: { steps: [{ name: 'env', run: 'echo "dir=[$GIT_DIR] home=[$HOME]"' }] } } },
   });
-  const result = spawnSync(process.execPath, [script, 'commit'], {
+  const result = spawnSync(process.execPath, [scriptIn(root), 'commit'], {
     cwd: root,
     encoding: 'utf8',
     env: { ...process.env, GIT_DIR: '/elsewhere/.git', GIT_INDEX_FILE: '/elsewhere/index' },
@@ -130,8 +137,63 @@ test('an unknown stage exits 2 and lists the known stages', () => {
   assert.match(result.stderr, /known stages are commit, push/);
 });
 
-test('no .skilly/verify.json up the tree exits 2', () => {
+test('no .skilly/ marker up the tree exits 2', () => {
   const result = run(makeRepo(), 'commit');
   assert.equal(result.status, 2);
-  assert.match(result.stderr, /no \.skilly\/verify\.json/);
+  assert.match(result.stderr, /no \.skilly\/config\.json or \.skilly\/verify\.json/);
+});
+
+test('without a repo file the defaults run', () => {
+  const defaults = { stages: { commit: { steps: [{ name: 'lint', run: 'echo ran-default' }] } } };
+  const result = run(makeRepo({ defaults, tier: 'sandbox' }), 'commit');
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /ran-default/);
+});
+
+test('the repo file changes, drops and adds default steps by name', () => {
+  const defaults = {
+    stages: {
+      push: {
+        steps: [
+          { name: 'lint', run: 'npm run lint', why: 'style' },
+          { name: 'unit', run: 'npm test' },
+        ],
+      },
+    },
+  };
+  const verify = {
+    stages: { push: { steps: [{ name: 'lint', run: 'pnpm lint' }, '-unit', { name: 'e2e', run: 'x' }] } },
+  };
+  const listed = JSON.parse(run(makeRepo({ defaults, verify }), 'push', '--steps').stdout);
+  assert.deepEqual(listed.steps, [
+    { name: 'lint', run: 'pnpm lint', why: 'style' },
+    { name: 'e2e', run: 'x' },
+  ]);
+});
+
+test('a repo file that copies the defaults in full resolves to the defaults', () => {
+  const defaults = {
+    stages: {
+      push: {
+        steps: [
+          { name: 'lint', run: 'a' },
+          { name: 'unit', run: 'b' },
+        ],
+      },
+    },
+  };
+  const root = makeRepo({ defaults, verify: defaults });
+  assert.deepEqual(JSON.parse(run(root, '--config').stdout), defaults);
+});
+
+test('the shipped defaults put the naming gate in the push stage', () => {
+  const root = mkdtempSync(join(tmpdir(), 'skilly-verify-'));
+  mkdirSync(join(root, '.skilly'));
+  writeFileSync(join(root, '.skilly', 'config.json'), '{}');
+  const result = spawnSync(process.execPath, [shippedScript, 'push', '--steps'], { cwd: root, encoding: 'utf8' });
+  const { skipped } = JSON.parse(result.stdout);
+  assert.ok(
+    skipped.some(({ name }) => name === 'naming'),
+    result.stdout,
+  );
 });
