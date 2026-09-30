@@ -1,6 +1,6 @@
 # Dev process
 
-One verify config, three tiers, nested. Every Consumer declares a tier in `.skilly/config.json` and lists its checks as steps in `.skilly/verify.json`. Hooks and CI call `verify <stage>`, which reads the tier, skips stages above it, and skips steps whose target does not exist. `sandbox` is a subset of `tool`, `tool` a subset of `product`, so a product repo runs everything a sandbox repo runs.
+One verify config, three tiers, nested. Every Consumer declares a tier in `.skilly/config.json`. Its checks are the verify skill's default steps, with the Consumer's changes from `.skilly/verify.json` merged on top. Hooks and CI call `verify <stage>`, which reads the tier, skips stages above it, and skips steps whose target does not exist. `sandbox` is a subset of `tool`, `tool` a subset of `product`, so a product repo runs everything a sandbox repo runs.
 
 ## Tiers
 
@@ -57,16 +57,16 @@ Green plus clean is a milestone, not a terminal state: new review items still la
 
 ## `.skilly/`
 
-| File          | Holds                                                                                  |
-| ------------- | -------------------------------------------------------------------------------------- |
-| `config.json` | tier and the Consumer's Bundles                                                        |
-| `verify.json` | stages `commit`, `push`, `ci`, `nightly`; steps with `why`, `budgetSeconds`, `extends` |
-| `naming.json` | overrides and exceptions for the `naming` Rule                                         |
+| File          | Holds                                                                 |
+| ------------- | --------------------------------------------------------------------- |
+| `config.json` | tier and the Consumer's Bundles                                       |
+| `verify.json` | changes to the default verify steps, matched by step `name`; optional |
+| `naming.json` | overrides and exceptions for the `naming` Rule                        |
 
 ## Rules
 
 - Keep every LLM out of every git hook. Hooks are deterministic and fast.
-- Add a check as one line in `.skilly/verify.json`, never as a line in a hook or a workflow.
+- Add a check as one step, never as a line in a hook or a workflow: in `.skilly/verify.json` for one Consumer, in [the verify defaults](../bundles/workflow/skills/verify/references/verify.json) for all.
 - Hold sandbox to the same code quality as product. The tier sets the size of the net, not the standard.
 - Run review on request: `/code-review` locally, `/ai-review` as a PR comment on tool and product repos.
 - Leave the merge to the user. Stop at green and report, per [workflow-sign-off](../.claude/rules/workflow-sign-off.md). Merge only when the user says so; babysit-pr then merges at green.

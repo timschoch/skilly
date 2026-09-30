@@ -1,30 +1,23 @@
 {
+  "$comment": "Merged over bundles/workflow/skills/verify/references/verify.json. The hub is its own source, so its skills live under bundles/, not .agents/.",
   "budgetTicket": "https://github.com/timschoch/skilly/issues",
   "stages": {
-    "commit": {
-      "budgetSeconds": 3,
-      "steps": []
-    },
     "push": {
-      "extends": "commit",
-      "budgetSeconds": 30,
       "steps": [
-        {
-          "name": "branch name",
-          "run": "node .claude/hooks/check-branch-name.mjs",
-          "why": "Conventional Branch: <type>/<description>. In CI it reads the PR's head branch, so --no-verify does not get past it. Bot branches pass."
-        },
         {
           "name": "naming",
           "run": "node bundles/workflow/skills/naming/scripts/check.mjs",
-          "why": "The skilly / gate naming check on the files the branch changes, run before the push instead of after it. The hub is its own source, so the skill lives under bundles/, not .agents/."
+          "target": "bundles/workflow/skills/naming/scripts/check.mjs"
+        },
+        {
+          "name": "shared copies",
+          "run": "node scripts/validate-shared-copies.mjs",
+          "why": "A skill must work alone, so code two skills share ships as one copy per skill. A copy that drifts from its source changes behaviour in one skill only."
         },
         { "name": "unit", "run": "npm test" }
       ]
     },
     "ci": {
-      "extends": "push",
-      "budgetSeconds": 300,
       "steps": [
         {
           "name": "format",
@@ -40,19 +33,9 @@
           "name": "agents lock",
           "run": "node scripts/check-agents-lock.mjs",
           "why": "Every dir in .agents/skills has a pin and every pin a dir. A dead pin resurfaces on the next sync."
-        },
-        {
-          "name": "audit",
-          "run": "npm audit --audit-level=high",
-          "tier": "tool",
-          "why": "High and critical advisories only. Lower levels fire on transitive dev dependencies and train everyone to ignore the check."
         }
       ]
     },
-    "nightly": {
-      "tier": "product",
-      "budgetSeconds": 600,
-      "steps": []
-    }
+    "nightly": { "budgetSeconds": 600 }
   }
 }
