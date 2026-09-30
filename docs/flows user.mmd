@@ -18,7 +18,7 @@ flowchart LR
         ON-NEW -->|yes| ON-IV["launch claude (opus) with the setup interview channel<br>browser: all questions, then Claude runs the whole setup AFK<br>(skilly setup included) → one setup PR"]
         ON-NEW -->|no| ON-EB["run ensure-branch"]
         ON-EB --> ON-LN["symlink .claude/skills → .agents/skills"]
-        ON-LN --> ON2["install github app + secrets"]
+        ON-LN --> ON2["owner's GitHub App (create or reuse, then install)<br>+ secrets, unless org secrets reach the repo"]
         ON2 --> ON3[".skilly/config.json (no bundles)"]
         ON3 --> ON4["caller workflow"]
         ON4 --> ON5["install ONE skill: setup-project"]
