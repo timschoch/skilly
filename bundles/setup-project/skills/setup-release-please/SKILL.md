@@ -36,10 +36,18 @@ Sets up [release-please](https://github.com/googleapis/release-please) via [rele
      release:
        runs-on: ubuntu-latest
        steps:
+         # A PR opened with GITHUB_TOKEN triggers no workflows, so the
+         # required checks would never report. The App token makes them fire.
+         - uses: actions/create-github-app-token@v3
+           id: app-token
+           with:
+             app-id: ${{ secrets.SKILLY_APP_ID }}
+             private-key: ${{ secrets.SKILLY_APP_PRIVATE_KEY }}
          - uses: googleapis/release-please-action@v5
            id: release
            with:
              release-type: node
+             token: ${{ steps.app-token.outputs.token }}
          # Per-project deploy steps go below, each gated on:
          #   if: steps.release.outputs.release_created == 'true'
    ```
@@ -68,5 +76,5 @@ Sets up [release-please](https://github.com/googleapis/release-please) via [rele
 - The deploy half stays per-project, hooked after the release-please step and gated on `release_created` — full migrate-and-deploy example: `admin-laicadev/colin` `.github/workflows/release.yml`.
 - The merge settings in step 3 are what `git-shortcuts` relies on: `m` expects `delete_branch_on_merge`; ticket branches squash, `epic/*` → trunk uses merge commits so release-please sees the per-ticket conventional commits.
 - `--release` (git-shortcuts) is what merges the release PR, found by the `autorelease: pending` label.
-- Release PRs opened with `GITHUB_TOKEN` trigger no other workflows (official known limitation) → branch protection requiring checks blocks `--release`; exempt the release PR or drive the action with an App/PAT token.
+- The release PR runs on the skilly App token (`SKILLY_APP_ID` / `SKILLY_APP_PRIVATE_KEY`, set by `skilly setup`), so its checks fire; [`setup-repo`'s `ci.yml`](../setup-repo/templates/workflows/ci.yml) then skips `verify` on `release-please--*` branches. A ruleset scopes by target branch and bypass actor only, never by source branch, so skipping is the one honest way to clear required checks. Never post a success status for a check that did not run.
 - Conventional commits are already enforced fleet-wide by the workflow bundle's `conventional-commits` rule.
