@@ -14,6 +14,11 @@
           "run": "node .claude/hooks/check-branch-name.mjs",
           "why": "Conventional Branch: <type>/<description>. In CI it reads the PR's head branch, so --no-verify does not get past it. Bot branches pass."
         },
+        {
+          "name": "naming",
+          "run": "node bundles/workflow/skills/naming/scripts/check.mjs",
+          "why": "The skilly / gate naming check on the files the branch changes, run before the push instead of after it. The hub is its own source, so the skill lives under bundles/, not .agents/."
+        },
         { "name": "unit", "run": "npm test" }
       ]
     },

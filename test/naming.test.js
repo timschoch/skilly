@@ -5,11 +5,10 @@ import { spawnSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { validateNaming } from '../bundles/workflow/rules/naming.mjs';
+import { validateNaming } from '../bundles/workflow/skills/naming/scripts/check.mjs';
 
-const rulesDir = fileURLToPath(new URL('../bundles/workflow/rules/', import.meta.url));
-const namingScript = join(rulesDir, 'naming.mjs');
-const namingShell = join(rulesDir, 'naming.sh');
+const namingScript = fileURLToPath(new URL('../bundles/workflow/skills/naming/scripts/check.mjs', import.meta.url));
+const namingShell = fileURLToPath(new URL('../bundles/workflow/rules/naming.sh', import.meta.url));
 
 // A git hook (husky pre-commit → npm test) exports GIT_DIR / GIT_INDEX_FILE to
 // its children; inherited, `git -C <tmp>` would act on the repo being committed.
@@ -427,16 +426,6 @@ test('the CLI prints one line per finding and exits 1 only on failures', () => {
   assert.match(ok.stdout, /^naming: 0 failures, 0 warnings over 1 file$/m);
 });
 
-test('the CLI reads the file list from stdin', () => {
-  const { root } = validate({ 'src/user-profile.ts': COMPLIANT });
-  const result = spawnSync(process.execPath, [namingScript], {
-    cwd: root,
-    encoding: 'utf8',
-    input: 'src/user-profile.ts\n',
-  });
-  assert.equal(result.status, 0);
-});
-
 const git = (root, ...args) => spawnSync('git', ['-C', root, ...args], { encoding: 'utf8' });
 
 // A consumer checkout the gate can run in: a `main` base and a feature branch on
@@ -487,7 +476,7 @@ test('naming.sh passes a clean branch and says so when nothing changed', () => {
 });
 
 test('the CLI still runs when started through a symlink', () => {
-  const link = join(mkdtempSync(join(tmpdir(), 'skilly-naming-link-')), 'naming.mjs');
+  const link = join(mkdtempSync(join(tmpdir(), 'skilly-naming-link-')), 'check.mjs');
   symlinkSync(namingScript, link);
   const result = spawnSync(process.execPath, [link, 'src/BadName.ts'], { encoding: 'utf8' });
   assert.match(result.stdout, /^naming: /m, result.stdout + result.stderr);

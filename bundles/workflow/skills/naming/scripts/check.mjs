@@ -1,18 +1,23 @@
 #!/usr/bin/env node
 // Gate check `naming`: the machine-checkable half of the naming Rule, over the
-// files a PR changes. Regex-only, on comment- and string-blanked source — the
+// files a PR changes. The hub's `rules/naming.sh` runs it in CI; a consumer runs
+// the same file from `.agents/skills/naming/scripts/` in its `verify` push stage.
+//   node check.mjs [files...]   no files: every file the branch adds or changes
+//                               over its base branch
+// Regex-only, on comment- and string-blanked source — the
 // gate runs in a consumer checkout that installs nothing, so there is no parser
 // to lean on. Every check stays conservative: a missed bad name costs less than
 // a false FAIL, which teaches people to ignore the gate.
 // Every word list — short words, noise words, verb synonyms, env roles, the
 // discriminant key and the allow entries, vendored paths included — lives in
 // the naming skill's `references/naming.json`, merged with stack files and the
-// consumer's `.skilly/naming.json` by `skills/naming/scripts/config.mjs`. Only
+// consumer's `.skilly/naming.json` by `config.mjs` next to this file. Only
 // the single-letter ban is in code.
+import { spawnSync } from 'node:child_process';
 import { existsSync, readFileSync, realpathSync } from 'node:fs';
 import { extname, join } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { compileAllow, loadNamingConfig } from '../skills/naming/scripts/config.mjs';
+import { compileAllow, loadNamingConfig } from './config.mjs';
 
 const CODE_EXTENSIONS = new Set(['.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs']);
 const ENV_EXAMPLE = /^\.env(\.[^.]+)*\.(example|sample)$/;
@@ -480,11 +485,37 @@ const format = (level, { file, line, rule, message, suggestion }) =>
 
 const plural = (count, word) => `${count} ${word}${count === 1 ? '' : 's'}`;
 
+const git = (...args) => spawnSync('git', args, { encoding: 'utf8' });
+
+// The base branch: GITHUB_BASE_REF on pull_request events, then DEFAULT_BRANCH,
+// then origin/HEAD, then main. Its origin ref when fetched, else the local one.
+function baseRef() {
+  const branch =
+    process.env.GITHUB_BASE_REF ||
+    process.env.DEFAULT_BRANCH ||
+    git('symbolic-ref', '--short', 'refs/remotes/origin/HEAD').stdout.trim().replace(/^origin\//, '') ||
+    'main';
+  return git('rev-parse', '--verify', '--quiet', `origin/${branch}`).status === 0 ? `origin/${branch}` : branch;
+}
+
+// Files the branch adds or changes over its base. Untouched files are out of
+// scope by construction: the gate never asks for a rename sweep.
+function changedFiles(ref) {
+  const diff = git('diff', '--name-only', '--diff-filter=ACMR', `${ref}...HEAD`);
+  if (diff.status !== 0) throw new Error(`git diff over ${ref} failed: ${diff.stderr.trim()}`);
+  return diff.stdout.split('\n').filter(Boolean);
+}
+
 function main(argv) {
-  const files = (argv.length ? argv.join('\n') : readFileSync(0, 'utf8'))
-    .split('\n')
-    .map((line) => line.trim())
-    .filter(Boolean);
+  let files = argv;
+  if (!files.length) {
+    const ref = baseRef();
+    files = changedFiles(ref);
+    if (!files.length) {
+      console.log(`no files changed over ${ref} — nothing to check`);
+      return 0;
+    }
+  }
   const root = process.cwd();
   const { failures, warnings } = validateNaming({ root, files });
   for (const finding of failures) console.log(format('FAIL', finding));
