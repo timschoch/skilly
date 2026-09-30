@@ -10,6 +10,7 @@
         "step-by-step",
         "cleanup-merged-branches",
         "babysit-pr",
+        "progress",
         "git-shortcuts",
         "plan-critics",
         "qa",
