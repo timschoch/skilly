@@ -24,7 +24,7 @@ A repo that installs bundles and runs the nightly sync.
 _Avoid_: Client, target repo
 
 **Self-source**:
-A consumer that is also a source of skills its own bundles name. Identified by the git remote, never the directory name. Bundle resolution drops those sources: the skills already live in the repo, so they are never pinned back into it.
+A consumer that is also a source of skills its own bundles name. Identified by the git remote, never the directory name. Bundle resolution drops a skill from its own source when the repo already holds it in `.agents/skills/` without a pin: it is never pinned back into the repo that writes it. A skill kept anywhere else, like the hub's `bundles/`, still installs.
 _Avoid_: Self-hosting, local source
 
 **Pin**:
