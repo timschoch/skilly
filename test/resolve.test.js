@@ -1,11 +1,11 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, rmSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { resolveBundles } from '../lib/resolve.js';
-import { selfSource } from '../lib/self-source.js';
+import { selfSource, ownSkills } from '../lib/self-source.js';
 import { run } from '../lib/run.js';
 
 const bundlesDir = fileURLToPath(new URL('./fixtures/bundles', import.meta.url));
@@ -42,14 +42,37 @@ test('a rule without its check script is a hard error', () => {
   assert.throws(() => resolveBundles(['norule'], bundlesDir), /rule "ghost" declared by "norule" has no /);
 });
 
-test('a self-source consumer drops its own source, tree URL included', () => {
-  const resolved = resolveBundles(['selfy'], bundlesDir, { selfSource: 'owner/two' });
+test('a self-source consumer drops the skills it writes itself, tree URL included', () => {
+  const resolved = resolveBundles(['selfy'], bundlesDir, { selfSource: 'owner/two', ownSkills: new Set(['c-skill']) });
   assert.deepEqual([...resolved.sources.keys()], ['owner/one']);
 });
 
 test('the self-source match ignores case', () => {
-  const resolved = resolveBundles(['selfy'], bundlesDir, { selfSource: 'Owner/Two' });
+  const resolved = resolveBundles(['selfy'], bundlesDir, { selfSource: 'Owner/Two', ownSkills: new Set(['c-skill']) });
   assert.deepEqual([...resolved.sources.keys()], ['owner/one']);
+});
+
+test('a self-source keeps its skills that live elsewhere, like the hub in bundles/', () => {
+  const resolved = resolveBundles(['selfy'], bundlesDir, { selfSource: 'owner/two' });
+  assert.equal(resolved.sources.size, 2);
+});
+
+test('an own skill of another repo is not dropped', () => {
+  const resolved = resolveBundles(['selfy'], bundlesDir, { selfSource: 'owner/two', ownSkills: new Set(['a-skill']) });
+  assert.equal(resolved.sources.size, 2);
+});
+
+test('ownSkills lists unpinned folders in .agents/skills only', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'skilly-own-'));
+  try {
+    assert.deepEqual([...ownSkills(dir)], []);
+    for (const name of ['written', 'installed']) mkdirSync(join(dir, '.agents', 'skills', name), { recursive: true });
+    writeFileSync(join(dir, '.agents', 'skills', 'README.md'), '');
+    writeFileSync(join(dir, 'skills-lock.json'), JSON.stringify({ skills: { installed: { source: 'owner/two' } } }));
+    assert.deepEqual([...ownSkills(dir)], ['written']);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
 });
 
 test('no self-source resolves every source', () => {
