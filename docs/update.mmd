@@ -40,7 +40,7 @@ flowchart TD
 
 
         UPD-RUN-SKILLS-UPDATE["run skills.sh update<br>on remaining lock entries"]
-            UPD-RUN-SKILLS-UPDATE -->|ok| UPD-RULES["run update-rules<br>for ALL installed skills"] --> UPD-COMMIT["run commit<br>(commit, push, ensure PR)"]
+            UPD-RUN-SKILLS-UPDATE -->|ok| UPD-RULES["run update-rules<br>for ALL installed skills"] --> UPD-GLOSSARY["move CONTEXT.md and CONTEXT-MAP.md<br>to GLOSSARY.md and GLOSSARY-MAP.md"] --> UPD-COMMIT["run commit<br>(commit, push, ensure PR)"]
             UPD-RUN-SKILLS-UPDATE -->|fails| UPD-FALSE
         UPD-COMMIT --> UPD-TRUE(["return true ✅"])
 

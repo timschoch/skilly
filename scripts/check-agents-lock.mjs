@@ -4,7 +4,7 @@
 // bundles/ only when that first pass finds nothing (skills@1.5.23,
 // dist/cli.mjs discoverSkills). One unlocked folder here hides every bundle
 // skill from every consumer. This check runs in the hub. A consumer that is
-// also a source (Self-source, CONTEXT.md) keeps its own skills in the repo;
+// also a source (Self-source, GLOSSARY.md) keeps its own skills in the repo;
 // bundle resolution drops them, so they never reach its lock.
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
