@@ -150,4 +150,4 @@ Verify: on a branch named `wip`, `echo '{"tool_input":{"command":"git push"}}' |
 
 ## 6. CLAUDE.md
 
-Missing → scaffold the constitution pattern: the file is an index plus the few rules that stop real damage, no rule that has a home elsewhere. Sections: **Commands** (what to run), **Which skill, in which order**, pointers to `CONTEXT.md` / docs. Present → leave it; suggest gaps at most.
+Missing → scaffold the constitution pattern: the file is an index plus the few rules that stop real damage, no rule that has a home elsewhere. Sections: **Commands** (what to run), **Which skill, in which order**, pointers to `GLOSSARY.md` / docs. Present → leave it; suggest gaps at most.

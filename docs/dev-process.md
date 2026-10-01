@@ -74,6 +74,6 @@ Green plus clean is a milestone, not a terminal state: new review items still la
 
 ## Terms
 
-`Consumer`, `Hub`, `Bundle`, `Rule`, `Skill` and `PR gate` are defined in [CONTEXT.md](../CONTEXT.md). Bundle layout is in [bundles.md](bundles.md).
+`Consumer`, `Hub`, `Bundle`, `Rule`, `Skill` and `PR gate` are defined in [GLOSSARY.md](../GLOSSARY.md). Bundle layout is in [bundles.md](bundles.md).
 
 The research behind these decisions lives outside the repo.

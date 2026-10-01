@@ -9,7 +9,8 @@ if (!path) {
   console.error('usage: render-pr-body.mjs <report.json>');
   process.exit(1);
 }
-const { removed = [], added = [], updated = [] } = JSON.parse(readFileSync(path, 'utf8'));
+const { removed = [], added = [], updated = [], glossary = {} } = JSON.parse(readFileSync(path, 'utf8'));
+const { moved = [], mentions = [] } = glossary;
 
 const lines = ['Nightly skilly update.'];
 if (removed.length) {
@@ -17,6 +18,10 @@ if (removed.length) {
 }
 if (added.length) lines.push('', '## Added', ...added.map((name) => `- ${name}`));
 if (updated.length) lines.push('', '## Updated', ...updated.map((name) => `- ${name}`));
+if (moved.length) lines.push('', '## Moved', ...moved.map(({ from, to }) => `- \`${from}\` → \`${to}\``));
+if (mentions.length) {
+  lines.push('', 'These files still name the old file. Fix them by hand:', ...mentions.map((file) => `- \`${file}\``));
+}
 if (!removed.length && !added.length && !updated.length) lines.push('', 'No skill changes — rules refresh only.');
 
 process.stdout.write(lines.join('\n') + '\n');
