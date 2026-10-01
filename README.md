@@ -24,6 +24,7 @@ Every command guards its branch (`skilly-*`, main → `chore/skilly-setup`, anyt
    ```
 
 2. `npx -y github:timschoch/skilly setup` — switches to `chore/skilly-setup`, sets the App secrets, writes `.skilly/config.json` (no bundles), writes `.github/workflows/skilly-sync.yml`, adds formatter ignores, gitignores `.temp/` (agent scratch space), installs the `setup-project` skill, commits, opens the PR — then launches Claude Code (Opus) with `/setup-project`.
+   The App secrets come from the owner account's own [GitHub App](lib/github-app.js), one per account, shared by all its repos. The first setup for an account asks for it: create a private one in the browser, or use an existing one (App ID + key file). It is saved in `~/.config/skilly/apps/<owner>.json`, then setup waits until the App is installed on the repo. Org secrets `SKILLY_APP_ID` and `SKILLY_APP_PRIVATE_KEY` skip all of this: every repo of the org gets them, no key needed.
    New repo (no README text, no stack file): opens the [setup interview](lib/interview/server.js) in the browser instead. Answer every question there, press Run AFK, walk away. Claude runs the whole setup and opens one setup PR. Steps 3–4 are then done.
 3. `/setup-project` — asks: setup workflow? tech stack? Drives the setup skills in order and adds Bundles via `skilly add`. (Or by hand: `npx -y github:timschoch/skilly add workflow` plus your `tech-*`/`project-*` bundles.)
 4. `npx -y github:timschoch/skilly update` — asks to drop bundle-less setup skills (e.g. `setup-project` once you're done with it); say yes.
