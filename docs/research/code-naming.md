@@ -80,7 +80,7 @@ Comparison: `@commitlint/cli` 7.2M/week, [conventionalcommits.org](https://githu
 - Google JS: "File names must be all lowercase and may include underscores ( _ ) or dashes ( - ), but no additional punctuation. Follow the convention that your project uses." ([Google JS Style Guide 2.1](https://google.github.io/styleguide/jsguide.html#file-name), P). Google TS guide has no file-name rule (searched, P).
 - PEP 8: "Modules should have short, all-lowercase names." (P)
 - unicorn `filename-case` default `kebabCase`, in `recommended` (P). Biome default accepts camel/kebab/snake or an export's name (P).
-- This repo: every tracked `.js/.mjs/.sh` file is kebab-case, mostly verb-noun (`lib/ensure-branch.js`, `scripts/render-pr-body.mjs`, `check-commit-msg.mjs`) (`git ls-files`).
+- This repo: every tracked `.js/.mjs/.sh` file is kebab-case, mostly verb-noun (`lib/prepare-branch.js`, `scripts/render-pr-body.mjs`, `check-commit-msg.mjs`) (`git ls-files`).
 - **Disagreement.** kebab (unicorn, this repo) vs "any case or export name" (Biome) vs snake (Python, Go files). Only consistent rule: lowercase, match the project.
 
 ### Enums and union types

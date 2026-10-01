@@ -16,7 +16,7 @@ flowchart LR
         ON1[/"npx github:timschoch/skilly setup<br>(once per repo)"\]
         ON1 --> ON-NEW{"new repo?<br>(no README text, no stack file)"}
         ON-NEW -->|yes| ON-IV["launch claude (opus) with the setup interview channel<br>browser: all questions, then Claude runs the whole setup AFK<br>(skilly setup included) → one setup PR"]
-        ON-NEW -->|no| ON-EB["run ensure-branch"]
+        ON-NEW -->|no| ON-EB["run prepare-branch"]
         ON-EB --> ON-LN["symlink .claude/skills → .agents/skills"]
         ON-LN --> ON2["owner's GitHub App (create or reuse, then install)<br>+ secrets, unless org secrets reach the repo"]
         ON2 --> ON3[".skilly/config.json (no bundles)"]
@@ -32,7 +32,7 @@ flowchart LR
 
     ENTER-WF((("setup workflow"))) --> WF-SETUP
     subgraph WF-SETUP["SETUP WORKFLOW"]
-        WF-EB["run ensure-branch"] --> WFQ1
+        WF-EB["run prepare-branch"] --> WFQ1
         WFQ1{"Husky+Lint+Prettier<br>pre-commit?"}
             WFQ1 -->|yes| WF1["/setup-pre-commit"] --> WFQ2
             WFQ1 -->|no| WFQ2
@@ -60,7 +60,7 @@ flowchart LR
     ENTER-TECH((("setup tech stack"))) --> TECH-SETUP
     subgraph TECH-SETUP["SETUP TECHSTACK"]
         TECH1[/"/setup-techstack"\]
-        TECH1 --> TECH-EB["run ensure-branch"]
+        TECH1 --> TECH-EB["run prepare-branch"]
         TECH-EB --> TECH2["propose bundles based on repo tech stack"] --> TECHQ1
         TECHQ1{"user confirms"}
             TECHQ1 -->|yes| TECH3["add bundles using<br>skilly-add.js"] --> TECHQ2

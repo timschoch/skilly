@@ -11,8 +11,12 @@ config:
 flowchart TD
     %% shapes: ((( ))) entry point · [/ \] user action (blue) · [ ] script action (gray) · { } decision (amber) · ([ ]) state (green)
 
-    ENTER-EB((("ensure branch"))) --> EB
-    subgraph EB["ENSURE BRANCH"]
+    ENTER-EB((("prepare branch"))) --> EB
+    subgraph EB["PREPARE BRANCH"]
+        EBQ-NAME{"not on main, and<br>**check-branch-name.mjs**<br>refuses the name?"}
+            EBQ-NAME -->|yes| EB-NAME-ABORT["abort before the commit:<br>rename the branch, run skilly again"] --> EB-FALSE
+            EBQ-NAME -->|no| EBQ1
+
         EBQ1{"current branch<br>contains 'skilly-'?"}
             EBQ1 -->|yes| EB-TRUE
             EBQ1 -->|no| EBQ-MAIN
@@ -36,7 +40,7 @@ flowchart TD
     end
 
 
-    %% EBQ1/EBQ-MAIN/EBQ-CFG are script checks -> default gray, not amber
+    %% EBQ-NAME/EBQ1/EBQ-MAIN/EBQ-CFG are script checks -> default gray, not amber
     classDef decision fill:#fff8e1,stroke:#f9a825
     class EBQ3 decision
 
