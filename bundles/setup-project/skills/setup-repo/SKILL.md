@@ -41,6 +41,7 @@ Copy the rule scripts in — they become repo-owned, and re-running this skill r
 - `scripts/check-branch-name.mjs` → `.claude/hooks/check-branch-name.mjs` — Conventional Branch gate, a default `push` step of the verify skill, not a hook line
 - `scripts/block-destructive-git.sh` → `.claude/hooks/block-destructive-git.sh` (`chmod +x`) — wired in part 5
 - `scripts/block-invalid-branch-push.sh` → `.claude/hooks/block-invalid-branch-push.sh` (`chmod +x`) — wired in part 5, runs `check-branch-name.mjs`
+- `scripts/block-unverified-push.sh` → `.claude/hooks/block-unverified-push.sh` (`chmod +x`) — wired in part 5, runs the verify `push` stage
 
 Then wire the manager the repo already has — `.husky/` → husky, `lefthook.yml` → lefthook, neither → `npm i -D husky && npx husky init`:
 
@@ -138,6 +139,17 @@ Verify: `echo '{"tool_input":{"command":"git reset --hard"}}' | .claude/hooks/bl
 ```
 
 Verify: on a branch named `wip`, `echo '{"tool_input":{"command":"git push"}}' | .claude/hooks/block-invalid-branch-push.sh` exits 2.
+
+**Unverified-push guard** — runs the verify `push` stage before the agent's `git push` when git will not: no installed `pre-push` hook (a fresh worktree before `npm install`), or `--no-verify` in the command. With the hook installed it does nothing, so the stage runs once. The workflow bundle must be added first; without the verify skill the guard passes. Needs `node` and `jq`.
+
+```json
+{
+  "matcher": "Bash|mcp__lean-ctx__ctx_shell|mcp__lean-ctx__shell",
+  "hooks": [{ "type": "command", "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/block-unverified-push.sh" }]
+}
+```
+
+Verify: `echo '{"tool_input":{"command":"git push --no-verify"}}' | .claude/hooks/block-unverified-push.sh` prints the `push` steps.
 
 **Writing-rules injection** — the `writing-rules` skill (workflow bundle) injects its rule sidecars on every file-writing tool call. The workflow bundle must be added first — the script lives in the installed skill. Not installed? Skip this entry and say so.
 

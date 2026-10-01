@@ -480,6 +480,45 @@ test('block-invalid-branch-push: blocks push and PR on a bad branch name, throug
   assert.equal(ctxShell.status, 2);
 });
 
+test('block-unverified-push: runs the verify push stage when git will not, and only then', async () => {
+  const { spawnSync } = await import('node:child_process');
+  const { run } = await import('../lib/run.js');
+  const hook = fileURLToPath(
+    new URL('../bundles/setup-project/skills/setup-repo/scripts/block-unverified-push.sh', import.meta.url),
+  );
+  const repo = freshDir();
+  run('git', ['init', '--initial-branch=main', repo]);
+  const writeVerify = (path, exitCode) => {
+    mkdirSync(join(repo, path, '..'), { recursive: true });
+    writeFileSync(join(repo, path), `console.log('stage ' + process.argv[2]); process.exit(${exitCode});\n`);
+  };
+  const runHook = (command, args = []) => {
+    const event = JSON.stringify({ cwd: repo, tool_input: { command } });
+    return spawnSync(hook, args, { input: event, encoding: 'utf8' });
+  };
+
+  assert.equal(runHook('git push').status, 0, 'no verify skill, nothing to run');
+
+  writeVerify('.agents/skills/verify/scripts/verify.mjs', 1);
+  const blocked = runHook('git push -u origin HEAD');
+  assert.equal(blocked.status, 2, 'no installed pre-push hook: the guard runs the stage');
+  assert.match(blocked.stderr, /stage push/);
+  assert.equal(runHook('git status').status, 0);
+  assert.equal(runHook('gh pr create --fill').status, 0);
+  assert.equal(runHook('echo "git push"').status, 0, 'quoted text is no push');
+
+  // The repo names its own verify.mjs: the hub keeps it under bundles/.
+  writeVerify('own/verify.mjs', 0);
+  assert.equal(runHook('git push', ['own/verify.mjs']).status, 0);
+
+  // An installed pre-push hook runs the stage itself, unless the push skips it.
+  mkdirSync(join(repo, '.husky', '_'), { recursive: true });
+  writeFileSync(join(repo, '.husky', '_', 'pre-push'), '');
+  run('git', ['-C', repo, 'config', 'core.hooksPath', '.husky/_']);
+  assert.equal(runHook('git push').status, 0);
+  assert.equal(runHook('git push --no-verify').status, 2);
+});
+
 // setup-repo wires the hook at .claude/skills/…, a symlink to .agents/skills.
 // Node loads the main module through the real path; the is-main check must still fire.
 test('inject-writing-rules runs when invoked through a symlinked skills dir', async () => {
