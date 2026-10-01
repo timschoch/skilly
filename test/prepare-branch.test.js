@@ -4,7 +4,7 @@ import { copyFileSync, mkdirSync, mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { ensureBranch } from '../lib/ensure-branch.js';
+import { prepareBranch } from '../lib/prepare-branch.js';
 import { run } from '../lib/run.js';
 
 const GATE = join(
@@ -41,14 +41,14 @@ function repo(branch, { gate = true } = {}) {
   return cwd;
 }
 
-test('ensureBranch: a branch the push gate refuses stops skilly before the commit', async () => {
-  await assert.rejects(ensureBranch(repo('prototype/glue-house')), /Invalid branch name: "prototype\/glue-house"/);
+test('prepareBranch: a branch the push gate refuses stops skilly before the commit', async () => {
+  await assert.rejects(prepareBranch(repo('prototype/glue-house')), /Invalid branch name: "prototype\/glue-house"/);
 });
 
-test('ensureBranch: a branch the push gate accepts passes', async () => {
-  await ensureBranch(repo('feat/glue-house'));
+test('prepareBranch: a branch the push gate accepts passes', async () => {
+  await prepareBranch(repo('feat/glue-house'));
 });
 
-test('ensureBranch: a repo without the push gate has no name to fail', async () => {
-  await ensureBranch(repo('prototype/glue-house', { gate: false }));
+test('prepareBranch: a repo without the push gate has no name to fail', async () => {
+  await prepareBranch(repo('prototype/glue-house', { gate: false }));
 });

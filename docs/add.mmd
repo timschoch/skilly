@@ -17,7 +17,7 @@ flowchart TD
             ADD-GUARD -->|ok| ADD-EB
             ADD-GUARD -->|abort| ADD-FALSE
 
-        ADD-EB["run ensure-branch"]
+        ADD-EB["run prepare-branch"]
             ADD-EB -->|ok| ADD-MATCH
             ADD-EB -->|abort| ADD-FALSE
 
