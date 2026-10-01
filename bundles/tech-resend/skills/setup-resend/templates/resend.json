@@ -1,0 +1,21 @@
+{
+  "domain": "apps.timschoch.com",
+  "addresses": [
+    {
+      "name": "default",
+      "address": "<repo>@apps.timschoch.com",
+      "displayName": "<App name>",
+      "purpose": "Auth mails and notifications",
+      "inbound": false
+    }
+  ],
+  "apiKey": {
+    "name": "<repo>",
+    "id": "<resend api key id>",
+    "permission": "sending_access"
+  },
+  "webhook": {
+    "id": null,
+    "endpoint": null
+  }
+}

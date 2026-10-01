@@ -1,0 +1,14 @@
+{
+  "includes": [],
+  "rules": [],
+  "sources": [
+    {
+      "source": "resend/resend-skills",
+      "skills": ["resend", "resend-cli", "agent-email-inbox"]
+    },
+    {
+      "source": "timschoch/skilly",
+      "skills": ["setup-resend"]
+    }
+  ]
+}
