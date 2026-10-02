@@ -462,6 +462,17 @@ test('naming.sh checks the files the branch adds over its base', () => {
   assert.match(result.stdout, /FAIL src\/BadName\.ts:1 short-word:/);
 });
 
+test('naming.sh checks work that is staged but not committed', () => {
+  const root = gitRepo();
+  mkdirSync(join(root, 'src'));
+  writeFileSync(join(root, 'src', 'BadName.ts'), 'export const opts = 1;\n');
+  git(root, 'add', '-A');
+
+  const result = runShell(root);
+  assert.equal(result.status, 1, result.stdout + result.stderr);
+  assert.match(result.stdout, /FAIL src\/BadName\.ts:1 file-case:/);
+});
+
 test('naming.sh passes a clean branch and says so when nothing changed', () => {
   const root = gitRepo();
   writeFileSync(join(root, 'user-profile.ts'), COMPLIANT);
