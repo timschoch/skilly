@@ -143,7 +143,7 @@
       "source": "timschoch/skilly",
       "sourceType": "github",
       "skillPath": "bundles/workflow/skills/naming/SKILL.md",
-      "computedHash": "6d140d8337438b0016e7c442ce86f37a568dea2930524f361d085a98121111c3"
+      "computedHash": "edde422504999aa6df2135e6fdcc313688b8d8c7aa9c8330dc9a7e07b80d8b2c"
     },
     "orchestrate": {
       "source": "timschoch/skilly",
