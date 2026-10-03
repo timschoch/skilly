@@ -59,7 +59,7 @@
       "source": "timschoch/mattpocock-skills",
       "sourceType": "github",
       "skillPath": "skills/engineering/code-review/SKILL.md",
-      "computedHash": "35dfb5988fe6b714eb2722db4bb10b63599bfc4fcb29804f88e1009a604d0f7f"
+      "computedHash": "055d0f598ca6e13d4b9cf8181e12b0f52caa64a3705c84c5ac8d5913e5854656"
     },
     "codebase-design": {
       "source": "timschoch/mattpocock-skills",
@@ -239,7 +239,7 @@
       "source": "cursor/plugins",
       "sourceType": "github",
       "skillPath": "pstack/skills/technical-writing/SKILL.md",
-      "computedHash": "a513ffa8987ff8528c19a76444de3c3954422c53b2393624976937ca326c52e1"
+      "computedHash": "d8ecca1f5bfa2d531f5ead6da72001b320d293eebd4435a2e3e11f79fa3f6949"
     },
     "term-check": {
       "source": "timschoch/skilly",
