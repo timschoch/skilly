@@ -1,6 +1,6 @@
 {
   "includes": [
-    "marketing",
+    "marketing-shop",
     "tech-lemy-manage"
   ],
   "rules": [],
@@ -9,12 +9,10 @@
       "source": "coreyhaines31/marketingskills",
       "skills": [
         "attribution",
-        "churn-prevention",
         "competitor-profiling",
         "competitors",
         "content-strategy",
         "customer-research",
-        "emails",
         "launch",
         "marketing-council",
         "marketing-ideas",
@@ -26,7 +24,6 @@
         "product-marketing",
         "programmatic-seo",
         "prospecting",
-        "referrals",
         "schema",
         "signup",
         "site-architecture"
