@@ -35,7 +35,7 @@ flowchart TD
                 CMQ2 -->|yes| CM-TRUE
                 CMQ2 -->|no| CMQ3
 
-            CMQ3{"branch has<br>pushed commits?"}
+            CMQ3{"branch is on origin and has<br>commits the trunk lacks?"}
                 CMQ3 -->|yes| CM-OPEN["open PR"] --> CM-TRUE
                 CMQ3 -->|no| CM-TRUE
 

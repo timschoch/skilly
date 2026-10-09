@@ -387,6 +387,43 @@ test('commit with push:false only commits; the next default commit pushes the ba
   assert.equal(run('git', ['-C', repo, 'rev-parse', 'HEAD']), run('git', ['-C', bare, 'rev-parse', 'main']));
 });
 
+test('commit opens no PR for a branch that origin kept but that has nothing the trunk lacks', async () => {
+  const { commit } = await import('../lib/commit.js');
+  const { run } = await import('../lib/run.js');
+
+  const bare = freshDir();
+  run('git', ['init', '--bare', '--initial-branch=main', bare]);
+  const repo = freshDir();
+  run('git', ['init', '--initial-branch=main', repo]);
+  run('git', ['-C', repo, 'config', 'user.name', 'test']);
+  run('git', ['-C', repo, 'config', 'user.email', 'test@example.com']);
+  writeFileSync(join(repo, 'seed'), '0');
+  run('git', ['-C', repo, 'add', '-A']);
+  run('git', ['-C', repo, 'commit', '--no-verify', '-m', 'chore: seed']);
+  run('git', ['-C', repo, 'remote', 'add', 'origin', bare]);
+  run('git', ['-C', repo, 'push', '-u', 'origin', 'main']);
+
+  // a merged Sync PR whose branch origin kept, then the nightly reset to the trunk
+  run('git', ['-C', repo, 'checkout', '-b', 'chore/skilly-update']);
+  writeFileSync(join(repo, 'a'), '1');
+  run('git', ['-C', repo, 'add', '-A']);
+  run('git', ['-C', repo, 'commit', '--no-verify', '-m', 'chore(skilly): update skills']);
+  run('git', ['-C', repo, 'push', '-u', 'origin', 'chore/skilly-update']);
+  run('git', ['-C', repo, 'checkout', '-B', 'chore/skilly-update', 'origin/main']);
+
+  // gh refuses a PR without commits, as GitHub does
+  const binDir = join(freshDir(), 'bin');
+  mkdirSync(binDir);
+  writeFileSync(join(binDir, 'gh'), '#!/bin/sh\n[ "$2" = create ] && exit 1\nexit 0\n', { mode: 0o755 });
+  const oldPath = process.env.PATH;
+  process.env.PATH = `${binDir}:${oldPath}`;
+  try {
+    assert.equal(commit(repo, 'chore(skilly): update skills', { forcePush: true }), null);
+  } finally {
+    process.env.PATH = oldPath;
+  }
+});
+
 test('validateAgentsLock flags unlocked dirs and orphan pins, passes on 1:1', async () => {
   const { validateAgentsLock } = await import('../scripts/check-agents-lock.mjs');
   const cwd = freshDir();
