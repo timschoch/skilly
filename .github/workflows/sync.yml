@@ -115,6 +115,10 @@ jobs:
 
   gate:
     if: github.event_name == 'pull_request'
+    # A newer push to the same PR cancels the gate run it superseded.
+    concurrency:
+      group: skilly-gate-${{ github.event.pull_request.number }}
+      cancel-in-progress: true
     runs-on: ubuntu-latest
     # write: the merge step below; the caller must grant these too
     permissions:

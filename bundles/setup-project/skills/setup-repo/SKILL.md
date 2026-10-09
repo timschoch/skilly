@@ -111,8 +111,10 @@ On **tool** and **product**, also scaffold `.github/dependabot.yml`:
 
 ```yaml
 version: 2
-updates: [{ package-ecosystem: npm, directory: /, schedule: { interval: weekly } }]
+updates: [{ package-ecosystem: npm, directory: /, schedule: { interval: weekly }, rebase-strategy: disabled }]
 ```
+
+`rebase-strategy: disabled`: by default Dependabot force-pushes a PR each time it conflicts with the trunk, and every force-push reruns CI and the preview builds. A lockfile that changes often makes that dozens of runs per PR. Comment `@dependabot rebase` on a PR to update it by hand.
 
 ## 5. Claude Code hooks
 
