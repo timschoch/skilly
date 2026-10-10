@@ -71,7 +71,7 @@
       "source": "netresearch/context7-skill",
       "sourceType": "github",
       "skillPath": "skills/context7/SKILL.md",
-      "computedHash": "56fcab0810e1d90de03f8658d4f17c2a1ff37201d43899a37ee1da85d425e7bf"
+      "computedHash": "9dc85c0e42a4919f641002ed997cfa0bb6e1d8442e807bc732c70f43ec1ae143"
     },
     "deslop": {
       "source": "cursor/plugins",
