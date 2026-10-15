@@ -173,7 +173,7 @@
       "source": "cursor/plugins",
       "sourceType": "github",
       "skillPath": "pstack/skills/principle-fix-root-causes/SKILL.md",
-      "computedHash": "abfe87067873d1648129d2bfc7f25a89b1b5d25f293e972c3f97f5b812436162"
+      "computedHash": "cdc2baeffbc8e418686f721b4695cc1001adcd6844b670c3224f1e3776e8ce6a"
     },
     "principle-guard-the-context-window": {
       "source": "cursor/plugins",
