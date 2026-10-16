@@ -29,3 +29,5 @@ jobs:
       - run: npm ci
       # The hub is its own Source, so the verify skill is called where it lives.
       - run: node bundles/workflow/skills/verify/scripts/verify.mjs ci
+        env:
+          GITHUB_TOKEN: ${{ github.token }} # the audit step checks accepted advisories for a fix

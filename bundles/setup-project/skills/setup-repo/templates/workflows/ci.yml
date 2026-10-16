@@ -33,3 +33,5 @@ jobs:
       - if: hashFiles('playwright.config.*') != ''
         run: npx playwright install --with-deps chromium
       - run: node .agents/skills/verify/scripts/verify.mjs ci
+        env:
+          GITHUB_TOKEN: ${{ github.token }} # the audit step checks accepted advisories for a fix

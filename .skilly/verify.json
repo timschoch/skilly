@@ -24,6 +24,7 @@
           "run": "npx prettier --check .",
           "why": "lint-staged formats what a commit touches. A file written by a script or an agent that bypassed the hook shows up here."
         },
+        { "name": "audit", "run": "node bundles/workflow/skills/verify/scripts/audit.mjs" },
         {
           "name": "bundles",
           "run": "node scripts/validate-bundles.mjs",
