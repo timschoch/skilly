@@ -69,7 +69,7 @@ Green plus clean is a milestone, not a terminal state: new review items still la
 - Add a check as one step, never as a line in a hook or a workflow: in `.skilly/verify.json` for one Consumer, in [the verify defaults](../bundles/workflow/skills/verify/references/verify.json) for all.
 - Hold sandbox to the same code quality as product. The tier sets the size of the net, not the standard.
 - Run review on request: `/code-review` locally, `/ai-review` as a PR comment on tool and product repos.
-- Leave the merge to the user. Stop at green and report, per [workflow-sign-off](../.claude/rules/workflow-sign-off.md). Merge only when the user says so; babysit-pr then merges at green.
+- Leave the merge to the user. Stop at green and report, per [workflow-done](../.claude/rules/workflow-done.md). Merge only when the user says so; babysit-pr then merges at green.
 - Give the product tier its nightly and its security scan. Never gate a merge on either.
 
 ## Terms
