@@ -287,7 +287,7 @@
       "source": "timschoch/skilly",
       "sourceType": "github",
       "skillPath": "bundles/workflow/skills/verify/SKILL.md",
-      "computedHash": "0f413bcb9af23efef547d603db1784d286abf0cfe66c979d8bd430ee72d54d21"
+      "computedHash": "42a5c49b07e82e2b3591155bbce63dbd155cbc535e78ed83f59042db99bac728"
     },
     "wait-what": {
       "source": "timschoch/mattpocock-skills",
