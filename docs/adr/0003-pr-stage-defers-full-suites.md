@@ -1,6 +1,6 @@
 # ADR-0003: A `pr` stage defers the full suites to the release PR and the nightly
 
-Status: accepted, 2026-10-05
+Status: accepted, 2026-10-05. Decision 3: verify picks the stage, per [ADR-0005](0005-shared-ci-workflows.md). Decision 5: replaced by [ADR-0004](0004-nightly-runs-only-on-change.md).
 
 ## Context
 

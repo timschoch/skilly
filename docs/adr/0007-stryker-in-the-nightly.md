@@ -13,13 +13,13 @@ Stryker runs the tests once per mutant, so a full run takes minutes to hours. Th
 ## Decision
 
 1. Stryker runs in the `nightly` stage of product Consumers, as one step in the [verify defaults](../../bundles/workflow/skills/verify/references/verify.json).
-2. It runs in incremental mode (`--incremental`): it tests again only the code that changed since its last run, and keeps the result file between nights in the Actions cache.
+2. It mutates only the files that changed on `main` since the last finished nightly (`--mutate` with the list from git). Incremental mode (`--incremental`) keeps its result file in the Actions cache and only makes the run faster. A night with no cache entry costs as much as the diff, not as much as the whole code.
 3. It runs only on nights that run everything, per [ADR-0004](0004-nightly-runs-only-on-change.md) decision 1. A night with no change on `main` has no new code to mutate.
 4. Surviving mutants open or update the one `nightly-stryker` issue. It is not `critical`: a weak test blocks nothing.
 
 ## Consequences
 
-The first night after the rollout runs Stryker on the whole code once, with no incremental result. It can hit the 30-minute limit of ADR-0004 decision 5 and end as `nightly-stuck`. Seed the result file with one manual run (`workflow_dispatch`) per Consumer.
+Code that does not change is never mutated, so its weak tests stay unknown. A large diff, for example a refactor across 200 files, can still hit the 30-minute limit of ADR-0004 decision 5 and end as `nightly-stuck`.
 
 ## Rejected
 
@@ -30,4 +30,3 @@ The first night after the rollout runs Stryker on the whole code once, with no i
 ## Open questions
 
 - Run time on a real product Consumer, for example glue. Not measured.
-- Whether the Actions cache keeps the incremental file long enough on a Consumer with few changes. GitHub drops a cache entry after 7 days with no access.

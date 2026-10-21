@@ -62,19 +62,21 @@ flowchart LR
   open -- no --> stuck[stop, open issue]
 ```
 
+- A plan script in the verify skill makes this choice, not the workflow. It returns the `nightly` stage, the `nightly-scan` stage or stop.
 - A cancelled or timed-out night is not finished.
 - A manual run (`workflow_dispatch`) runs everything.
+- verify runs every step, also after a red one, so each check gets its own result.
 - `timeout-minutes: 30`. The worst case per change on `main` is 2 nights of 30 minutes.
 
 One open issue per check. A later night with a different list of problems adds a comment.
 
-| Check                | Runs                                      | Red opens issue with labels    |
-| -------------------- | ----------------------------------------- | ------------------------------ |
-| full unit, full e2e  | after a change                            | `nightly-tests`, `critical`    |
-| Stryker, incremental | after a change                            | `nightly-stryker`              |
-| security scan        | every night                               | `nightly-security`, `critical` |
-| deps drift           | every night                               | none, Dependabot opens the PRs |
-| stuck guard          | change over 2 days old, no finished night | `nightly-stuck`                |
+| Check                  | Runs                                      | Red opens issue with labels    |
+| ---------------------- | ----------------------------------------- | ------------------------------ |
+| full unit, full e2e    | after a change                            | `nightly-tests`, `critical`    |
+| Stryker, changed files | after a change                            | `nightly-stryker`              |
+| security scan          | every night                               | `nightly-security`, `critical` |
+| deps drift             | every night                               | none, Dependabot opens the PRs |
+| stuck guard            | change over 2 days old, no finished night | `nightly-stuck`                |
 
 Decisions: [ADR-0004](adr/0004-nightly-runs-only-on-change.md), [ADR-0007](adr/0007-stryker-in-the-nightly.md).
 
@@ -103,7 +105,9 @@ flowchart LR
   skill --> cfg
 ```
 
-A Consumer sets its CI in `.skilly/verify.json`, `.skilly/config.json` and its caller: triggers, permissions, Node version, package manager, secrets. Full table: [ADR-0005](adr/0005-shared-ci-workflows.md).
+A Consumer sets its CI in `.skilly/verify.json`, `.skilly/config.json` and its caller: triggers, permissions, secrets. The Shared workflow detects the Node version and the package manager. verify picks the stage from the event. Full table: [ADR-0005](adr/0005-shared-ci-workflows.md).
+
+A Shared workflow change that needs a new verify ships in one go: merge it in the Hub, then update all Consumers the same day.
 
 ## The babysit loop
 
