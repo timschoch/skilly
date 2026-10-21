@@ -15,7 +15,7 @@ Sets up [release-please](https://github.com/googleapis/release-please) via [rele
 
 1. **Already set up?** `grep -rl release-please .github/workflows/ 2>/dev/null` — a hit: skip to step 3, verify settings only.
 
-2. **Install the workflow** at `.github/workflows/release.yml`. Substitute the trunk (`git symbolic-ref --short refs/remotes/origin/HEAD | sed 's|^origin/||'`, fallback `main`); release type `node` when `package.json` exists, else `simple`:
+2. **Install the workflow** at `.github/workflows/release.yml`. Substitute the default branch (`node .agents/skills/verify/scripts/default-branch.mjs`); release type `node` when `package.json` exists, else `simple`:
 
    ```yaml
    name: Release

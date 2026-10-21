@@ -7,7 +7,7 @@ One verify config, three tiers, nested. Every Consumer declares a tier in `.skil
 | Stage                                                                       | sandbox | tool | product |
 | --------------------------------------------------------------------------- | :-----: | :--: | :-----: |
 | pre-commit: `lint-staged`                                                   |   yes   | yes  |   yes   |
-| pre-push: typecheck + `vitest run --changed origin/main`                    |   yes   | yes  |   yes   |
+| pre-push: typecheck + `vitest run --changed origin/$DEFAULT_BRANCH`         |   yes   | yes  |   yes   |
 | PR gate: lint + typecheck + unit + build, one job                           |   yes   | yes  |   yes   |
 | local `/code-review` on request; `/babysit-pr`                              |   yes   | yes  |   yes   |
 | `/ai-review` PR comment runs the `code-review` skill, posts inline comments |   no    | yes  |   yes   |

@@ -23,7 +23,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
         with:
-          fetch-depth: 0 # the changed-files steps diff against origin/main
+          fetch-depth: 0 # the changed-files steps diff against the default branch
       - uses: actions/setup-node@v5
         with:
           node-version: lts/* # swap for node-version-file once the repo pins one

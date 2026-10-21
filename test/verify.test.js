@@ -67,6 +67,22 @@ test('a step does not inherit the git hook env', () => {
   assert.match(result.stdout, /dir=\[\] home=\[.+\]/);
 });
 
+test('a step gets the default branch from the GitHub event payload as DEFAULT_BRANCH', () => {
+  const root = makeRepo({
+    verify: { stages: { commit: { steps: [{ name: 'env', run: 'echo "default=[$DEFAULT_BRANCH]"' }] } } },
+  });
+  const event = join(root, 'event.json');
+  writeFileSync(event, JSON.stringify({ repository: { default_branch: 'v2-rebuild' } }));
+  const { DEFAULT_BRANCH, ...env } = process.env;
+  const result = spawnSync(process.execPath, [scriptIn(root), 'commit'], {
+    cwd: root,
+    encoding: 'utf8',
+    env: { ...env, GITHUB_EVENT_PATH: event },
+  });
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /default=\[v2-rebuild\]/);
+});
+
 test('extends is cumulative: push runs the commit steps first', () => {
   const root = makeRepo({
     verify: {
