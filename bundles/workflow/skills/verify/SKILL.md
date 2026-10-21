@@ -33,7 +33,41 @@ Shape of both files:
 }
 ```
 
-`extends` is cumulative: `push` runs every `commit` step first, so no stage can skip a check the stage below it runs.
+`extends` is cumulative: `push` runs every `commit` step first. A stage skips an inherited step only where the config names it:
+
+| Field | On | Effect |
+| --- | --- | --- |
+| `"replaces": "unit (changed)"` | a step | drops the named step when this step runs. `unit` holds the changed tests, so each test runs one time |
+| `"without": ["unit", "e2e smoke"]` | a stage | drops the named inherited steps |
+
+## Stages
+
+| Stage | Runs | Called by |
+| --- | --- | --- |
+| `commit` | nothing by default | `pre-commit` calls `lint-staged` directly |
+| `push` | branch name, naming, typecheck, `unit (changed)` | the `pre-push` hook |
+| `ci` | `push`, lint, full `unit`, build, audit, `e2e smoke` | CI on a PR; on the release PR where a PR runs `pr` |
+| `pr` | `ci` without full `unit` and `e2e smoke` | CI on a PR of a product repo with a release PR and a nightly |
+| `nightly` | full `unit`, `e2e full`, deps drift, security scan | the nightly workflow, product tier |
+
+`pr` needs its net: each merge to main meets the full suites on the release PR and in the nightly. The `ci.yml` template of `setup-repo` picks `pr` only where both exist.
+
+## Changed tests
+
+`unit (changed)` runs [scripts/run-changed-tests.mjs](scripts/run-changed-tests.mjs): the test command with `--changed <base>`, or the full suite when the diff holds a `fullSuiteTriggers` path. Vitest follows imports only, and no test imports a lockfile or a migration.
+
+```json
+{ "fullSuiteTriggers": ["drizzle/"] }
+```
+
+| Trigger | Matches |
+| --- | --- |
+| `drizzle/` | each file in that folder, from the git root |
+| `package.json` | that file name at any depth |
+| `vitest.config.*` | `*` is any characters inside one path segment |
+| `src/schema.sql` | that path |
+
+The list in `.skilly/verify.json` appends to the defaults; `"-package.json"` drops one.
 
 A budget warns and never fails. A gate that fails on slowness teaches you to bypass the gate, and the bypass outlives the slowness. `budgetTicket` says where a stage that outgrew its budget gets split.
 
@@ -47,6 +81,8 @@ A budget warns and never fails. A gate that fails on slowness teaches you to byp
 | `"-lint"` | drops the default `lint` step |
 | `{ "name": "docs", "run": "…" }` | adds a step after the defaults |
 | `"budgetSeconds": 60` on a stage | replaces the default |
+
+An override of `unit` must run the full suite each time, because `unit` replaces `unit (changed)`. An override that runs the suite only on a condition must set `"replaces": null`.
 
 The file is optional. Check the result with `--config` or `<stage> --steps`.
 

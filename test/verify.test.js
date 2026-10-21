@@ -8,6 +8,7 @@ import { fileURLToPath } from 'node:url';
 
 const skillDir = fileURLToPath(new URL('../bundles/workflow/skills/verify/', import.meta.url));
 const shippedScript = join(skillDir, 'scripts', 'verify.mjs');
+const shippedDefaults = join(skillDir, 'references', 'verify.json');
 
 // Writes a fake Consumer and returns its root. The verify skill is copied in
 // with `defaults` as its references/verify.json, so a test sees only its own steps.
@@ -45,7 +46,7 @@ test('the default branch name step runs in a Consumer that has only the verify s
 // runs a file from somewhere else fails in every Consumer that lacks the file.
 test('a default step runs a file only when the verify skill ships it or a target guards it', () => {
   const installed = '.agents/skills/verify/';
-  for (const { steps } of Object.values(shippedStages()))
+  for (const { steps = [] } of Object.values(shippedStages()))
     for (const { name, run: command, target } of steps) {
       const file = /^node (\S+)/.exec(command)?.[1];
       if (!file || file === target) continue;
@@ -98,6 +99,100 @@ test('extends is cumulative: push runs the commit steps first', () => {
   const pushAt = result.stdout.indexOf('step-push');
   assert.ok(commitAt >= 0 && pushAt >= 0, result.stdout);
   assert.ok(commitAt < pushAt, result.stdout);
+});
+
+test('a step that runs replaces the step it names, so the tests run one time', () => {
+  const verify = {
+    stages: {
+      push: { steps: [{ name: 'unit (changed)', run: 'echo ran-changed' }] },
+      ci: { extends: 'push', steps: [{ name: 'unit', run: 'echo ran-full', replaces: 'unit (changed)' }] },
+    },
+  };
+  const root = makeRepo({ verify });
+
+  const ci = run(root, 'ci');
+  assert.equal(ci.status, 0, ci.stderr);
+  assert.match(ci.stdout, /ran-full/);
+  assert.doesNotMatch(ci.stdout, /ran-changed/);
+  assert.match(ci.stdout, /skip unit \(changed\): replaced by unit/);
+
+  // The stage below still runs its own step.
+  assert.match(run(root, 'push').stdout, /ran-changed/);
+});
+
+test('a skipped step replaces nothing', () => {
+  const verify = {
+    stages: {
+      push: { steps: [{ name: 'unit (changed)', run: 'echo ran-changed' }] },
+      ci: {
+        extends: 'push',
+        steps: [{ name: 'unit', run: 'echo ran-full', replaces: 'unit (changed)', target: 'vitest.config.ts' }],
+      },
+    },
+  };
+  const result = run(makeRepo({ verify }), 'ci');
+  assert.match(result.stdout, /ran-changed/);
+  assert.doesNotMatch(result.stdout, /ran-full/);
+});
+
+test('a stage runs without the inherited steps it names, and the replaced step comes back', () => {
+  const verify = {
+    stages: {
+      push: { steps: [{ name: 'unit (changed)', run: 'echo ran-changed' }] },
+      ci: {
+        extends: 'push',
+        steps: [
+          { name: 'lint', run: 'echo ran-lint' },
+          { name: 'unit', run: 'echo ran-full', replaces: 'unit (changed)' },
+          { name: 'e2e smoke', run: 'echo ran-smoke' },
+        ],
+      },
+      pr: { extends: 'ci', without: ['unit', 'e2e smoke'] },
+    },
+  };
+  const listed = JSON.parse(run(makeRepo({ verify }), 'pr', '--steps').stdout);
+  assert.deepEqual(
+    listed.steps.map(({ name }) => name),
+    ['unit (changed)', 'lint'],
+  );
+  assert.deepEqual(listed.skipped, [
+    { name: 'unit', reason: 'stage pr runs without it' },
+    { name: 'e2e smoke', reason: 'stage pr runs without it' },
+  ]);
+});
+
+const stepNames = (tier, stage) => {
+  const root = makeRepo({ tier, defaults: JSON.parse(readFileSync(shippedDefaults, 'utf8')) });
+  for (const file of ['vitest.config.ts', 'playwright.config.ts']) writeFileSync(join(root, file), '');
+  return JSON.parse(run(root, stage, '--steps').stdout).steps.map(({ name }) => name);
+};
+
+test('the shipped ci stage runs the full suites and each unit test one time', () => {
+  assert.deepEqual(stepNames('product', 'ci'), [
+    'branch name',
+    'typecheck',
+    'lint',
+    'unit',
+    'build',
+    'audit',
+    'e2e smoke',
+  ]);
+  assert.deepEqual(stepNames('sandbox', 'ci'), ['branch name', 'typecheck', 'lint', 'unit', 'build']);
+});
+
+test('the shipped pr stage runs the changed tests and no full suite', () => {
+  assert.deepEqual(stepNames('product', 'pr'), [
+    'branch name',
+    'typecheck',
+    'unit (changed)',
+    'lint',
+    'build',
+    'audit',
+  ]);
+});
+
+test('the shipped nightly stage runs the full unit suite', () => {
+  assert.ok(stepNames('product', 'nightly').includes('unit'));
 });
 
 test('a step above the repo tier is skipped and listed in --steps', () => {
