@@ -6,24 +6,31 @@ One verify config, three tiers, nested. Every Consumer declares a tier in `.skil
 
 | Stage                                                                       | sandbox | tool | product |
 | --------------------------------------------------------------------------- | :-----: | :--: | :-----: |
-| pre-commit: `lint-staged`                                                   |   yes   | yes  |   yes   |
-| pre-push: typecheck + `vitest run --changed origin/$DEFAULT_BRANCH`         |   yes   | yes  |   yes   |
+| IDE: Oxlint errors and fix on save, from `.vscode/`                         |   yes   | yes  |   yes   |
+| agent edit hook: `oxlint --fix` + Prettier on the edited file               |   yes   | yes  |   yes   |
+| pre-commit: `lint-staged`, `oxlint --fix` + Prettier on staged files        |   yes   | yes  |   yes   |
+| pre-push: typecheck + the tests the diff reaches                            |   yes   | yes  |   yes   |
 | PR gate: lint + typecheck + unit + build, one job                           |   yes   | yes  |   yes   |
 | local `/code-review` on request; `/babysit-pr`                              |   yes   | yes  |   yes   |
 | `/ai-review` PR comment runs the `code-review` skill, posts inline comments |   no    | yes  |   yes   |
 | required checks on `main` (GitHub Pro or Team)                              |   no    | yes  |   yes   |
 | Dependabot alerts + `npm audit --audit-level=high` in the PR gate           |   no    | yes  |   yes   |
 | PR gate: e2e smoke (on the `pr` stage: release PR only)                     |   no    |  no  |   yes   |
-| nightly: full unit, full e2e, dependency drift, security scan               |   no    |  no  |   yes   |
+| nightly: full unit, full e2e, Stryker, dependency drift, security scan      |   no    |  no  |   yes   |
 | `/security-review` locally before release                                   |   no    |  no  |   yes   |
 
 A product repo with a release PR and a nightly runs the `pr` stage on its PRs: the tests the diff reaches, no full unit suite, no e2e smoke. The release PR runs `ci` with both, the nightly runs the full suites. Stages and the changed-tests guard: [verify](../bundles/workflow/skills/verify/SKILL.md#stages). Decision: [ADR-0003](adr/0003-pr-stage-defers-full-suites.md).
+
+The tests the diff reaches come from `vitest --changed`, plus a guard: a diff with a lockfile, `package.json`, a test config or a `fullSuiteTriggers` path runs the full suite.
+
+A new Consumer lints with Oxlint, an existing one keeps its linter until it migrates. The agent edit hook exits 2 when errors are left, so the agent sees them. Decision: [ADR-0006](adr/0006-oxlint-and-an-edit-hook.md).
 
 ## Life of a change
 
 ```mermaid
 flowchart TD
-  edit[edit] --> commit[commit: lint-staged]
+  edit[edit] --> hook[edit hook: oxlint, Prettier]
+  hook --> commit[commit: lint-staged]
   commit --> push[push: typecheck, changed tests]
   push --> gate[PR gate: lint, typecheck, unit, build]
   gate --> tier{product?}
@@ -39,6 +46,64 @@ flowchart TD
   merge --> main[main]
   main --> nightly[nightly, product only]
 ```
+
+## The nightly
+
+The nightly runs its tests only when `main` changed since the last nightly that finished, green or red. The security scan and deps drift run every night: they find new problems without a code change.
+
+```mermaid
+flowchart LR
+  start[03:00] --> done{finished after change?}
+  done -- yes --> scan[scan + drift only]
+  done -- no --> old{change over 2 days?}
+  old -- no --> all[run everything]
+  old -- yes --> open{stuck issue open?}
+  open -- yes --> quiet[stop]
+  open -- no --> stuck[stop, open issue]
+```
+
+- A cancelled or timed-out night is not finished.
+- A manual run (`workflow_dispatch`) runs everything.
+- `timeout-minutes: 30`. The worst case per change on `main` is 2 nights of 30 minutes.
+
+One open issue per check. A later night with a different list of problems adds a comment.
+
+| Check                | Runs                                      | Red opens issue with labels    |
+| -------------------- | ----------------------------------------- | ------------------------------ |
+| full unit, full e2e  | after a change                            | `nightly-tests`, `critical`    |
+| Stryker, incremental | after a change                            | `nightly-stryker`              |
+| security scan        | every night                               | `nightly-security`, `critical` |
+| deps drift           | every night                               | none, Dependabot opens the PRs |
+| stuck guard          | change over 2 days old, no finished night | `nightly-stuck`                |
+
+Decisions: [ADR-0004](adr/0004-nightly-runs-only-on-change.md), [ADR-0007](adr/0007-stryker-in-the-nightly.md).
+
+## How a change reaches a Consumer
+
+A change in the Hub reaches a Consumer by one of three paths. Which one depends on who owns the file.
+
+| Part                                                   | Owner                    | Path                                   |
+| ------------------------------------------------------ | ------------------------ | -------------------------------------- |
+| `verify` skill: default steps, `verify.mjs`, the guard | Hub                      | Sync PR, merges itself when green      |
+| `ci.yml`, `nightly.yml`                                | Hub, as Shared workflows | next run: the caller points at `@main` |
+| callers, lint config, lint-staged, `.vscode/`, hooks   | Consumer                 | one setup-repo run in the Consumer     |
+
+```mermaid
+flowchart LR
+  subgraph Hub
+    wf[Shared workflows]
+    skill[verify skill]
+  end
+  subgraph Consumer
+    caller[caller]
+    cfg[.skilly/verify.json]
+  end
+  caller -- "@main" --> wf
+  wf --> skill
+  skill --> cfg
+```
+
+A Consumer sets its CI in `.skilly/verify.json`, `.skilly/config.json` and its caller: triggers, permissions, Node version, package manager, secrets. Full table: [ADR-0005](adr/0005-shared-ci-workflows.md).
 
 ## The babysit loop
 

@@ -56,6 +56,10 @@ The pull request the nightly workflow opens in a consumer after `skills update`.
 **PR gate**:
 Checks on every PR in a consumer that fail when the PR breaks the consumer's rules. They block merge where `skilly / gate` is a required check (tool and product tiers).
 
+**Shared workflow**:
+A GitHub Actions workflow in the Hub with `on: workflow_call`. A Consumer runs it through a short caller in its own `.github/workflows/`, pinned to `@main`. Examples: `sync.yml`, and CI and nightly per [ADR-0005](docs/adr/0005-shared-ci-workflows.md).
+_Avoid_: Reusable workflow, template
+
 **Rule**:
 A named workflow requirement attached to a bundle (e.g. conventional commits). A consumer enforces the union of the rules of all its bundles, via the PR gate.
 _Avoid_: Check, policy
