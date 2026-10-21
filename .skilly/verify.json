@@ -4,6 +4,7 @@
   "stages": {
     "push": {
       "steps": [
+        { "name": "branch name", "run": "node bundles/workflow/skills/verify/scripts/check-branch-name.mjs" },
         {
           "name": "naming",
           "run": "node bundles/workflow/skills/naming/scripts/check.mjs",

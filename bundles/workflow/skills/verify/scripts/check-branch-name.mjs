@@ -1,6 +1,6 @@
-// Conventional Branch gate, zero-dependency. Wire as a `push` step in
-// .skilly/verify.json, so CI runs it too:
-//   node .claude/hooks/check-branch-name.mjs
+// Conventional Branch gate, zero-dependency. A default `push` step of the
+// verify skill, so CI runs it too:
+//   node .agents/skills/verify/scripts/check-branch-name.mjs
 // Locally it reads the checked-out branch. In CI HEAD is detached, so it reads
 // the PR's head branch from GITHUB_HEAD_REF; a push build has neither and passes.
 import { execFileSync } from 'node:child_process';

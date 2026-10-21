@@ -10,7 +10,7 @@ import { run } from '../lib/run.js';
 const GATE = join(
   dirname(fileURLToPath(import.meta.url)),
   '..',
-  'bundles/setup-project/skills/setup-repo/scripts/check-branch-name.mjs',
+  'bundles/workflow/skills/verify/scripts/check-branch-name.mjs',
 );
 
 // A repo on `branch` that the user already blessed for skilly changes.
@@ -35,8 +35,9 @@ function repo(branch, { gate = true } = {}) {
   run('git', ['switch', '--quiet', '-c', branch], { cwd });
   run('git', ['config', '--local', 'skilly.use-current-branch', 'true'], { cwd });
   if (gate) {
-    mkdirSync(join(cwd, '.claude', 'hooks'), { recursive: true });
-    copyFileSync(GATE, join(cwd, '.claude', 'hooks', 'check-branch-name.mjs'));
+    const scripts = join(cwd, '.agents', 'skills', 'verify', 'scripts');
+    mkdirSync(scripts, { recursive: true });
+    copyFileSync(GATE, join(scripts, 'check-branch-name.mjs'));
   }
   return cwd;
 }

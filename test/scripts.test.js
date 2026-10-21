@@ -439,7 +439,7 @@ test('check-branch-name: Conventional Branch passes, agent names fail, trunk, de
   const { spawnSync } = await import('node:child_process');
   const { run } = await import('../lib/run.js');
   const script = fileURLToPath(
-    new URL('../bundles/setup-project/skills/setup-repo/scripts/check-branch-name.mjs', import.meta.url),
+    new URL('../bundles/workflow/skills/verify/scripts/check-branch-name.mjs', import.meta.url),
   );
   const repo = freshDir();
   run('git', ['init', '--initial-branch=main', repo]);
@@ -485,6 +485,9 @@ test('block-invalid-branch-push: blocks push and PR on a bad branch name, throug
   const { run } = await import('../lib/run.js');
   const scripts = fileURLToPath(new URL('../bundles/setup-project/skills/setup-repo/scripts/', import.meta.url));
   const hook = join(scripts, 'block-invalid-branch-push.sh');
+  const gate = fileURLToPath(
+    new URL('../bundles/workflow/skills/verify/scripts/check-branch-name.mjs', import.meta.url),
+  );
   // One rule file: the hook calls the gate, it holds no copy of the rule.
   const source = readFileSync(hook, 'utf8');
   assert.match(source, /check-branch-name\.mjs/);
@@ -495,13 +498,19 @@ test('block-invalid-branch-push: blocks push and PR on a bad branch name, throug
   run('git', ['-C', repo, 'config', 'user.name', 'test']);
   run('git', ['-C', repo, 'config', 'user.email', 'test@example.com']);
   run('git', ['-C', repo, 'commit', '--allow-empty', '--no-verify', '-m', 'chore: seed']);
-  const runHook = (branch, command, input = {}) => {
+  const runHook = (branch, command, input = {}, args = [gate]) => {
     run('git', ['-C', repo, 'switch', '-C', branch]);
     const { GITHUB_HEAD_REF, ...env } = process.env;
     const event = JSON.stringify({ cwd: repo, tool_input: { command }, ...input });
-    return spawnSync(hook, { input: event, encoding: 'utf8', env });
+    return spawnSync(hook, args, { input: event, encoding: 'utf8', env });
   };
 
+  // No verify skill in the repo: no gate to run.
+  assert.equal(runHook('wip', 'git push', {}, []).status, 0);
+  // A gate named in settings.json that is absent is a typo: block, never pass.
+  const typo = runHook('feat/add-login', 'git push', {}, ['scripts/check-brnach-name.mjs']);
+  assert.equal(typo.status, 2);
+  assert.match(typo.stderr, /scripts\/check-brnach-name\.mjs not found/);
   const blocked = runHook('t3code/f087e4bc', 'git push -u origin HEAD');
   assert.equal(blocked.status, 2);
   assert.match(blocked.stderr, /Invalid branch name: "t3code\/f087e4bc"/);

@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { copyFileSync, mkdtempSync, mkdirSync, writeFileSync } from 'node:fs';
+import { copyFileSync, existsSync, mkdtempSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -16,7 +16,7 @@ const makeRepo = ({ verify, defaults = {}, tier, files = [] } = {}) => {
   const scripts = join(root, '.agents', 'skills', 'verify', 'scripts');
   mkdirSync(scripts, { recursive: true });
   mkdirSync(join(root, '.agents', 'skills', 'verify', 'references'));
-  for (const file of ['verify.mjs', 'merge-config.mjs'])
+  for (const file of readdirSync(join(skillDir, 'scripts')))
     copyFileSync(join(skillDir, 'scripts', file), join(scripts, file));
   writeFileSync(join(root, '.agents', 'skills', 'verify', 'references', 'verify.json'), JSON.stringify(defaults));
   if (verify || tier) mkdirSync(join(root, '.skilly'), { recursive: true });
@@ -28,6 +28,31 @@ const makeRepo = ({ verify, defaults = {}, tier, files = [] } = {}) => {
 
 const scriptIn = (root) => join(root, '.agents', 'skills', 'verify', 'scripts', 'verify.mjs');
 const run = (root, ...args) => spawnSync(process.execPath, [scriptIn(root), ...args], { cwd: root, encoding: 'utf8' });
+
+const shippedStages = () => JSON.parse(readFileSync(join(skillDir, 'references', 'verify.json'), 'utf8')).stages;
+
+test('the default branch name step runs in a Consumer that has only the verify skill', () => {
+  const step = shippedStages().push.steps.find(({ name }) => name === 'branch name');
+  const root = makeRepo({ defaults: { stages: { push: { steps: [step] } } }, tier: 'sandbox' });
+  spawnSync('git', ['init', '--quiet', '--initial-branch', 'wip', root]);
+  const { GITHUB_HEAD_REF, ...env } = process.env;
+  const result = spawnSync(process.execPath, [scriptIn(root), 'push'], { cwd: root, encoding: 'utf8', env });
+  assert.equal(result.status, 1, result.stderr);
+  assert.match(result.stderr, /Invalid branch name: "wip"/);
+});
+
+// Sync delivers the verify skill and nothing beside it. A default step that
+// runs a file from somewhere else fails in every Consumer that lacks the file.
+test('a default step runs a file only when the verify skill ships it or a target guards it', () => {
+  const installed = '.agents/skills/verify/';
+  for (const { steps } of Object.values(shippedStages()))
+    for (const { name, run: command, target } of steps) {
+      const file = /^node (\S+)/.exec(command)?.[1];
+      if (!file || file === target) continue;
+      assert.ok(file.startsWith(installed), `${name}: ${file} is outside the verify skill and has no target`);
+      assert.ok(existsSync(join(skillDir, file.slice(installed.length))), `${name}: the skill does not ship ${file}`);
+    }
+});
 
 test('a step does not inherit the git hook env', () => {
   const root = makeRepo({
