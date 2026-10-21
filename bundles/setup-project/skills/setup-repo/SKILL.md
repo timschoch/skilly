@@ -38,9 +38,8 @@ Copy the rule scripts in — they become repo-owned, and re-running this skill r
 
 - `scripts/check-commit-msg.mjs` → `.claude/hooks/check-commit-msg.mjs` — conventional-commit gate (the why: the `writing-rules` skill, group 7)
 - `scripts/check-push-branch.mjs` → `.claude/hooks/check-push-branch.mjs` — refuses a direct push to the detected trunk
-- `scripts/check-branch-name.mjs` → `.claude/hooks/check-branch-name.mjs` — Conventional Branch gate, a default `push` step of the verify skill, not a hook line
 - `scripts/block-destructive-git.sh` → `.claude/hooks/block-destructive-git.sh` (`chmod +x`) — wired in part 5
-- `scripts/block-invalid-branch-push.sh` → `.claude/hooks/block-invalid-branch-push.sh` (`chmod +x`) — wired in part 5, runs `check-branch-name.mjs`
+- `scripts/block-invalid-branch-push.sh` → `.claude/hooks/block-invalid-branch-push.sh` (`chmod +x`) — wired in part 5, runs the verify skill's `check-branch-name.mjs`
 - `scripts/block-unverified-push.sh` → `.claude/hooks/block-unverified-push.sh` (`chmod +x`) — wired in part 5, runs the verify `push` stage
 
 Then wire the manager the repo already has — `.husky/` → husky, `lefthook.yml` → lefthook, neither → `npm i -D husky && npx husky init`:
@@ -133,7 +132,7 @@ Merge each entry into `.claude/settings.json` `hooks.PreToolUse`; skip an entry 
 
 Verify: `echo '{"tool_input":{"command":"git reset --hard"}}' | .claude/hooks/block-destructive-git.sh` exits 2.
 
-**Branch-name guard** — runs `check-branch-name.mjs` before the agent's `git push` or `gh pr create`. The `pre-push` hook needs `npm install`, which a fresh worktree lacks; this one needs only `node` and `jq`, and `--no-verify` does not skip it.
+**Branch-name guard** — runs the verify skill's `check-branch-name.mjs`, the Conventional Branch gate behind the default `branch name` step, before the agent's `git push` or `gh pr create`. The `pre-push` hook needs `npm install`, which a fresh worktree lacks; this one needs only `node` and `jq`, and `--no-verify` does not skip it. The workflow bundle must be added first; without the verify skill the guard passes.
 
 ```json
 {

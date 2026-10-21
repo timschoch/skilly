@@ -10,7 +10,7 @@
       "steps": [
         {
           "name": "branch name",
-          "run": "node .claude/hooks/check-branch-name.mjs",
+          "run": "node .agents/skills/verify/scripts/check-branch-name.mjs",
           "why": "Conventional Branch: <type>/<description>. In CI it reads the PR's head branch, so --no-verify does not get past it. Bot branches pass."
         },
         {
