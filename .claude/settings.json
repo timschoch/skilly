@@ -15,7 +15,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/block-destructive-git.sh"
+            "command": "bash \"$CLAUDE_PROJECT_DIR\"/bundles/workflow/skills/verify/scripts/block-destructive-git.sh"
           }
         ]
       },
@@ -24,7 +24,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/block-invalid-branch-push.sh bundles/workflow/skills/verify/scripts/check-branch-name.mjs"
+            "command": "bash \"$CLAUDE_PROJECT_DIR\"/bundles/workflow/skills/verify/scripts/block-invalid-branch-push.sh bundles/workflow/skills/verify/scripts/check-branch-name.mjs"
           }
         ]
       },
@@ -33,7 +33,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/block-unverified-push.sh bundles/workflow/skills/verify/scripts/verify.mjs"
+            "command": "bash \"$CLAUDE_PROJECT_DIR\"/bundles/workflow/skills/verify/scripts/block-unverified-push.sh bundles/workflow/skills/verify/scripts/verify.mjs"
           }
         ]
       }

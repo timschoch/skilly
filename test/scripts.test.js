@@ -530,7 +530,7 @@ test('check-branch-name: Conventional Branch passes, agent names fail, trunk, de
 test('block-invalid-branch-push: blocks push and PR on a bad branch name, through check-branch-name.mjs', async () => {
   const { spawnSync } = await import('node:child_process');
   const { run } = await import('../lib/run.js');
-  const scripts = fileURLToPath(new URL('../bundles/setup-project/skills/setup-repo/scripts/', import.meta.url));
+  const scripts = fileURLToPath(new URL('../bundles/workflow/skills/verify/scripts/', import.meta.url));
   const hook = join(scripts, 'block-invalid-branch-push.sh');
   const gate = fileURLToPath(
     new URL('../bundles/workflow/skills/verify/scripts/check-branch-name.mjs', import.meta.url),
@@ -577,7 +577,7 @@ test('block-unverified-push: runs the verify push stage when git will not, and o
   const { spawnSync } = await import('node:child_process');
   const { run } = await import('../lib/run.js');
   const hook = fileURLToPath(
-    new URL('../bundles/setup-project/skills/setup-repo/scripts/block-unverified-push.sh', import.meta.url),
+    new URL('../bundles/workflow/skills/verify/scripts/block-unverified-push.sh', import.meta.url),
   );
   const repo = freshDir();
   run('git', ['init', '--initial-branch=main', repo]);

@@ -74,7 +74,7 @@ flowchart LR
     end
     TECH-SETUP --> TECH-DONE(["Tech stack setup ✅"])
 
-    TECH-DONE --> WFQ5{".claude/hooks/<br>check-push-branch.mjs<br>exists?"}
+    TECH-DONE --> WFQ5{".agents/skills/verify/scripts/<br>check-push-branch.mjs<br>exists?"}
         WFQ5 -->|"yes, hook not wired yet"| WF5["/git-guardrails-claude-code"] --> GUARD-DONE(["Guardrails ✅"])
         WFQ5 -->|no| GUARD-DONE
 

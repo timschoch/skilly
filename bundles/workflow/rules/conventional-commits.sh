@@ -11,7 +11,7 @@ branch="${GITHUB_BASE_REF:-$(node "$(dirname "$0")/../skills/verify/scripts/defa
 ref="origin/${branch}"
 git rev-parse --verify --quiet "$ref" >/dev/null || ref="$branch"
 
-hook="$(dirname "$0")/../../setup-project/skills/setup-repo/scripts/check-commit-msg.mjs"
+hook="$(dirname "$0")/../skills/verify/scripts/check-commit-msg.mjs"
 status=0
 checked=0
 while IFS=$'\t' read -r sha subject; do

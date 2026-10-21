@@ -6,11 +6,10 @@ import { execFileSync } from 'node:child_process';
 import { chmodSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 
-// What setup-repo ships, so a change to its format breaks the gate parser test.
-const readSetupRepo = (path) =>
-  readFileSync(new URL(`../../bundles/setup-project/skills/setup-repo/${path}`, import.meta.url), 'utf8');
-const COMMIT_HOOK = readSetupRepo('scripts/check-commit-msg.mjs');
-const SKILLY_LEFTHOOK = readSetupRepo('templates/lefthook.yml');
+// What skilly ships, so a change to its format breaks the gate parser test.
+const readBundle = (path) => readFileSync(new URL(`../../bundles/${path}`, import.meta.url), 'utf8');
+const COMMIT_HOOK = readBundle('workflow/skills/verify/scripts/check-commit-msg.mjs');
+const SKILLY_LEFTHOOK = readBundle('setup-project/skills/setup-repo/templates/lefthook.yml');
 
 export const REPO_FILES = {
   '.skilly/config.json': JSON.stringify({ tier: 'tool', bundles: ['workflow'] }),
@@ -26,9 +25,9 @@ export const REPO_FILES = {
   '.claude/rules/workflow-sign-off.md':
     '# Sign-off\n\n1. Stage finished work and stop. The user commits, pushes and opens the PR.\n',
   '.claude/rules/workflow-commits.md':
-    '# Commits\n\n1. Conventional commits, see `.claude/hooks/check-commit-msg.mjs`.\n',
+    '# Commits\n\n1. Conventional commits, see `.agents/skills/verify/scripts/check-commit-msg.mjs`.\n',
   '.claude/rules/workflow-retired.local.md': '# Retired overlay\n\n1. Overrides a rule that no longer ships.\n',
-  '.claude/hooks/check-commit-msg.mjs': COMMIT_HOOK,
+  '.agents/skills/verify/scripts/check-commit-msg.mjs': COMMIT_HOOK,
   '.claude/hooks/guard.sh': '#!/bin/sh\nexit 0\n',
   '.claude/settings.json': JSON.stringify({
     hooks: {
@@ -42,7 +41,7 @@ export const REPO_FILES = {
       ],
     },
   }),
-  '.husky/commit-msg': 'node .claude/hooks/check-commit-msg.mjs "$1"\n',
+  '.husky/commit-msg': 'node .agents/skills/verify/scripts/check-commit-msg.mjs "$1"\n',
   'commitlint.config.js': "export default { extends: ['@commitlint/config-conventional'] };\n",
   'CLAUDE.md': [
     '# Project',

@@ -15,8 +15,6 @@ const GROUPS = [
     'bundles/workflow/skills/verify/scripts/default-branch.mjs',
     'bundles/workflow/skills/naming/scripts/default-branch.mjs',
     'bundles/workflow/skills/writing-rules/scripts/default-branch.mjs',
-    'bundles/setup-project/skills/setup-repo/scripts/default-branch.mjs',
-    '.claude/hooks/default-branch.mjs',
   ],
 ];
 

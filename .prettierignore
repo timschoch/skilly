@@ -7,4 +7,3 @@ skills-lock.json
 
 # hub-exposed stream: shipped to consumers verbatim, never reformatted
 bundles/**
-.claude/hooks/**
