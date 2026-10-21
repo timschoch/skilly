@@ -4,6 +4,7 @@
 // Locally it reads the checked-out branch. In CI HEAD is detached, so it reads
 // the PR's head branch from GITHUB_HEAD_REF; a push build has neither and passes.
 import { execFileSync } from 'node:child_process';
+import { defaultBranch } from './default-branch.mjs';
 
 const TYPES = ['feat', 'fix', 'hotfix', 'epic', 'release', 'chore', 'docs', 'ci', 'research'];
 const NAME = new RegExp(`^(${TYPES.join('|')})/[a-z0-9]+([.-][a-z0-9]+)*$`);
@@ -20,7 +21,8 @@ const git = (...args) => {
 
 // The trunk is detected, not configured — this file is synced from the hub and
 // a local edit dies at the next sync. check-push-branch.mjs guards the trunk.
-const trunks = new Set(['main', git('symbolic-ref', '--short', 'refs/remotes/origin/HEAD').replace(/^origin\//, '')]);
+// main stays a trunk while a repo moves its default branch away from it.
+const trunks = new Set(['main', defaultBranch()]);
 
 const branch = process.env.GITHUB_HEAD_REF || git('symbolic-ref', '--short', 'HEAD');
 

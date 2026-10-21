@@ -7,6 +7,7 @@ import { readFileSync, realpathSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { extname, join } from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { defaultBranch } from './default-branch.mjs';
 
 const DIAGRAM_EXTENSIONS = new Set(['.md', '.mdx', '.mmd']);
 // A CommonMark fence: up to 3 spaces, 3+ backticks or tildes, the info string.
@@ -75,14 +76,10 @@ export async function validateMermaid(diagrams, mermaid) {
 
 const git = (...args) => spawnSync('git', args, { encoding: 'utf8' });
 
-// The base branch: GITHUB_BASE_REF on pull_request events, then DEFAULT_BRANCH,
-// then origin/HEAD, then main. Its origin ref when fetched, else the local one.
+// The base branch: GITHUB_BASE_REF on pull_request events, else the default
+// branch. Its origin ref when fetched, else the local one.
 function baseRef() {
-  const branch =
-    process.env.GITHUB_BASE_REF ||
-    process.env.DEFAULT_BRANCH ||
-    git('symbolic-ref', '--short', 'refs/remotes/origin/HEAD').stdout.trim().replace(/^origin\//, '') ||
-    'main';
+  const branch = process.env.GITHUB_BASE_REF || defaultBranch();
   return git('rev-parse', '--verify', '--quiet', `origin/${branch}`).status === 0 ? `origin/${branch}` : branch;
 }
 

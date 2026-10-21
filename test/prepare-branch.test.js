@@ -38,6 +38,7 @@ function repo(branch, { gate = true } = {}) {
     const scripts = join(cwd, '.agents', 'skills', 'verify', 'scripts');
     mkdirSync(scripts, { recursive: true });
     copyFileSync(GATE, join(scripts, 'check-branch-name.mjs'));
+    copyFileSync(join(dirname(GATE), 'default-branch.mjs'), join(scripts, 'default-branch.mjs'));
   }
   return cwd;
 }

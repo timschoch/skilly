@@ -13,7 +13,7 @@ flowchart TD
 
     ENTER-EB((("prepare branch"))) --> EB
     subgraph EB["PREPARE BRANCH"]
-        EBQ-NAME{"not on main, and<br>**check-branch-name.mjs**<br>refuses the name?"}
+        EBQ-NAME{"not on main or the default branch, and<br>**check-branch-name.mjs**<br>refuses the name?"}
             EBQ-NAME -->|yes| EB-NAME-ABORT["abort before the commit:<br>rename the branch, run skilly again"] --> EB-FALSE
             EBQ-NAME -->|no| EBQ1
 
@@ -21,7 +21,7 @@ flowchart TD
             EBQ1 -->|yes| EB-TRUE
             EBQ1 -->|no| EBQ-MAIN
 
-            EBQ-MAIN{"currently on<br>github main<br>branch?"}
+            EBQ-MAIN{"currently on main<br>or the github<br>default branch?"}
                 EBQ-MAIN -->|yes| EB-CREATE["create branch<br>**chore/skilly-setup**<br>(PR opened later by commit)"] --> EB-TRUE
                 EBQ-MAIN -->|no| EBQ-CFG
 
@@ -35,7 +35,7 @@ flowchart TD
                     EB-SET-CFG["git config --local<br>**skilly.use-current-branch** true<br>(lives in .git/config, never committed)"] --> EB-TRUE
 
         EB-TRUE(["return true ✅"])
-        EB-ABORT["abort: please run skilly on a clean branch or main"] --> EB-FALSE
+        EB-ABORT["abort: run skilly from main,<br>the default branch or a skilly-* branch"] --> EB-FALSE
         EB-FALSE(["return false ❌"])
     end
 

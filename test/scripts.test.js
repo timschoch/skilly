@@ -424,6 +424,53 @@ test('commit opens no PR for a branch that origin kept but that has nothing the 
   }
 });
 
+test('commit opens no PR when the default branch is not main and nothing changed', async () => {
+  const { commit } = await import('../lib/commit.js');
+  const { run } = await import('../lib/run.js');
+
+  // A Consumer like habits: main still in use, v2-rebuild ahead of it and the GitHub default.
+  const bare = freshDir();
+  run('git', ['init', '--bare', '--initial-branch=main', bare]);
+  const repo = freshDir();
+  run('git', ['init', '--initial-branch=main', repo]);
+  run('git', ['-C', repo, 'config', 'user.name', 'test']);
+  run('git', ['-C', repo, 'config', 'user.email', 'test@example.com']);
+  run('git', ['-C', repo, 'commit', '--allow-empty', '--no-verify', '-m', 'chore: seed']);
+  run('git', ['-C', repo, 'remote', 'add', 'origin', bare]);
+  run('git', ['-C', repo, 'push', '-u', 'origin', 'main']);
+  run('git', ['-C', repo, 'checkout', '-b', 'v2-rebuild']);
+  run('git', ['-C', repo, 'commit', '--allow-empty', '--no-verify', '-m', 'feat: v2']);
+  run('git', ['-C', repo, 'push', '-u', 'origin', 'v2-rebuild']);
+
+  // The nightly Sync: the PR branch exists on origin, then resets to the default branch with no change.
+  run('git', ['-C', repo, 'checkout', '-b', 'chore/skilly-update']);
+  run('git', ['-C', repo, 'push', '-u', 'origin', 'chore/skilly-update']);
+  run('git', ['-C', repo, 'checkout', '-B', 'chore/skilly-update', 'origin/v2-rebuild']);
+
+  // As in GitHub Actions: no origin/HEAD, the default branch only in the event payload.
+  const event = join(freshDir(), 'event.json');
+  writeFileSync(event, JSON.stringify({ repository: { default_branch: 'v2-rebuild' } }));
+  const binDir = join(freshDir(), 'bin');
+  mkdirSync(binDir);
+  writeFileSync(join(binDir, 'gh'), '#!/bin/sh\n[ "$2" = create ] && exit 1\nexit 0\n', { mode: 0o755 });
+  const saved = {
+    PATH: process.env.PATH,
+    DEFAULT_BRANCH: process.env.DEFAULT_BRANCH,
+    GITHUB_EVENT_PATH: process.env.GITHUB_EVENT_PATH,
+  };
+  process.env.PATH = `${binDir}:${saved.PATH}`;
+  process.env.GITHUB_EVENT_PATH = event;
+  delete process.env.DEFAULT_BRANCH;
+  try {
+    assert.equal(commit(repo, 'chore(skilly): update skills'), null);
+  } finally {
+    for (const [key, value] of Object.entries(saved)) {
+      if (value === undefined) delete process.env[key];
+      else process.env[key] = value;
+    }
+  }
+});
+
 test('validateAgentsLock flags unlocked dirs and orphan pins, passes on 1:1', async () => {
   const { validateAgentsLock } = await import('../scripts/check-agents-lock.mjs');
   const cwd = freshDir();

@@ -38,6 +38,7 @@ Copy the rule scripts in — they become repo-owned, and re-running this skill r
 
 - `scripts/check-commit-msg.mjs` → `.claude/hooks/check-commit-msg.mjs` — conventional-commit gate (the why: the `writing-rules` skill, group 7)
 - `scripts/check-push-branch.mjs` → `.claude/hooks/check-push-branch.mjs` — refuses a direct push to the detected trunk
+- `scripts/default-branch.mjs` → `.claude/hooks/default-branch.mjs` — resolves the default branch for `check-push-branch.mjs`
 - `scripts/block-destructive-git.sh` → `.claude/hooks/block-destructive-git.sh` (`chmod +x`) — wired in part 5
 - `scripts/block-invalid-branch-push.sh` → `.claude/hooks/block-invalid-branch-push.sh` (`chmod +x`) — wired in part 5, runs the verify skill's `check-branch-name.mjs`
 - `scripts/block-unverified-push.sh` → `.claude/hooks/block-unverified-push.sh` (`chmod +x`) — wired in part 5, runs the verify `push` stage
@@ -78,7 +79,7 @@ Copy into `.github/workflows/`:
 
 ## 4. GitHub settings
 
-Give the default branch (`git symbolic-ref --short refs/remotes/origin/HEAD | sed 's|^origin/||'`, fallback `main`) a ruleset refusing force pushes and deletions. Skip when `gh api repos/{owner}/{repo}/rulesets --jq '.[].name'` already lists `protect-trunk`:
+Give the default branch (`node .claude/hooks/default-branch.mjs`) a ruleset refusing force pushes and deletions. Skip when `gh api repos/{owner}/{repo}/rulesets --jq '.[].name'` already lists `protect-trunk`:
 
 ```sh
 gh api repos/{owner}/{repo}/rulesets --input - <<'JSON'

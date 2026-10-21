@@ -89,13 +89,12 @@ test('a leading dash removes the entry with that name', () => {
   assert.deepEqual(merged.steps, [{ name: 'unit', run: 'y' }]);
 });
 
-test('the shipped copies of merge-config.mjs are identical', () => {
+test('the shipped shared copies are identical', () => {
   assert.deepEqual(validateSharedCopies(process.cwd()), []);
 });
 
 test('the copy check names a copy that differs', () => {
-  const read = (path) => (path.includes('verify') ? 'changed' : readFileSync(path, 'utf8'));
-  assert.deepEqual(validateSharedCopies(process.cwd(), read), [
-    'bundles/workflow/skills/verify/scripts/merge-config.mjs',
-  ]);
+  const drifted = 'bundles/workflow/skills/writing-rules/scripts/default-branch.mjs';
+  const read = (path) => (path.endsWith(drifted) ? 'changed' : readFileSync(path, 'utf8'));
+  assert.deepEqual(validateSharedCopies(process.cwd(), read), [drifted]);
 });

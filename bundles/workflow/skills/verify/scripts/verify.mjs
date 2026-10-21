@@ -29,6 +29,7 @@ import { spawnSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { defaultBranch } from './default-branch.mjs';
 import { mergeConfig } from './merge-config.mjs';
 
 const TIERS = ['sandbox', 'tool', 'product'];
@@ -138,6 +139,8 @@ const timings = [];
 // A git hook exports GIT_DIR and friends, which point every `git` a step runs at the hook's
 // repo, temp repos included. Steps run as they would from a shell.
 const env = Object.fromEntries(Object.entries(process.env).filter(([key]) => !key.startsWith('GIT_')));
+// Resolved once, so every step agrees on the default branch.
+env.DEFAULT_BRANCH = defaultBranch(root);
 
 for (const step of steps) {
   const stepStartedAt = Date.now();

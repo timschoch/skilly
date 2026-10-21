@@ -3,15 +3,10 @@
 # branch passes the commit-msg hook's own script, so hook and gate cannot
 # drift. Merges skipped. History from before a repo adopted skilly is out of
 # scope by construction.
-# GITHUB_BASE_REF is set on pull_request events; falls back to DEFAULT_BRANCH,
-# then origin/HEAD, then main.
+# GITHUB_BASE_REF is set on pull_request events; else the default branch.
 set -euo pipefail
 
-branch="${GITHUB_BASE_REF:-${DEFAULT_BRANCH:-}}"
-if [ -z "$branch" ]; then
-  branch="$(git symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null | sed 's|^origin/||' || true)"
-fi
-branch="${branch:-main}"
+branch="${GITHUB_BASE_REF:-$(node "$(dirname "$0")/../skills/verify/scripts/default-branch.mjs")}"
 
 ref="origin/${branch}"
 git rev-parse --verify --quiet "$ref" >/dev/null || ref="$branch"
