@@ -4,12 +4,29 @@ import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { findMermaid, listDiagrams, validateMermaid } from '../bundles/workflow/skills/writing-rules/scripts/check-mermaid.mjs';
+import {
+  findMermaid,
+  listDiagrams,
+  validateMermaid,
+} from '../bundles/workflow/skills/writing-rules/scripts/check-mermaid.mjs';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
 
 test('Markdown yields one diagram per mermaid fence, with its first line', () => {
-  const text = ['# Title', '```mermaid', 'flowchart LR', '  a --> b', '```', '', '```js', 'x()', '```', '~~~~ mermaid', 'erDiagram', '~~~~'].join('\n');
+  const text = [
+    '# Title',
+    '```mermaid',
+    'flowchart LR',
+    '  a --> b',
+    '```',
+    '',
+    '```js',
+    'x()',
+    '```',
+    '~~~~ mermaid',
+    'erDiagram',
+    '~~~~',
+  ].join('\n');
   assert.deepEqual(listDiagrams('doc.md', text), [
     { line: 3, source: 'flowchart LR\n  a --> b' },
     { line: 11, source: 'erDiagram' },
@@ -25,7 +42,9 @@ test('the language matches with attributes and in any case', () => {
 });
 
 test('an indented code block and a mermaid example inside another fence are no diagram', () => {
-  const text = ['    ```mermaid', '    flowchart LR', '    ```', '````md', '```mermaid', 'broken(', '```', '````'].join('\n');
+  const text = ['    ```mermaid', '    flowchart LR', '    ```', '````md', '```mermaid', 'broken(', '```', '````'].join(
+    '\n',
+  );
   assert.deepEqual(listDiagrams('doc.md', text), []);
 });
 
