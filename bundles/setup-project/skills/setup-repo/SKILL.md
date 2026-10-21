@@ -59,7 +59,7 @@ The default steps ship with the verify skill: `.agents/skills/verify/references/
 
 No change needed → no file. Check the result: `node .agents/skills/verify/scripts/verify.mjs push --steps`.
 
-The `mermaid` step parses diagrams with the repo's own packages. A `package.json` → `npm i -D mermaid jsdom` (pnpm and yarn: `add -D`). Without them the step skips.
+The `mermaid` step parses diagrams with the repo's own packages. A `package.json` → `npm i -D mermaid jsdom` (pnpm and yarn: `add -D`).
 
 The `lint` step runs the repo's own linter. `skilly setup` keeps formatters off `.agents/` and `.claude/`, not linters. An `eslint.config.*` → add `{ ignores: ['.agents/', '.claude/'] }` as its first entry; a typed config otherwise fails on vendored skill examples outside `tsconfig.json`.
 

@@ -23,7 +23,7 @@
           "name": "mermaid",
           "run": "node .agents/skills/writing-rules/scripts/check-mermaid.mjs",
           "target": ".agents/skills/writing-rules/scripts/check-mermaid.mjs",
-          "why": "A broken mermaid diagram renders as an error box on GitHub and in chat. Parses every diagram in the .md, .mdx and .mmd files the branch changes, with the repo's mermaid and jsdom devDependencies; without them it skips."
+          "why": "A broken mermaid diagram renders as an error box on GitHub and in chat. Setup: the writing-rules skill's Mermaid check."
         },
         { "name": "typecheck", "run": "npm run --if-present typecheck" },
         {
