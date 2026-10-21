@@ -287,7 +287,7 @@
       "source": "timschoch/skilly",
       "sourceType": "github",
       "skillPath": "bundles/workflow/skills/verify/SKILL.md",
-      "computedHash": "42a5c49b07e82e2b3591155bbce63dbd155cbc535e78ed83f59042db99bac728"
+      "computedHash": "b270a3871cf7f8bbe3eeb277cf06f9fdc811cfd79f7175ec064130ebd827a6a2"
     },
     "wait-what": {
       "source": "timschoch/mattpocock-skills",
@@ -329,7 +329,7 @@
       "source": "timschoch/skilly",
       "sourceType": "github",
       "skillPath": "bundles/workflow/skills/writing-rules/SKILL.md",
-      "computedHash": "7ebb21bcbc8b8d43384a1971c5622e275f878514b99e947fc8976b9e218a626d"
+      "computedHash": "b16290280a6cfd413a91c0e0a64f5cf1f53b5510894d888492cf698664e4ba9e"
     }
   }
 }
