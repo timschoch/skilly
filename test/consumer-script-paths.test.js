@@ -21,10 +21,9 @@ const ALLOWED = {
 };
 
 function listFiles(directory) {
-  return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
-    const path = join(directory, entry.name);
-    return entry.isDirectory() ? listFiles(path) : [path];
-  });
+  return readdirSync(join(ROOT, directory), { recursive: true, withFileTypes: true })
+    .filter((entry) => entry.isFile())
+    .map((entry) => relative(ROOT, join(entry.parentPath, entry.name)));
 }
 
 function bundleOf(file) {
@@ -37,7 +36,7 @@ function findSkillBundle(skill) {
   );
 }
 
-export function findUnsyncedPaths(files, read = (file) => readFileSync(join(ROOT, file), 'utf8')) {
+function findUnsyncedPaths(files, read = (file) => readFileSync(join(ROOT, file), 'utf8')) {
   const findings = [];
   for (const file of files) {
     const text = read(file);
@@ -65,9 +64,9 @@ export function findUnsyncedPaths(files, read = (file) => readFileSync(join(ROOT
 }
 
 test('a synced file runs only scripts that sync with it', () => {
-  const files = [...listFiles(join(ROOT, 'bundles')), ...listFiles(join(ROOT, 'lib'))]
-    .map((path) => relative(ROOT, path))
-    .filter((file) => !/\.(png|jpe?g|gif|pdf|ico)$/.test(file));
+  const files = [...listFiles('bundles'), ...listFiles('lib')].filter(
+    (file) => !/\.(png|jpe?g|gif|pdf|ico)$/.test(file),
+  );
   assert.deepEqual(findUnsyncedPaths(files), []);
 });
 

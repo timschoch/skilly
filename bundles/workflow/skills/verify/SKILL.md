@@ -104,6 +104,19 @@ The `audit` step ([scripts/audit.mjs](scripts/audit.mjs)) fails on every high or
 
 An entry needs an `id` and a `why`; without both it accepts nothing. It fails the step once GitHub lists a patched version for the range the audit matched, or once the audit no longer finds the advisory. Remove it then. The step never edits the file, so the local gate and CI give the same answer.
 
+## Hook scripts
+
+The gates and guards ship here, so each Sync PR updates them. `/setup-repo` (setup-project bundle) wires them; never copy one into the repo.
+
+| Script | Run by | Blocks |
+| --- | --- | --- |
+| [check-commit-msg.mjs](scripts/check-commit-msg.mjs) | `commit-msg` | a commit header that is not Conventional Commits |
+| [check-push-branch.mjs](scripts/check-push-branch.mjs) | `pre-push` | a direct push to the trunk |
+| [check-branch-name.mjs](scripts/check-branch-name.mjs) | the `branch name` step | a branch not named `<type>/<description>` |
+| [block-destructive-git.sh](scripts/block-destructive-git.sh) | Claude Code PreToolUse | `reset --hard`, `clean -f`, `branch -D`, bare `push --force` |
+| [block-invalid-branch-push.sh](scripts/block-invalid-branch-push.sh) | Claude Code PreToolUse | an agent push from a bad branch name, even without installed git hooks |
+| [block-unverified-push.sh](scripts/block-unverified-push.sh) | Claude Code PreToolUse | an agent push that skips the `push` stage |
+
 ## Adding a check
 
 One step, never a line in a hook or a workflow. A check for this repo only goes in `.skilly/verify.json`. A check every Consumer needs goes in the hub's `bundles/workflow/skills/verify/references/verify.json`. Give it a `why`: it prints the moment the step goes red, when the reader is least likely to go looking for it.
