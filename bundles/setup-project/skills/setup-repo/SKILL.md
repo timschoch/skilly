@@ -20,7 +20,7 @@ Ask the user which one this repo is:
 
 - **sandbox** — demos, spikes, dormant repos. Clean code, no required checks (CI and the PR gate report, nothing blocks merge), no spend.
 - **tool** — another repo or another person consumes it. Adds required checks, `/ai-review`, dependency security.
-- **product** — deployed and depended on. Adds e2e smoke on the PR and a nightly.
+- **product** — deployed and depended on. Adds e2e smoke and a nightly.
 
 The tiers are nested: a product repo runs everything a sandbox repo runs. A lower tier means a smaller net, never a lower standard of code.
 
@@ -52,10 +52,11 @@ Then wire the manager the repo already has — `.husky/` → husky, `lefthook.ym
 
 ## 2. `.skilly/verify.json`
 
-The default steps ship with the verify skill: `.agents/skills/verify/references/verify.json`. Never copy them. `.skilly/verify.json` holds only this repo's changes. A step with a default's `name` changes that step; merge rules in the verify skill's `SKILL.md`, section Override. Make two kinds of change and nothing else: the tier gates ship correct, and `verify` skips whatever sits above the repo's tier.
+The default steps ship with the verify skill: `.agents/skills/verify/references/verify.json`. Never copy them. `.skilly/verify.json` holds only this repo's changes. A step with a default's `name` changes that step; merge rules in the verify skill's `SKILL.md`, section Override. Make three kinds of change and nothing else: the tier gates ship correct, and `verify` skips whatever sits above the repo's tier.
 
-- **Package manager.** The defaults are npm. A `pnpm-lock.yaml` → per step whose `run` has `npm run` or `npx`, add `{ "name": "<step>", "run": "<pnpm form>" }`: `pnpm run` for `npm run`, `pnpm dlx` for `npx`; keep `--if-present` before the script name, pnpm passes it to the script otherwise. A `yarn.lock` → `yarn dlx` for `npx`, `yarn <script>` for `npm run --if-present <script>`, and `"-<step>"` for each step whose script `package.json` lacks: yarn has no `--if-present`.
+- **Package manager.** The defaults are npm. A `pnpm-lock.yaml` → per step whose `run` has `npm run` or `npx`, add `{ "name": "<step>", "run": "<pnpm form>" }`: `pnpm run` for `npm run`, `pnpm dlx` for `npx`; keep `--if-present` before the script name, pnpm passes it to the script otherwise. In `unit (changed)` change only the test command, keep the `node .agents/skills/verify/scripts/run-changed-tests.mjs origin/main` in front of it: that script is the guard. A `yarn.lock` → `yarn dlx` for `npx`, `yarn <script>` for `npm run --if-present <script>`, and `"-<step>"` for each step whose script `package.json` lacks: yarn has no `--if-present`.
 - **`target`.** One path per step, the file whose absence skips it. Where this repo's file differs, add `{ "name": "<step>", "target": "<path>" }`: `playwright.config.ts` may be `.mjs`; `vitest.config.ts` may be `vite.config.ts` only when that file holds a `test` block, a Vite app without Vitest keeps `vitest.config.ts` so the step skips.
+- **`fullSuiteTriggers`.** `unit (changed)` runs only the tests that import a changed file. Add each path that changes test results and that no test imports, for example the migrations folder: `"fullSuiteTriggers": ["drizzle/"]`. Lockfiles, `package.json` and the Vitest config are defaults.
 
 No change needed → no file. Check the result: `node .agents/skills/verify/scripts/verify.mjs push --steps`.
 
@@ -74,6 +75,15 @@ Copy into `.github/workflows/`:
 | `workflows/ai-review.yml` | tool, product |
 
 `ci.yml` triggers on pushes to `main` — rename the branch if the default differs.
+
+`ci.yml` picks the verify stage on each run:
+
+| Repo | A PR runs | The release PR runs |
+| --- | --- | --- |
+| product tier, with `nightly.yml` and a release-please workflow | `pr`: the tests the diff reaches, no e2e | `ci`: full unit suite, e2e smoke |
+| any other | `ci` | `ci` |
+
+The release PR and the nightly are the net for what `pr` leaves out, so `pr` runs only where both exist. Make `verify` a required check, so a red release PR blocks the release. `nightly.yml` opens one issue (labels `critical`, `nightly-red`) on a red night.
 
 `ai-review.yml` needs a secret. Hand the user `claude setup-token` then `gh secret set CLAUDE_CODE_OAUTH_TOKEN`; never ask for the token in chat. It is subscription-billed ($0 marginal) and documented to last a year.
 

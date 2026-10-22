@@ -8,6 +8,10 @@ on:
     - cron: '0 3 * * *' # 03:00 UTC
   workflow_dispatch: {} # so a failure can be re-run without waiting a day
 
+permissions:
+  contents: read
+  issues: write # a red night opens an issue
+
 jobs:
   verify:
     runs-on: ubuntu-latest
@@ -22,4 +26,20 @@ jobs:
       # Every browser here, unlike the PR gate's single chromium.
       - if: hashFiles('playwright.config.*') != ''
         run: npx playwright install --with-deps
-      - run: node .agents/skills/verify/scripts/verify.mjs nightly
+      # `shell: bash` sets pipefail, so a red verify fails the step through tee.
+      - shell: bash
+        run: node .agents/skills/verify/scripts/verify.mjs nightly 2>&1 | tee verify.log
+      # Nobody watches a scheduled run. One issue per red streak: a second red
+      # night adds nothing while the first issue is open.
+      - if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          gh label create critical --color B60205 2>/dev/null || true
+          gh label create nightly-red --color B60205 2>/dev/null || true
+          if [ -n "$(gh issue list --label nightly-red --state open --json number --jq '.[].number')" ]; then exit 0; fi
+          failed=$(grep -m1 '^FAILED' verify.log 2>/dev/null || echo 'FAILED before verify ran')
+          gh issue create --label critical --label nightly-red \
+            --title "Nightly red, $(date -u +%F): ${failed#FAILED }" \
+            --body "The nightly run failed: $RUN_URL"

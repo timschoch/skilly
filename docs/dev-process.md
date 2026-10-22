@@ -13,9 +13,11 @@ One verify config, three tiers, nested. Every Consumer declares a tier in `.skil
 | `/ai-review` PR comment runs the `code-review` skill, posts inline comments |   no    | yes  |   yes   |
 | required checks on `main` (GitHub Pro or Team)                              |   no    | yes  |   yes   |
 | Dependabot alerts + `npm audit --audit-level=high` in the PR gate           |   no    | yes  |   yes   |
-| PR gate: e2e smoke                                                          |   no    |  no  |   yes   |
-| nightly: full e2e, dependency drift, security scan                          |   no    |  no  |   yes   |
+| PR gate: e2e smoke (on the `pr` stage: release PR only)                     |   no    |  no  |   yes   |
+| nightly: full unit, full e2e, dependency drift, security scan               |   no    |  no  |   yes   |
 | `/security-review` locally before release                                   |   no    |  no  |   yes   |
+
+A product repo with a release PR and a nightly runs the `pr` stage on its PRs: the tests the diff reaches, no full unit suite, no e2e smoke. The release PR runs `ci` with both, the nightly runs the full suites. Stages and the changed-tests guard: [verify](../bundles/workflow/skills/verify/SKILL.md#stages). Decision: [ADR-0003](adr/0003-pr-stage-defers-full-suites.md).
 
 ## Life of a change
 
@@ -25,8 +27,10 @@ flowchart TD
   commit --> push[push: typecheck, changed tests]
   push --> gate[PR gate: lint, typecheck, unit, build]
   gate --> tier{product?}
-  tier -- yes --> smoke[e2e smoke]
   tier -- no --> ai
+  tier -- yes --> stage{pr stage?}
+  stage -- "no, or release PR" --> smoke[full unit, e2e smoke]
+  stage -- yes --> ai
   smoke --> ai["/ai-review, optional"]
   ai --> babysit["/babysit-pr loop"]
   babysit --> clean[green + threads clean]
