@@ -84,11 +84,11 @@ Decisions: [ADR-0004](adr/0004-nightly-runs-only-on-change.md), [ADR-0007](adr/0
 
 A change in the Hub reaches a Consumer by one of three paths. Which one depends on who owns the file.
 
-| Part                                                   | Owner                    | Path                                   |
-| ------------------------------------------------------ | ------------------------ | -------------------------------------- |
-| `verify` skill: default steps, `verify.mjs`, the guard | Hub                      | Sync PR, merges itself when green      |
-| `ci.yml`, `nightly.yml`                                | Hub, as Shared workflows | next run: the caller points at `@main` |
-| callers, lint config, lint-staged, `.vscode/`, hooks   | Consumer                 | one setup-repo run in the Consumer     |
+| Part                                                                     | Owner                    | Path                                   |
+| ------------------------------------------------------------------------ | ------------------------ | -------------------------------------- |
+| `verify` skill: default steps, `verify.mjs`, the guard, the hook scripts | Hub                      | Sync PR, merges itself when green      |
+| `ci.yml`, `nightly.yml`                                                  | Hub, as Shared workflows | next run: the caller points at `@main` |
+| callers, lint config, lint-staged, `.vscode/`, the hook wiring           | Consumer                 | one setup-repo run in the Consumer     |
 
 ```mermaid
 flowchart LR

@@ -20,7 +20,7 @@ ESLint is too slow for a check on each edit. State in October 2026, from vendor 
 1. A new Consumer gets Oxlint, not ESLint. setup-repo writes the config and `npm run lint` calls `oxlint --type-aware`.
 2. An existing Consumer migrates when it chooses: setup-repo runs `npx @oxlint/migrate`. A Consumer whose ESLint plugin has no Oxlint port keeps ESLint, or runs both with `eslint-plugin-oxlint`.
 3. Prettier stays the formatter until oxfmt leaves beta.
-4. A Claude Code PostToolUse hook runs `oxlint --fix` and Prettier on each file the agent edits. It is silent when the file is clean. With errors left it exits 2, so Claude Code shows the errors to the agent. Oxc's own [coding agents recipe](https://oxc.rs/docs/guide/usage/coding-agents.html) exits 0, and Claude Code hides the output of a hook that exits 0.
+4. A Claude Code PostToolUse hook runs `oxlint --fix` and Prettier on each file the agent edits. It is silent when the file is clean. With errors left it exits 2, so Claude Code shows the errors to the agent. Oxc's own [coding agents recipe](https://oxc.rs/docs/guide/usage/coding-agents.html) exits 0, and Claude Code hides the output of a hook that exits 0. The hook script ships in the verify skill, so the Sync PR updates it. setup-repo only wires it in `.claude/settings.json`.
 5. lint-staged runs `oxlint --fix` and Prettier on the staged files.
 6. setup-repo writes `.vscode/extensions.json` (the Oxc and Prettier extensions) and `.vscode/settings.json` (format on save, `source.fixAll.oxc`).
 7. `verify.json` and the Shared workflows do not change: they call `npm run lint`, and the Consumer decides what that runs.
