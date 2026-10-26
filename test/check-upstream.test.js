@@ -1,7 +1,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  PLACEHOLDER_BODY,
   compareVersions,
+  findOurs,
   formatReleaseComment,
   formatTitle,
   listMarkers,
@@ -81,6 +83,42 @@ test('planRun: unknown fork version caps the comments at the newest ten', () => 
   assert.equal(plan.dropped, 2);
   assert.equal(plan.fresh.at(-1).tag, 'twenty/v2.60.0');
   assert.equal(formatTitle(plan), 'New upstream release 2.60.0 (unknown)');
+});
+
+test('planRun: an open PR still on the placeholder body reruns the analysis, no new comments', () => {
+  const postedTags = ['twenty/v2.51.0', 'twenty/v2.52.0', 'twenty/v2.53.0'];
+  const plan = planRun({
+    releases,
+    ours: v50,
+    skipped: [],
+    openPull: { number: 7, postedTags, body: PLACEHOLDER_BODY },
+  });
+  assert.equal(plan.kind, 'update');
+  assert.deepEqual(plan.fresh, []);
+  assert.equal(plan.dropped, 0);
+  assert.equal(formatTitle(plan), 'New upstream release 2.53.0 (2.50.0)');
+});
+
+test('planRun: a rerun after the comment limit never posts the dropped releases', () => {
+  const many = Array.from({ length: 12 }, (_, index) => release(`twenty/v2.${60 - index}.0`));
+  const postedTags = ['twenty/v2.51.0', 'twenty/v2.52.0', 'twenty/v2.53.0'];
+  const plan = planRun({ releases: many, ours: null, skipped: [], openPull: { number: 7, postedTags, body: 'done' } });
+  assert.equal(plan.fresh.length, 7);
+  assert.equal(plan.fresh[0].tag, 'twenty/v2.54.0');
+  assert.equal(plan.dropped, 0);
+});
+
+test('findOurs: a squash-merged Upstream PR sets the floor when no tag is an ancestor', () => {
+  const ours = findOurs({
+    releases,
+    merged: ['twenty/v2.51.0', 'twenty/v2.52.0'],
+    isAncestor: (tag) => tag === v50.tag,
+  });
+  assert.equal(ours, v52);
+  assert.deepEqual(tags(planRun({ releases, ours, skipped: [], openPull: null })), ['twenty/v2.53.0']);
+  assert.equal(findOurs({ releases, merged: [], isAncestor: (tag) => tag === v51.tag }), v51);
+  assert.equal(findOurs({ releases, merged: ['twenty/v2.50.0'], isAncestor: (tag) => tag === v51.tag }), v51);
+  assert.equal(findOurs({ releases, merged: [], isAncestor: () => false }), null);
 });
 
 test('formatReleaseComment: marker round-trips, long notes are cut under the cap', () => {

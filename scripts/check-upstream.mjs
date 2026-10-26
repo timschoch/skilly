@@ -4,6 +4,9 @@
 // `New upstream release <newest> (<ours>)`. Closing the PR skips its
 // releases; the next newer release opens a fresh PR. On a change it writes
 // the agent's context to CONTEXT_DIR and sets `changed=true` in GITHUB_OUTPUT.
+// A rerun finishes a failed run: the context is gathered before the first
+// GitHub write, release comments carry markers, and an open PR whose body is
+// still the placeholder gets a fresh analysis.
 // Usage: check-upstream.mjs <owner/repo> <tag-prefix> [--dry-run]
 // cwd: the fork checkout, full history. Env: GH_TOKEN (fork write),
 // GITHUB_REPOSITORY, DEFAULT_BRANCH, CONTEXT_DIR, GITHUB_OUTPUT.
@@ -18,6 +21,8 @@ const API = 'https://api.github.com';
 const MARKER = /<!-- upstream-release: (\S+) -->/g;
 const COMMENT_MAX_LENGTH = 60000; // GitHub caps a comment at 65536 characters
 const RELEASE_COMMENT_LIMIT = 10; // a long-stale fork gets the newest ten, not a hundred comments
+const RELEASE_PAGE_LIMIT = 5;
+export const PLACEHOLDER_BODY = 'The analysis follows. Release notes are in the comments.';
 
 // `twenty/v2.51.0` with prefix `twenty/v` → [2, 51, 0]. Pre-releases and
 // other tag families return null.
@@ -36,19 +41,28 @@ export function listMarkers(comments) {
   return comments.flatMap(({ body }) => [...(body ?? '').matchAll(MARKER)].map((match) => match[1]));
 }
 
-// releases: newest first, each { tag, version }. ours: the newest release
-// already in the fork, or null. skipped: tags of the last closed, unmerged
-// Upstream PR. openPull: { number, postedTags } or null.
+// The newest release the fork holds, or null: an ancestor of the default
+// branch, or a tag of the last merged Upstream PR. A squash or rebase merge
+// leaves no Upstream tag in the history. releases: newest first.
+export function findOurs({ releases, merged, isAncestor }) {
+  return releases.find(({ tag }) => merged.includes(tag) || isAncestor(tag)) ?? null;
+}
+
+// releases: newest first, each { tag, version }. ours: from findOurs.
+// skipped: tags of the last closed, unmerged Upstream PR. openPull:
+// { number, postedTags, body } or null.
 export function planRun({ releases, ours, skipped, openPull }) {
   const newest = releases[0];
   const isNewer = (release, than) => !than || compareVersions(release.version, than.version) > 0;
   if (!newest || !isNewer(newest, ours)) return openPull ? { kind: 'close', newest } : { kind: 'none' };
-  const floor = releases
-    .filter((release) => skipped.includes(release.tag))
-    .reduce((highest, release) => (isNewer(release, highest) ? release : highest), ours);
   const posted = openPull?.postedTags ?? [];
+  // Releases older than the oldest posted one were dropped by the comment limit.
+  const oldestPosted = releases.findLast((release) => posted.includes(release.tag));
+  const floor = releases
+    .filter((release) => skipped.includes(release.tag) || release === oldestPosted)
+    .reduce((highest, release) => (isNewer(release, highest) ? release : highest), ours);
   const fresh = releases.filter((release) => isNewer(release, floor) && !posted.includes(release.tag)).reverse();
-  if (!fresh.length) return { kind: 'none' };
+  if (!fresh.length && openPull?.body !== PLACEHOLDER_BODY) return { kind: 'none' };
   return {
     kind: 'update',
     newest,
@@ -104,40 +118,54 @@ async function main() {
         .join(''),
     );
 
-  const releases = (await api(`repos/${upstream}/releases?per_page=100`))
-    .filter((release) => !release.draft && !release.prerelease)
-    .map((release) => ({
-      tag: release.tag_name,
-      version: parseVersion(release.tag_name, prefix),
-      url: release.html_url,
-      body: release.body ?? '',
-    }))
-    .filter((release) => release.version)
-    .sort((left, right) => compareVersions(right.version, left.version));
-  if (!releases.length) return console.log(`no ${prefix}* release in ${upstream}`);
+  const [owner] = fork.split('/');
+  const pulls = await api(`repos/${fork}/pulls?head=${owner}:${BRANCH}&state=all&per_page=30`);
+  const comments = (pull) => api(`repos/${fork}/issues/${pull.number}/comments?per_page=100`);
+  const open = pulls.find((pull) => pull.state === 'open');
+  const lastClosed = pulls.find((pull) => pull.state === 'closed' && !pull.merged_at);
+  const lastMerged = pulls.find((pull) => pull.merged_at);
+  const openPull = open
+    ? { number: open.number, postedTags: listMarkers(await comments(open)), body: open.body }
+    : null;
+  const skipped = lastClosed ? listMarkers(await comments(lastClosed)) : [];
+  const merged = lastMerged ? listMarkers(await comments(lastMerged)) : [];
 
   // A named remote with a filter becomes a promisor: the test merge fetches
   // the blobs it needs, not all of them.
   if (spawnSync('git', ['remote', 'get-url', 'upstream']).status !== 0) {
     run('git', ['remote', 'add', 'upstream', `https://github.com/${upstream}.git`]);
   }
-  run('git', [
-    'fetch',
-    '--quiet',
-    '--no-tags',
-    '--filter=blob:none',
-    'upstream',
-    ...releases.map(({ tag }) => `+refs/tags/${tag}:refs/tags/${tag}`),
-  ]);
-  const ours = releases.find(({ tag }) => isAncestor(`refs/tags/${tag}`, `origin/${base}`)) ?? null;
-
-  const [owner] = fork.split('/');
-  const pulls = await api(`repos/${fork}/pulls?head=${owner}:${BRANCH}&state=all&per_page=30`);
-  const comments = (pull) => api(`repos/${fork}/issues/${pull.number}/comments?per_page=100`);
-  const open = pulls.find((pull) => pull.state === 'open');
-  const lastClosed = pulls.find((pull) => pull.state === 'closed' && !pull.merged_at);
-  const openPull = open ? { number: open.number, postedTags: listMarkers(await comments(open)) } : null;
-  const skipped = lastClosed ? listMarkers(await comments(lastClosed)) : [];
+  const isOnBase = (tag) => isAncestor(`refs/tags/${tag}`, `origin/${base}`);
+  // Other tag families share the list (Twenty: sdk/v*), so page back until a
+  // page reaches a release the fork holds.
+  const releases = [];
+  for (let page = 1; page <= RELEASE_PAGE_LIMIT; page++) {
+    const batch = await api(`repos/${upstream}/releases?per_page=100&page=${page}`);
+    const found = batch
+      .filter((release) => !release.draft && !release.prerelease)
+      .map((release) => ({
+        tag: release.tag_name,
+        version: parseVersion(release.tag_name, prefix),
+        url: release.html_url,
+        body: release.body ?? '',
+      }))
+      .filter((release) => release.version);
+    if (found.length) {
+      run('git', [
+        'fetch',
+        '--quiet',
+        '--no-tags',
+        '--filter=blob:none',
+        'upstream',
+        ...found.map(({ tag }) => `+refs/tags/${tag}:refs/tags/${tag}`),
+      ]);
+    }
+    releases.push(...found);
+    if (batch.length < 100 || findOurs({ releases: found, merged, isAncestor: isOnBase })) break;
+  }
+  releases.sort((left, right) => compareVersions(right.version, left.version));
+  if (!releases.length) return console.log(`no ${prefix}* release in ${upstream}`);
+  const ours = findOurs({ releases, merged, isAncestor: isOnBase });
 
   const plan = planRun({ releases, ours, skipped, openPull });
   console.log(
@@ -154,48 +182,9 @@ async function main() {
     return;
   }
 
-  let number = openPull?.number;
-  if (openPull) {
-    // Never force-push an open Upstream PR: it may hold a human's conflict fixes.
-    run('git', ['fetch', '--quiet', 'origin', BRANCH]);
-    run('git', ['checkout', '--quiet', '-B', BRANCH, `origin/${BRANCH}`]);
-    const merge = spawnSync('git', ['merge', '--no-edit', `refs/tags/${plan.newest.tag}`], { encoding: 'utf8' });
-    if (merge.status === 0) run('git', ['push', '--quiet', 'origin', BRANCH]);
-    else {
-      spawnSync('git', ['merge', '--abort']);
-      const body = `${plan.newest.tag} conflicts with the commits on \`${BRANCH}\`. Merge it by hand: \`git merge ${plan.newest.tag}\`.`;
-      await api(`repos/${fork}/issues/${number}/comments`, { method: 'POST', body: { body } });
-    }
-  } else {
-    // No open PR: the branch is the bot's alone, a leftover from a closed one.
-    run('git', ['push', '--quiet', '--force', 'origin', `refs/tags/${plan.newest.tag}^{commit}:refs/heads/${BRANCH}`]);
-    const pull = await api(`repos/${fork}/pulls`, {
-      method: 'POST',
-      body: {
-        title: formatTitle(plan),
-        head: BRANCH,
-        base,
-        body: 'The analysis follows. Release notes are in the comments.',
-      },
-    });
-    number = pull.number;
-  }
-  if (plan.dropped) {
-    await api(`repos/${fork}/issues/${number}/comments`, {
-      method: 'POST',
-      body: { body: `${plan.dropped} older releases have no comment. See https://github.com/${upstream}/releases.` },
-    });
-  }
-  for (const release of plan.fresh) {
-    await api(`repos/${fork}/issues/${number}/comments`, {
-      method: 'POST',
-      body: { body: formatReleaseComment(release) },
-    });
-  }
-  await api(`repos/${fork}/pulls/${number}`, { method: 'PATCH', body: { title: formatTitle(plan) } });
-
-  // The agent's context: every release since ours, the test merge against
-  // the default branch, and the Upstream's published advisories.
+  // The agent's context first: every release since ours, the test merge
+  // against the default branch, the Upstream's published advisories. A
+  // failure here leaves GitHub untouched.
   mkdirSync(contextDir, { recursive: true });
   const since = releases.filter((release) => !ours || compareVersions(release.version, ours.version) > 0);
   writeFileSync(
@@ -224,6 +213,46 @@ async function main() {
       2,
     ),
   );
+
+  let number = openPull?.number;
+  if (openPull) {
+    // Never force-push an open Upstream PR: it may hold a human's conflict fixes.
+    run('git', ['fetch', '--quiet', 'origin', BRANCH]);
+    run('git', ['checkout', '--quiet', '-B', BRANCH, `origin/${BRANCH}`]);
+    const merge = spawnSync('git', ['merge', '--no-edit', `refs/tags/${plan.newest.tag}`], { encoding: 'utf8' });
+    if (merge.status === 0) run('git', ['push', '--quiet', 'origin', BRANCH]);
+    else {
+      spawnSync('git', ['merge', '--abort']);
+      writeFileSync(
+        join(contextDir, 'branch-conflict.txt'),
+        `${plan.newest.tag} conflicts with the commits on \`${BRANCH}\`. Merge it by hand: \`git merge ${plan.newest.tag}\`.\n`,
+      );
+    }
+    // The placeholder marks the analysis as unfinished until the agent's body lands.
+    await api(`repos/${fork}/pulls/${number}`, {
+      method: 'PATCH',
+      body: { title: formatTitle(plan), body: PLACEHOLDER_BODY },
+    });
+  } else {
+    // No open PR: the branch is the bot's alone, a leftover from a closed one.
+    run('git', ['push', '--quiet', '--force', 'origin', `refs/tags/${plan.newest.tag}^{commit}:refs/heads/${BRANCH}`]);
+    const pull = await api(`repos/${fork}/pulls`, {
+      method: 'POST',
+      body: { title: formatTitle(plan), head: BRANCH, base, body: PLACEHOLDER_BODY },
+    });
+    number = pull.number;
+  }
+  for (const [index, release] of plan.fresh.entries()) {
+    // The dropped note rides in the first comment, so a rerun never posts it twice.
+    const note =
+      index === 0 && plan.dropped
+        ? `${plan.dropped} older releases have no comment. See https://github.com/${upstream}/releases.\n\n`
+        : '';
+    await api(`repos/${fork}/issues/${number}/comments`, {
+      method: 'POST',
+      body: { body: note + formatReleaseComment(release) },
+    });
+  }
   output({ changed: true, pull: number, ours: ours?.tag ?? '', newest: plan.newest.tag });
 }
 

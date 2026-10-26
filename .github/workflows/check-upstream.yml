@@ -150,6 +150,7 @@ jobs:
         env:
           GH_TOKEN: ${{ steps.write-token.outputs.token }}
           OUTPUT: ${{ steps.agent.outputs.structured_output }}
+          PULL: ${{ steps.check.outputs.pull }}
         run: |
-          jq -r '.body' <<< "$OUTPUT" | head -c 65000 > .check-upstream/body.md
-          gh pr edit "${{ steps.check.outputs.pull }}" --body-file .check-upstream/body.md
+          jq -r '.body[:65000]' <<< "$OUTPUT" > .check-upstream/body.md
+          gh pr edit "$PULL" --body-file .check-upstream/body.md
