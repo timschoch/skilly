@@ -13,8 +13,8 @@ const GATE = join(
   'bundles/workflow/skills/verify/scripts/check-branch-name.mjs',
 );
 
-// A repo on `branch` that the user already blessed for skilly changes.
-function repo(branch, { gate = true } = {}) {
+// A repo on `branch`, by default one the user already blessed for skilly changes.
+function repo(branch, { gate = true, blessed = true } = {}) {
   const cwd = mkdtempSync(join(tmpdir(), 'skilly-branch-'));
   run('git', ['init', '--quiet', '--initial-branch', 'main'], { cwd });
   run(
@@ -33,7 +33,7 @@ function repo(branch, { gate = true } = {}) {
     { cwd },
   );
   run('git', ['switch', '--quiet', '-c', branch], { cwd });
-  run('git', ['config', '--local', 'skilly.use-current-branch', 'true'], { cwd });
+  if (blessed) run('git', ['config', '--local', 'skilly.use-current-branch', 'true'], { cwd });
   if (gate) {
     const scripts = join(cwd, '.agents', 'skills', 'verify', 'scripts');
     mkdirSync(scripts, { recursive: true });
@@ -53,4 +53,13 @@ test('prepareBranch: a branch the push gate accepts passes', async () => {
 
 test('prepareBranch: a repo without the push gate has no name to fail', async () => {
   await prepareBranch(repo('prototype/glue-house', { gate: false }));
+});
+
+test('prepareBranch: the skilly branches pass without a blessing', async () => {
+  await prepareBranch(repo('chore/skilly-setup', { blessed: false }));
+  await prepareBranch(repo('chore/skilly-update', { blessed: false }));
+});
+
+test('prepareBranch: a feature branch that mentions skilly still needs a blessing', async () => {
+  await assert.rejects(prepareBranch(repo('chore/rewire-skilly-hooks', { blessed: false })), /needs a terminal/);
 });
