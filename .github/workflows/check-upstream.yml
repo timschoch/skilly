@@ -1,0 +1,155 @@
+# Shared workflow for a fork: keeps one Upstream PR that follows the newest
+# Upstream release, then an agent writes the PR body (merge or wait, security,
+# what changes for the dependents, upgrade cost, fork cleanup).
+# Bookkeeping: scripts/check-upstream.mjs. Agent brief: scripts/check-upstream-prompt.md.
+#
+# Setup per fork: the owner's skilly App has `workflows: write` and is
+# installed on the fork and its dependents; the fork holds the three secrets.
+#
+# Caller, .github/workflows/check-upstream.yml in the fork:
+#   name: check upstream
+#   on:
+#     schedule: [{ cron: '0 6 * * 6' }]
+#     workflow_dispatch: {}
+#   jobs:
+#     check:
+#       uses: timschoch/skilly/.github/workflows/check-upstream.yml@main
+#       with:
+#         upstream: twentyhq/twenty
+#         tag-prefix: twenty/v
+#         dependents: admin-laicadev/laica-stack
+#       secrets:
+#         SKILLY_APP_ID: ${{ secrets.SKILLY_APP_ID }}
+#         SKILLY_APP_PRIVATE_KEY: ${{ secrets.SKILLY_APP_PRIVATE_KEY }}
+#         CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+name: check upstream (shared)
+
+on:
+  workflow_call:
+    inputs:
+      upstream:
+        description: The repo the fork follows, owner/repo
+        type: string
+        required: true
+      tag-prefix:
+        description: Release tags to follow, the part before the version (v, twenty/v)
+        type: string
+        required: false
+        default: v
+      dependents:
+        description: Repos that run this fork, one owner/repo per line, same owner as the fork
+        type: string
+        required: false
+        default: ''
+      dry-run:
+        description: Print the plan, write nothing
+        type: boolean
+        required: false
+        default: false
+    secrets:
+      SKILLY_APP_ID:
+        required: true
+      SKILLY_APP_PRIVATE_KEY:
+        required: true
+      CLAUDE_CODE_OAUTH_TOKEN:
+        required: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    concurrency:
+      group: check-upstream-${{ github.repository }}
+      cancel-in-progress: false
+    defaults:
+      run:
+        shell: bash
+    steps:
+      # A PR opened with GITHUB_TOKEN triggers no workflows, so the fork's CI
+      # would never run on it. `workflows: write`: the Upstream branch carries
+      # the Upstream's own workflow files, and GitHub refuses that push without it.
+      - name: Mint write token (branch + PR)
+        id: write-token
+        uses: actions/create-github-app-token@v3
+        with:
+          app-id: ${{ secrets.SKILLY_APP_ID }}
+          private-key: ${{ secrets.SKILLY_APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+          repositories: ${{ github.event.repository.name }}
+          permission-contents: write
+          permission-pull-requests: write
+          permission-workflows: write
+      # The agent reads third-party text: it gets read access only, and a
+      # later step writes its body.
+      - name: Mint read token (agent + dependents)
+        id: read-token
+        uses: actions/create-github-app-token@v3
+        with:
+          app-id: ${{ secrets.SKILLY_APP_ID }}
+          private-key: ${{ secrets.SKILLY_APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+          permission-contents: read
+          permission-pull-requests: read
+      - name: Checkout fork
+        uses: actions/checkout@v7
+        with:
+          token: ${{ steps.write-token.outputs.token }}
+          fetch-depth: 0
+          filter: blob:none
+      - name: Checkout hub
+        uses: actions/checkout@v7
+        with:
+          repository: timschoch/skilly
+          ref: main
+          path: .skilly-hub
+      - name: Prepare git
+        run: |
+          printf '/.skilly-hub/\n/.check-upstream/\n' >> .git/info/exclude
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+      - name: Update the Upstream PR
+        id: check
+        env:
+          GH_TOKEN: ${{ steps.write-token.outputs.token }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+          CONTEXT_DIR: .check-upstream
+          UPSTREAM: ${{ inputs.upstream }}
+          TAG_PREFIX: ${{ inputs.tag-prefix }}
+          DRY_RUN: ${{ inputs.dry-run && '--dry-run' || '' }}
+        run: node .skilly-hub/scripts/check-upstream.mjs "$UPSTREAM" "$TAG_PREFIX" $DRY_RUN
+      - name: Checkout dependents
+        if: steps.check.outputs.changed == 'true' && inputs.dependents != ''
+        env:
+          TOKEN: ${{ steps.read-token.outputs.token }}
+          DEPENDENTS: ${{ inputs.dependents }}
+        run: |
+          for repo in $DEPENDENTS; do
+            git clone --quiet --depth 1 "https://x-access-token:$TOKEN@github.com/$repo.git" ".check-upstream/dependents/${repo#*/}"
+          done
+      - name: Write the PR body
+        id: agent
+        if: steps.check.outputs.changed == 'true'
+        uses: anthropics/claude-code-action@v1
+        env:
+          GH_TOKEN: ${{ steps.read-token.outputs.token }}
+          UPSTREAM: ${{ inputs.upstream }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+          OURS: ${{ steps.check.outputs.ours }}
+          NEWEST: ${{ steps.check.outputs.newest }}
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          github_token: ${{ steps.read-token.outputs.token }}
+          prompt: Read .skilly-hub/scripts/check-upstream-prompt.md and follow it.
+          claude_args: >-
+            --model opus
+            --max-turns 80
+            --allowedTools "Read,Grep,Glob,Bash(git log:*),Bash(git diff:*),Bash(git show:*),Bash(gh pr view:*),Bash(gh api:*)"
+            --json-schema '{"type":"object","properties":{"body":{"type":"string"}},"required":["body"]}'
+      - name: Set the PR body
+        if: steps.check.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ steps.write-token.outputs.token }}
+          OUTPUT: ${{ steps.agent.outputs.structured_output }}
+        run: |
+          jq -r '.body' <<< "$OUTPUT" | head -c 65000 > .check-upstream/body.md
+          gh pr edit "${{ steps.check.outputs.pull }}" --body-file .check-upstream/body.md
