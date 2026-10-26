@@ -4,6 +4,7 @@ import {
   PLACEHOLDER_BODY,
   compareVersions,
   findOurs,
+  formatConflictComment,
   formatReleaseComment,
   formatTitle,
   listMarkers,
@@ -128,4 +129,10 @@ test('formatReleaseComment: marker round-trips, long notes are cut under the cap
   const long = formatReleaseComment({ ...v51, body: 'x'.repeat(70000) });
   assert.ok(long.length < 65536);
   assert.match(long, /\[Full notes\]\(https:\/\/example\.test\/twenty\/v2\.51\.0\)$/);
+});
+
+test('formatConflictComment: its own marker kind, so a rerun skips a posted conflict and the release list ignores it', () => {
+  const comments = [{ body: formatReleaseComment(v51) }, { body: formatConflictComment('twenty/v2.52.0') }];
+  assert.deepEqual(listMarkers(comments, 'conflict'), ['twenty/v2.52.0']);
+  assert.deepEqual(listMarkers(comments), ['twenty/v2.51.0']);
 });

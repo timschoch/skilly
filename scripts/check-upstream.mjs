@@ -18,7 +18,6 @@ import { run } from '../lib/run.js';
 
 export const BRANCH = 'chore/upstream-release';
 const API = 'https://api.github.com';
-const MARKER = /<!-- upstream-release: (\S+) -->/g;
 const COMMENT_MAX_LENGTH = 60000; // GitHub caps a comment at 65536 characters
 const RELEASE_COMMENT_LIMIT = 10; // a long-stale fork gets the newest ten, not a hundred comments
 const RELEASE_PAGE_LIMIT = 5;
@@ -37,8 +36,11 @@ export function compareVersions(left, right) {
   return 0;
 }
 
-export function listMarkers(comments) {
-  return comments.flatMap(({ body }) => [...(body ?? '').matchAll(MARKER)].map((match) => match[1]));
+// kind: `release` (one comment per release) or `conflict` (one per release
+// that does not merge onto the open PR's branch).
+export function listMarkers(comments, kind = 'release') {
+  const marker = new RegExp(`<!-- upstream-${kind}: (\\S+) -->`, 'g');
+  return comments.flatMap(({ body }) => [...(body ?? '').matchAll(marker)].map((match) => match[1]));
 }
 
 // The newest release the fork holds, or null: an ancestor of the default
@@ -84,6 +86,11 @@ export function formatReleaseComment(release) {
     : head + notes;
 }
 
+// A comment, not only the body: a comment notifies the fork's owners.
+export function formatConflictComment(tag) {
+  return `<!-- upstream-conflict: ${tag} -->\n${tag} conflicts with the commits on \`${BRANCH}\`. Merge it by hand: \`git merge ${tag}\`.`;
+}
+
 async function api(path, { method = 'GET', body } = {}) {
   const response = await fetch(`${API}/${path}`, {
     method,
@@ -124,8 +131,14 @@ async function main() {
   const open = pulls.find((pull) => pull.state === 'open');
   const lastClosed = pulls.find((pull) => pull.state === 'closed' && !pull.merged_at);
   const lastMerged = pulls.find((pull) => pull.merged_at);
+  const openComments = open ? await comments(open) : [];
   const openPull = open
-    ? { number: open.number, postedTags: listMarkers(await comments(open)), body: open.body }
+    ? {
+        number: open.number,
+        postedTags: listMarkers(openComments),
+        conflictTags: listMarkers(openComments, 'conflict'),
+        body: open.body,
+      }
     : null;
   const skipped = lastClosed ? listMarkers(await comments(lastClosed)) : [];
   const merged = lastMerged ? listMarkers(await comments(lastMerged)) : [];
@@ -223,10 +236,11 @@ async function main() {
     if (merge.status === 0) run('git', ['push', '--quiet', 'origin', BRANCH]);
     else {
       spawnSync('git', ['merge', '--abort']);
-      writeFileSync(
-        join(contextDir, 'branch-conflict.txt'),
-        `${plan.newest.tag} conflicts with the commits on \`${BRANCH}\`. Merge it by hand: \`git merge ${plan.newest.tag}\`.\n`,
-      );
+      const conflict = formatConflictComment(plan.newest.tag);
+      writeFileSync(join(contextDir, 'branch-conflict.txt'), `${conflict}\n`);
+      if (!openPull.conflictTags.includes(plan.newest.tag)) {
+        await api(`repos/${fork}/issues/${number}/comments`, { method: 'POST', body: { body: conflict } });
+      }
     }
     // The placeholder marks the analysis as unfinished until the agent's body lands.
     await api(`repos/${fork}/pulls/${number}`, {
