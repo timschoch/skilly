@@ -11,7 +11,7 @@ npx github:timschoch/skilly remove <bundle-or-skill...> # uninstall (keeps skill
 npx github:timschoch/skilly update                      # pull hub changes, update all skills, rules, commit
 ```
 
-Every command guards its branch (`skilly-*`, main → `chore/skilly-setup`, anything else asks once and remembers in `.git/config`) and ends with its own commit + PR.
+Every command guards its branch (`chore/skilly-setup` or `chore/skilly-update` as is, main → `chore/skilly-setup`, anything else asks once and remembers in `.git/config`) and ends with its own commit + PR.
 
 ## New-repo setup, in order
 

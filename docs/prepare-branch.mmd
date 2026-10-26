@@ -17,7 +17,7 @@ flowchart TD
             EBQ-NAME -->|yes| EB-NAME-ABORT["abort before the commit:<br>rename the branch, run skilly again"] --> EB-FALSE
             EBQ-NAME -->|no| EBQ1
 
-        EBQ1{"current branch<br>contains 'skilly-'?"}
+        EBQ1{"current branch is<br>**chore/skilly-setup** or<br>**chore/skilly-update**?"}
             EBQ1 -->|yes| EB-TRUE
             EBQ1 -->|no| EBQ-MAIN
 
@@ -35,7 +35,7 @@ flowchart TD
                     EB-SET-CFG["git config --local<br>**skilly.use-current-branch** true<br>(lives in .git/config, never committed)"] --> EB-TRUE
 
         EB-TRUE(["return true ✅"])
-        EB-ABORT["abort: run skilly from main,<br>the default branch or a skilly-* branch"] --> EB-FALSE
+        EB-ABORT["abort: run skilly from main,<br>the default branch,<br>**chore/skilly-setup** or **chore/skilly-update**"] --> EB-FALSE
         EB-FALSE(["return false ❌"])
     end
 
