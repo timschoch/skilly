@@ -35,7 +35,7 @@ flowchart TD
                     EB-SET-CFG["git config --local<br>**skilly.use-current-branch** true<br>(lives in .git/config, never committed)"] --> EB-TRUE
 
         EB-TRUE(["return true ✅"])
-        EB-ABORT["abort: run skilly from main,<br>the default branch or a skilly branch"] --> EB-FALSE
+        EB-ABORT["abort: run skilly from main,<br>the default branch,<br>**chore/skilly-setup** or **chore/skilly-update**"] --> EB-FALSE
         EB-FALSE(["return false ❌"])
     end
 
