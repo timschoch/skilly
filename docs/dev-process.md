@@ -5,7 +5,7 @@ Every Consumer runs its checks through one command: `verify <stage>`. Git hooks 
 ```mermaid
 flowchart LR
   defaults[Engine default steps] --> verify
-  bundles[Bundle Rules] --> verify
+  bundles[Bundle verify steps] --> verify
   own[".skilly/verify.json"] --> verify
   tier[".skilly/config.json tier"] --> verify
   hooks[git hooks] --> verify
@@ -39,7 +39,7 @@ The tiers nest: everything `sandbox` runs, `tool` runs too, and everything `tool
 | agent edit hook: `oxlint --fix` + Prettier on the edited file                |   yes   | yes  |   yes   |
 | pre-commit: `lint-staged`, `oxlint --fix` + Prettier on staged files         |   yes   | yes  |   yes   |
 | pre-push: typecheck + the tests the diff reaches                             |   yes   | yes  |   yes   |
-| `ci / verify`, the only PR check: lint, typecheck, unit, build, Bundle Rules |   yes   | yes  |   yes   |
+| `ci / verify`, the only PR check: lint, typecheck, unit, build, Bundle steps |   yes   | yes  |   yes   |
 | `ci / verify` required on `main`, set by `skilly setup`                      |   yes   | yes  |   yes   |
 | local `/code-review` on request; `/babysit-pr`                               |   yes   | yes  |   yes   |
 | `/ai-review` PR comment runs the `code-review` skill, posts inline comments  |   no    | yes  |   yes   |

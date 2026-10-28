@@ -63,7 +63,7 @@ Removing a skill or Bundle from a Consumer, the same way as Add.
 _Avoid_: delete
 
 **Sync**:
-The Engine code that makes a Consumer match its `.skilly/config.json` at a Release: skills, Router rules, Engine, Managed files. The Hub's nightly runs it for every Consumer. Add and Remove run it locally.
+The Engine code that makes a Consumer match its `.skilly/config.json` at a Release: skills, Router rules, Engine, Managed files. The Hub's nightly runs it for every Consumer. `skilly sync` runs the same Sync and Sync PR for one Consumer, with the person's `gh` login. Add and Remove run it locally.
 _Avoid_: update, upgrade
 
 **Sync report**:
@@ -71,7 +71,7 @@ The one record of what a Sync changed: skills added and removed, Release before 
 _Avoid_: summary, log
 
 **Setup**:
-The manual, local command that makes a repo a Consumer: `npx github:timschoch/skilly#<release> setup`. A person picks the Bundles and the tier. Sets the required check and auto-merge. Safe to run again.
+The manual, local command that makes a repo a Consumer: `npx github:timschoch/skilly#<release> setup`. Two phases: decide, then apply. In the decide phase an agent asks, and its scripts write `.skilly/config.json`. The apply phase asks nothing: it runs the first Sync and sets the repo settings. Safe to run again. [ADR-0009](docs/adr/0009-setup-decides-then-applies.md).
 _Avoid_: install, config, onboard
 
 **Sync PR**:

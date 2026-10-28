@@ -1,6 +1,6 @@
 # ADR-0008: The Hub runs the sync, every Consumer runs one pinned Engine
 
-Status: accepted, 2026-10-28. Supersedes [ADR-0005](0005-shared-ci-workflows.md). Changes decisions 2 and 5 of [ADR-0001](0001-dev-process-tiers.md).
+Status: accepted, 2026-10-28. Supersedes [ADR-0005](0005-shared-ci-workflows.md). Changes decisions 2 and 5 of [ADR-0001](0001-dev-process-tiers.md). Setup in detail: [ADR-0009](0009-setup-decides-then-applies.md).
 
 ## Context
 
@@ -69,7 +69,7 @@ Facts that shaped the decision, checked 2026-10-28:
 ### One check
 
 4. A Consumer has one PR check: `ci / verify`, which runs `verify <stage>` from `.skilly/engine/`. A bundle Rule becomes a verify step that its Bundle adds. The `gate` job, [run-gate.mjs](../../scripts/run-gate.mjs) and `bundles/*/rules/*.sh` go away. Router rules in `bundles/*/rules/*.md` stay.
-5. `ci.yml` and `nightly.yml` are managed files. The Sync PR writes them from the Engine. Hook files such as `lefthook.yml` and `.claude/settings.json` also hold the Consumer's own entries, so the Sync PR writes only the skilly entries in them. There are no Shared workflows and no callers. A Consumer changes its checks in `.skilly/verify.json` and its tier in `.skilly/config.json`, never in a managed file.
+5. `ci.yml`, `nightly.yml`, `ai-review.yml`, `release.yml` and `dependabot.yml` are managed files. The Sync PR writes them from the Engine. Hook files such as `lefthook.yml` and `.claude/settings.json` also hold the Consumer's own entries, so the Sync PR writes only the skilly entries in them. There are no Shared workflows and no callers. A Consumer changes its checks in `.skilly/verify.json` and its tier in `.skilly/config.json`, never in a managed file.
 
 ### The sync
 
@@ -100,7 +100,7 @@ Facts that shaped the decision, checked 2026-10-28:
 8. The Hub turns on GitHub auto-merge for a Sync PR. It does not when the Release is a new major version or the PR removes a skill. You merge those by hand. The Hub has no merge code: GitHub merges. The "no auto-merge" of ADR-0001 decision 6 is about `babysit-pr` and still holds.
 9. The Hub itself runs `main`. It is the first Consumer of every change. A Release is the gate for all others. There is no extra canary.
 10. The nightly compares `.skilly/engine/` with the hash recorded for its Release. A mismatch skips that Consumer and opens or updates one issue there. The other Consumers still sync. The Consumer's CI keeps running its edited Engine. That is the repo owner's choice.
-11. The nightly sync can also be started by hand: `gh workflow run` in the Hub.
+11. A person starts the same Sync for one Consumer with `skilly sync` (decision 16). The Hub owner can also start the whole nightly by hand: `gh workflow run sync.yml --repo timschoch/skilly`.
 
 ### One App
 
@@ -118,10 +118,11 @@ Facts that shaped the decision, checked 2026-10-28:
 
 ### Setup and local commands
 
-13. `skilly setup` stays a manual, local command: a person decides which repo gets skilly, its Bundles and its tier. It runs with the person's own `gh` login: `npx github:timschoch/skilly#<release> setup`. Running it again is safe. Each step checks first and skips what is already done.
+13. `skilly setup` stays a manual, local command: a person decides which repo gets skilly, its Bundles and its tier. It runs with the person's own `gh` login: `npx github:timschoch/skilly#<release> setup`. Running it again is safe. Each step checks first and skips what is already done. How setup asks and applies: [ADR-0009](0009-setup-decides-then-applies.md).
 14. Setup writes `.skilly/config.json`, runs the first sync, sets the ruleset that requires `ci / verify` and drops `skilly / gate` from it, turns on `allow_auto_merge`, and opens the setup PR.
 15. Setup checks that the repo's account can read `timschoch/skilly`. When it can't, setup prints the `gh api` call that invites that account as a read collaborator and continues. The nightly does not need this access. Local commands do, because the skills CLI clones the private Hub at the Release.
 16. `skilly add` and `skilly remove` stay local, for "I want it now". Each one edits `.skilly/config.json` and runs the same sync code as the nightly, at the pinned Release, on the current branch. The Engine runs them: `node .skilly/engine/bin/skilly.js add <bundle>`.
+    - `skilly sync` is the nightly for one Consumer, started now. It fetches the newest Release and runs that Release's Sync and delivery with the person's `gh` login. It opens or updates the same Sync PR, with the same auto-merge rule. The local Engine only starts it, so old Engine code never writes a newer Release.
 
 ```mermaid
 flowchart LR
@@ -136,10 +137,10 @@ flowchart LR
 
 The nightly and the local commands share one sync module, so both write the same files for the same Release.
 
-17. One sync module. It takes a Consumer checkout, its `.skilly/config.json` and a Release snapshot. It writes the files and returns one sync report. The nightly, setup, `add` and `remove` call it. Commit, push and PR stay outside it. It never prompts.
+17. One sync module. It takes a Consumer checkout, its `.skilly/config.json` and a Release snapshot. It writes the files and returns one sync report. The nightly, setup, `add`, `remove` and `sync` call it. Commit, push and PR stay outside it. It never prompts.
 18. A Release snapshot is a folder with the files of one tag: Bundle configs, Router rules, the Engine, managed-file templates. The sync never reads the folder next to its own code, so the nightly can run `main` code and write an older Release. The nightly checks out the tag, a local run fetches it, a test uses a fixture folder.
 19. The sync report is the one record of a sync. The Sync PR body, the auto-merge choice of decision 8 and the issue of decision 10 read it. Nothing parses commit subjects.
-20. The Engine is one folder in the Hub, with plain imports and no copies. Its hash is the hash of that folder. Hub-only code stays outside it: the nightly loop, the App key, the installation list.
+20. The Engine is one folder in the Hub, with plain imports and no copies. Its hash is the hash of that folder. Hub-only code stays outside it: the nightly loop, the App key, the installation list, the owner allowlist. The delivery for one Consumer is Engine code: Sync PR branch, PR, auto-merge rule.
 21. All GitHub calls go through `gh`. The nightly gives it the App installation token in `GH_TOKEN`. Local commands use the person's login. The auto-merge rule of decision 8 is one function.
 22. Two small mergers write the skilly entries in `lefthook.yml` and `.claude/settings.json`.
 

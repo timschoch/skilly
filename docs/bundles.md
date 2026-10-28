@@ -55,7 +55,7 @@ Engineering and productivity skills, for any stack. Full list: [config.json](../
 | `orchestrate`, `step-by-step`, `cleanup-merged-branches` |                                                                                                                                                                                                                                                                                                                  |
 | `audit-agent-history`                                    | mines the user's Claude Code and Codex session logs per model, counts failure modes, proposes up to three lines for `workflow-hazards.md`                                                                                                                                                                        |
 | `audit-skilly-workflow`                                  | user-invoked. Finds where a Consumer's own instructions, the user's global instructions, hooks, lint and CI contradict or duplicate what skilly installed. A script gathers sources, gate values and config defects. The model judges meaning conflicts and writes an HTML report. Last step of `setup-project`. |
-| `skilly-cli`                                             | how a Consumer drives skilly's add, remove and update. `setup-project` is removed after bootstrap, so this is the standing reference.                                                                                                                                                                            |
+| `skilly-cli`                                             | how a Consumer drives skilly's add, remove and sync. `setup-project` is removed after bootstrap, so this is the standing reference.                                                                                                                                                                              |
 | `writing-rules`                                          | the writing rules for all repo artifacts, distilled from Habits-Family/habits v2-rebuild. They live in the Hub because they keep changing.                                                                                                                                                                       |
 | `qa`                                                     | the Hub is its home: mattpocock/skills deprecated and deleted it. Its successors `triage` and `to-tickets` do not cover filing issues from a chat.                                                                                                                                                               |
 
@@ -68,13 +68,12 @@ Engineering and productivity skills, for any stack. Full list: [config.json](../
 
 One-time setup skills. A repo gets them at bootstrap, they are not carried everywhere. [config.json](../bundles/setup-project/config.json)
 
-| Skill                      | Source                        | Does                                                                                                                                                       |
-| -------------------------- | ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `setup-project`            | Hub                           | the orchestrator: drives the workflow and tech-stack setup flows                                                                                           |
-| `setup-repo`               | Hub                           | destructive-git guard for Claude Code, `CLAUDE.md` scaffold. `skilly setup` sets the ruleset, and the Sync PR writes the skilly entries in the hook files. |
-| `setup-release-please`     | Hub                           | the release-please workflow and the merge settings `git-shortcuts` depends on: `delete_branch_on_merge`, squash for tickets, merge commits for epics       |
-| `setup-pre-commit`         | `timschoch/mattpocock-skills` |                                                                                                                                                            |
-| `setup-matt-pocock-skills` | `timschoch/mattpocock-skills` | repo scaffolding: issue tracker, triage labels, domain docs. Its skill-install half stays unused, see [Not bundled](#not-bundled).                         |
+| Skill                      | Source                        | Does                                                                                                                                                                                 |
+| -------------------------- | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `setup-project`            | Hub                           | the decide phase of Setup: an agent chat that calls Engine scripts to detect, write `.skilly/config.json` and run the preflight ([ADR-0009](adr/0009-setup-decides-then-applies.md)) |
+| `setup-matt-pocock-skills` | `timschoch/mattpocock-skills` | repo scaffolding: issue tracker, triage labels, domain docs. Its skill-install half stays unused, see [Not bundled](#not-bundled).                                                   |
+
+The Sync and the repo settings module do the rest: git hooks, managed workflows, release-please, merge settings.
 
 ### gdd
 
@@ -88,7 +87,7 @@ God-driven development, Hub-maintained `gdd`. [config.json](../bundles/gdd/confi
 
 ### npmjs
 
-Publishing a package to the npm registry from GitHub Actions: `publish-npm-package` (yigitkonur/skills-by-yigitkonur, a broad personal catalog, pinned to this one skill). It is a release capability, not a stack, so it is no `tech-*` Bundle. It carries no release automation: `setup-release-please` runs once at bootstrap. Proven shape (timschoch/animateTextWeight): release-please on `main`, plus a publish job gated on `release_created` that uses npm trusted publishing (OIDC, no `NPM_TOKEN`). Why it is its own Bundle: [README](../bundles/npmjs/README.md).
+Publishing a package to the npm registry from GitHub Actions: `publish-npm-package` (yigitkonur/skills-by-yigitkonur, a broad personal catalog, pinned to this one skill). It is a release capability, not a stack, so it is no `tech-*` Bundle. It carries no release automation: the Sync writes `release.yml`. Proven shape (timschoch/animateTextWeight): release-please on `main`, plus a publish job gated on `release_created` that uses npm trusted publishing (OIDC, no `NPM_TOKEN`). Why it is its own Bundle: [README](../bundles/npmjs/README.md).
 
 ## Marketing
 
@@ -167,7 +166,7 @@ Small Hub-maintained skills that remind an agent to use the product CLI: `neon-c
 | Bundle                                          | Holds                                                                                                                                                                                |
 | ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | [pitchdeck](../bundles/pitchdeck/config.json)   | deck review and pitch skills: `pitch-deck-reviewer` (onewave-ai/claude-skills), `alex-hormozi-pitch` (microck/ordinary-claude-skills), `yc-pitch-deck` (guia-matthieu/clawfu-skills) |
-| [test-bundle](../bundles/test-bundle/README.md) | internal: two one-line mock skills to pilot-test skilly's add, remove and update. Never propose it to a Consumer.                                                                    |
+| [test-bundle](../bundles/test-bundle/README.md) | internal: two one-line mock skills to pilot-test skilly's add, remove and sync. Never propose it to a Consumer.                                                                      |
 
 ## Not bundled
 

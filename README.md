@@ -53,22 +53,29 @@ Not every repo gets skilly. You choose the repos.
    npx -y github:timschoch/skilly#<release> setup
    ```
 
-   Setup asks for the Bundles and the tier. It writes `.skilly/config.json`, runs the first sync, requires `ci / verify` on the default branch, turns on auto-merge, and opens the setup PR. A new repo without a README text or a stack file gets the [setup interview](lib/interview/server.js) in the browser instead. Setup is safe to run again: it fixes what is missing.
+   Setup has two phases ([ADR-0009](docs/adr/0009-setup-decides-then-applies.md)):
+   - **Decide.** An agent reads the repo and asks you for the Bundles, the tier and the secrets. It proposes missing dependencies. Its scripts write `.skilly/config.json` and check that everything is ready.
+   - **Apply.** No more questions, so you can walk away. Setup runs the first sync, sets the repo settings, requires `ci / verify` on the default branch, turns on auto-merge and opens the setup PR.
+
+   Setup is safe to run again: it runs only the apply phase.
 
 3. Merge the setup PR. From then on the Hub's nightly keeps the repo up to date.
 
 ## Commands in a Consumer
 
-The Engine runs them, at the repo's Release. Each one commits on the current branch.
+The Engine runs them. `add` and `remove` run at the repo's Release and commit on the current branch. `sync` opens the Sync PR.
 
 ```sh
 node .skilly/engine/bin/skilly.js add <bundle-or-skill...>     # install now, do not wait for the nightly
 node .skilly/engine/bin/skilly.js remove <bundle-or-skill...>  # uninstall, keeps skills another Bundle needs
+node .skilly/engine/bin/skilly.js sync                         # the nightly for this repo, now: Sync PR to the newest Release
 ```
 
 Do not edit `.skilly/engine/`, the managed workflow files or the synced skills. Change checks in `.skilly/verify.json` and the tier in `.skilly/config.json`. Who owns which file: [ADR-0008](docs/adr/0008-hub-run-sync-and-pinned-engine.md#who-owns-what-in-a-consumer).
 
 ## Run the sync now
+
+One Consumer: run `node .skilly/engine/bin/skilly.js sync` in it. Every Consumer, Hub owner only:
 
 ```sh
 gh workflow run sync.yml --repo timschoch/skilly
