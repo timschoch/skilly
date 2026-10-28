@@ -316,6 +316,26 @@ test('skilly-file: keys another skill owns survive a bundle change', () => {
   assert.deepEqual(skillyFile.read(cwd).verify, { stages: ['commit'] });
 });
 
+test('skilly-file: hub records the Release, a config without it still loads', () => {
+  const cwd = freshDir();
+  skillyFile.create(cwd);
+  assert.equal('hub' in skillyFile.read(cwd), false);
+  skillyFile.write(cwd, { ...skillyFile.read(cwd), hub: 'v1.4.0' });
+  assert.equal(JSON.parse(readFileSync(configPath(cwd), 'utf8')).hub, 'v1.4.0');
+  skillyFile.addBundle(cwd, 'alpha');
+  assert.equal(skillyFile.read(cwd).hub, 'v1.4.0');
+});
+
+test('skilly-file: hub takes a Release tag and nothing else', () => {
+  const cwd = freshDir();
+  skillyFile.create(cwd);
+  for (const hub of ['1.4.0', 'main', 'v1.4', 'v1.4.0-rc.1', 4]) {
+    assert.throws(() => skillyFile.write(cwd, { ...skillyFile.read(cwd), hub }), /invalid hub/);
+  }
+  writeFileSync(configPath(cwd), JSON.stringify({ hub: 'main' }));
+  assert.throws(() => skillyFile.read(cwd), /invalid hub "main"/);
+});
+
 test('skilly-file: setTier takes the three tier names and nothing else', () => {
   const cwd = freshDir();
   skillyFile.create(cwd);
