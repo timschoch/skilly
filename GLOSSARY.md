@@ -2,6 +2,29 @@
 
 Private skill hub: Bundle definitions, the Engine, and a nightly sync that keeps skills, checks and CI the same in every Consumer. Why: [ADR-0008](docs/adr/0008-hub-run-sync-and-pinned-engine.md).
 
+```mermaid
+flowchart LR
+  subgraph Hub
+    bundle[Bundle] --> skill[Skill]
+    bundle --> rule[Rule]
+    source[Source] --> skill
+    engine[Engine source]
+  end
+  Hub --> release[Release]
+  subgraph Consumer
+    config[".skilly/config.json"]
+    skills["skills, Router rules"]
+    copy[".skilly/engine/"]
+    managed[Managed files]
+  end
+  config --> sync[Sync]
+  release --> sync
+  sync --> syncpr[Sync PR]
+  syncpr --> skills
+  syncpr --> copy
+  syncpr --> managed
+```
+
 ## Language
 
 **Hub**:

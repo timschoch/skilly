@@ -21,6 +21,23 @@ bundles/<name>/
 | `rules`    | the Rules this Bundle declares. Each Rule is a verify step the Bundle adds.                                                       |
 | `sources`  | one entry per Source repo, with the skills taken from it. Hub-maintained skills use the Source `timschoch/skilly`.                |
 
+`config.json` also declares the Bundle's verify steps, full-suite triggers, detect hints, secrets and hook entries ([ADR-0009](adr/0009-setup-decides-then-applies.md#bundles-declare-their-facts-as-data)).
+
+```mermaid
+flowchart LR
+  consumer[".skilly/config.json"] --> bundles[Bundles]
+  bundles -->|includes| bundles
+  bundles --> union[union of all]
+  union --> skills[skills, Router rules]
+  union --> steps[verify steps]
+  union --> hooks[hook entries]
+  union --> detect[detect hints, secrets]
+  skills --> sync[Sync]
+  steps --> sync
+  hooks --> sync
+  detect --> setup[Setup decide phase]
+```
+
 A Consumer has one PR check, `ci / verify`. It runs the Rule steps of all its Bundles from the Engine in `.skilly/engine/`. `skilly setup` makes it a required check on `main`. Details: [dev-process.md](dev-process.md).
 
 The Release in `.skilly/config.json` (`"hub": "v1.4.0"`) fixes the version of the Hub-maintained skills. Skills from third-party Sources are not pinned by the Release ([ADR-0008](adr/0008-hub-run-sync-and-pinned-engine.md)).

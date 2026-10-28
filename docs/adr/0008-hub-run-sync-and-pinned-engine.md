@@ -142,6 +142,7 @@ flowchart LR
   add[skilly add / remove] --> config
   config --> sync[sync code]
   nightly[Hub nightly] --> sync
+  local[skilly sync] --> sync
   sync --> files["skills + engine + managed files"]
 ```
 

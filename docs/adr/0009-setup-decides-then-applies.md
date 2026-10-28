@@ -76,14 +76,46 @@ sequenceDiagram
 6. Verify merges 3 layers: Engine defaults, then the steps of the Consumer's Bundles, then `.skilly/verify.json`. The Engine carries the Bundle configs of its Release, so a changed step reaches every Consumer with the next Sync PR.
 7. CI runs one job. The `pr` stage skips a step when none of its paths changed. The managed `ci.yml` installs and caches only the toolchains of the resolved steps. The Engine picks the stage, not bash in `ci.yml`.
 
+   ```mermaid
+   flowchart LR
+     engine[Engine defaults] --> plan[verify plan]
+     bundles[Bundle steps] --> plan
+     own[".skilly/verify.json"] --> plan
+     plan --> paths{paths changed?}
+     paths -->|no| skip[skip step]
+     paths -->|yes| tools[cached toolchains]
+     tools --> run[run step]
+   ```
+
 ### Repo settings
 
 8. One Engine module checks, then sets, each GitHub repo setting: the ruleset that requires `ci / verify` on every tier, sandbox included, `allow_auto_merge`, merge methods, delete branch on merge, the Actions PR permission, Dependabot alerts. Setup uses it to write. The Sync PR uses its read side to report drift.
+
+   ```mermaid
+   flowchart LR
+     setup[Setup] -->|check, then set| module[repo settings module]
+     sync[Sync PR] -->|check only| module
+     module --> gh[gh api]
+     sync --> drift[drift in PR body]
+   ```
 
 ### Managed files
 
 9. The Sync writes `ci.yml`, `nightly.yml`, `ai-review.yml`, `release.yml` and `dependabot.yml` from Engine templates, by tier and package manager.
 10. lefthook runs the git hooks in every Consumer. A Consumer on husky moves to lefthook with its first Sync PR.
+
+    Each Managed file has one writer, the Sync:
+
+    ```mermaid
+    flowchart LR
+      templates[Engine templates] --> sync[Sync]
+      hooks[Bundle hook entries] --> sync
+      sync --> workflows[".github/workflows/*.yml"]
+      sync --> dependabot[".github/dependabot.yml"]
+      sync --> lefthook[lefthook.yml]
+      sync --> settings[".claude/settings.json"]
+    ```
+
 11. `release.yml` runs release-please with the default `GITHUB_TOKEN`. A PR opened with that token starts no workflow, so `release.yml` then starts `ci.yml` on the release branch with `workflow_dispatch`. That run reports `ci / verify` on the PR's last commit. Verify this on one Consumer before the rollout.
 
     ```mermaid

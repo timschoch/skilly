@@ -14,7 +14,7 @@ flowchart LR
 ```
 
 - verify merges the Consumer's `.skilly/verify.json` over the [default steps](../bundles/workflow/skills/verify/references/verify.json), matched by step `name`.
-- Each Bundle adds a verify step for each of its Rules, for example `naming` from `workflow`.
+- Each Bundle declares its verify steps in its `config.json`, for example `naming` from `workflow` ([ADR-0009](adr/0009-setup-decides-then-applies.md#bundles-declare-their-facts-as-data)).
 - verify skips a stage above the repo's tier and a step whose `target` file does not exist.
 - CI and hooks never run code from `.agents/skills/`.
 
@@ -60,9 +60,30 @@ Why: in one product Consumer the full unit suite took up to 440 s on each PR run
 
 The tests the diff reaches come from `vitest --changed`. Vitest follows imports only, so a guard runs the full suite when the diff holds a lockfile, `package.json`, a test config or a `fullSuiteTriggers` path.
 
+```mermaid
+flowchart LR
+  pr[PR] --> repo{release PR + nightly?}
+  repo -- no --> ci[ci stage: full suite]
+  repo -- yes --> rel{release PR?}
+  rel -- yes --> ci
+  rel -- no --> guard{guard path in diff?}
+  guard -- yes --> full[pr stage: full unit]
+  guard -- no --> changed[pr stage: vitest --changed]
+```
+
 ### Lint
 
 A new Consumer lints with Oxlint. An existing one keeps its linter until it migrates. The agent edit hook exits 2 when errors are left, so the agent sees them at the edit, not one CI round later. Why Oxlint over ESLint: [ADR-0006](adr/0006-oxlint-and-an-edit-hook.md).
+
+```mermaid
+flowchart LR
+  edit[agent edits file] --> fix[oxlint --fix, Prettier]
+  fix --> left{errors left?}
+  left -- no --> silent[exit 0, silent]
+  left -- yes --> block[exit 2]
+  block --> agent[agent sees errors]
+  agent --> edit
+```
 
 ## Life of a change
 
@@ -123,7 +144,7 @@ The Hub ships a change as a Release, a git tag that release-please makes. One Sy
 | ----------------------------------------------- | --------------------------------------- | ------------------------------------------------------------------------------------------------ |
 | skills, Router rules                            | `.agents/skills/`, `.claude/rules/`     | knowledge for the agent, installed by the skills CLI from `timschoch/skilly#<release>`           |
 | Engine: verify, the checks, sync and setup code | `.skilly/engine/`                       | committed in the Consumer, so CI and hooks never read the private Hub                            |
-| Managed files: `ci.yml`, `nightly.yml`          | `.github/workflows/`                    | written from the Engine, so a fix reaches every Consumer with the next Sync PR                   |
+| Managed files: workflows, `dependabot.yml`      | `.github/`                              | written from the Engine, so a fix reaches every Consumer with the next Sync PR                   |
 | skilly entries in hook files                    | `lefthook.yml`, `.claude/settings.json` | the Consumer keeps its own entries in these files, so the Sync PR writes only the skilly entries |
 
 ```mermaid
@@ -143,6 +164,7 @@ sequenceDiagram
 - A hand edit in `.skilly/engine/` stops the nightly sync for that Consumer. The nightly opens one issue there.
 - A Consumer changes its checks in `.skilly/verify.json` and its tier in `.skilly/config.json`, never in a Managed file.
 - `skilly add` and `skilly remove` run the same sync code on the current branch, for "I want it now".
+- `skilly sync` runs the nightly for one Consumer now: the same Sync PR to the newest Release.
 - Who owns each file: [ADR-0008](adr/0008-hub-run-sync-and-pinned-engine.md#who-owns-what-in-a-consumer).
 
 ## The babysit loop
