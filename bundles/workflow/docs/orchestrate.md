@@ -30,6 +30,8 @@ A **real tracker with native sub-issues** (GitHub today — sub-issues are fetch
 
 The split of labour is the whole design. The **orchestrator** — you, in the session you typed `/orchestrate` into — is read-only plus `gh` plus the ability to spawn. It never edits `src/`. The **agents** run the full `/implement` flow inside their own worktree: native claim, TDD, code review, their own PR. Nothing about implementation is restated in the orchestrator's prompt, because duplicating it is how the two drift apart.
 
+Each agent runs in a thread when your tool has threads. You see every thread and can steer it yourself. Without threads, the agents run as background subagents instead.
+
 Everything mechanical past "PR open" belongs to the orchestrator: merge order, watching CI, deleting branches and worktrees, the one final docs PR for shared-line docs.
 
 ## The ledger
