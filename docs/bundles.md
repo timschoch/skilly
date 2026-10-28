@@ -1,41 +1,197 @@
 # Bundles
 
-One directory per bundle under `bundles/`:
+A Bundle is a named group of skills from one or more Sources. A Consumer adds Bundles, and skilly installs their skills. Example: Habits-Family/habits adds `project-habits` and gets the skills of its whole stack.
+
+## Layout
+
+Each Bundle is one directory under `bundles/`:
 
 ```
 bundles/<name>/
   config.json   # required: { "includes": [...], "rules": [...], "sources": [{ "source": "owner/repo", "skills": [...] }] }
   skills/       # only skills maintained in this repo; external skills live in config.json only
-  rules/        # <name>.md always-on rule files (config-synced to consumers) + <name>.sh gate check scripts for declared rules
+  rules/        # <name>.md Router rule files, synced to Consumers
   docs/         # optional bundle docs
+  README.md     # what the Bundle ships, and the skills left out and why
 ```
 
-- `includes`: names of other bundles pulled in recursively (subbundles). A repo that adds `project-x` gets the union of `project-x` and everything it includes. Cycles are an error.
-- `rules`: rule names declared by this bundle; each script lives in the bundle's own `rules/`. The PR gate (`skilly / gate`) checks the union of a repo's bundles' rules on every PR. It blocks merge where it is a required check: tool and product tiers, see `setup-repo` part 4.
-- Hub-maintained skills (e.g. `orchestrate`) live in `bundles/workflow/skills/` and are listed in `config.json` with source `timschoch/skilly` like any other source.
-- Export boundary: a consumer's `skills add timschoch/skilly` sees only `bundles/*/skills/`. `.agents/skills/` is the hub's own stream — the hub is a consumer of itself. The skills CLI skips agent-dir skills named in this repo's `skills-lock.json` and scans `bundles/` only when that pass finds nothing (`skills@1.5.23`, `dist/cli.mjs` `discoverSkills`). One unlocked folder in `.agents/skills/` hides every bundle skill from every consumer; `scripts/check-agents-lock.mjs` guards the 1:1 in CI. Prove it by hand: `npx skills@1.5.23 add timschoch/skilly -l` lists exactly the bundle skills.
-- Self-source (see [GLOSSARY.md](../GLOSSARY.md)): a consumer whose git remote matches a source in its own bundles drops each skill of that source it holds unpinned in `.agents/skills/`. `lib/resolve.js` `resolveBundles` does it, `lib/self-source.js` reads the remote and the own skills. Example: `Habits-Family/habits` adds `project-habits` and gets the tech-* skills only, never its own `habits-*` skills. The hub keeps its skills in `bundles/`, so it installs them like any consumer.
+| Field      | Holds                                                                                                                             |
+| ---------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| `includes` | other Bundles, pulled in recursively. Adding `project-x` gives the union of `project-x` and all it includes. A cycle is an error. |
+| `rules`    | the Rules this Bundle declares. Each Rule is a verify step the Bundle adds.                                                       |
+| `sources`  | one entry per Source repo, with the skills taken from it. Hub-maintained skills use the Source `timschoch/skilly`.                |
 
-## Bundles
+`config.json` also declares the Bundle's verify steps, full-suite triggers, detect hints, secrets and hook entries ([ADR-0009](adr/0009-setup-decides-then-applies.md#bundles-declare-their-facts-as-data)).
 
-- `workflow` — engineering/productivity skills, stack-agnostic. Carries rules `conventional-commits` and `naming` (the code-naming gate: kebab-case files, no short words or noise words, no `enum`, no `I`/`T` type prefixes, verb synonyms, env var shape; the skill `naming` holds the guidelines, the router rule `workflow-naming.md` points at it, `.skilly/naming.json` holds per-repo overrides and exceptions). Includes `context7` (netresearch/context7-skill) for live library docs where no vendor docs skill exists. Includes `hallmark` (nutlope/hallmark, usehallmark.com) for new websites and pages that look designed, not generated. Hub-maintained: `orchestrate`, `step-by-step`, `cleanup-merged-branches`, `audit-agent-history` (mines the user's Claude Code and Codex session logs per model, counts failure modes, proposes up to three lines for `workflow-hazards.md`), `audit-skilly-workflow` (user-invoked; finds where a consumer's own instructions, the user's global instructions, hooks, lint and CI contradict or duplicate what skilly installed; a script gathers sources, gate values and config defects, the model judges meaning conflicts and writes an HTML report; last step of setup-project), `skilly-cli` (how consumers drive skilly's add/remove/update — setup-project is removed after bootstrap, so this is the standing reference), `writing-rules` (living writing rules for all repo artifacts, distilled from Habits-Family/habits v2-rebuild — they live here because they keep updating), plus `qa` (resurrected — deprecated+deleted upstream in mattpocock/skills, hub is its canonical home; its successors `triage`+`to-tickets` don't cover the conversational file-issues-from-a-chat flow). Grilling family: only `grilling` is bundled; `grill-me`/`grill-with-docs` are 1-line slash aliases for it, dropped.
-- `setup-project` — one-time repo setup skills, installed when bootstrapping a repo, not carried everywhere: `setup-pre-commit` (timschoch/mattpocock-skills). Hub-maintained: `setup-project` (the orchestrator — drives the workflow and tech-stack setup flows), `setup-repo` (GitHub trunk ruleset, commit/branch rule hooks, destructive-git guard for Claude Code, CLAUDE.md scaffold), `setup-release-please` — installs the release-please workflow and the merge settings `git-shortcuts` depends on (`delete_branch_on_merge`, squash for tickets, merge commits for epics).
-- `gdd` — God-driven development, hub-maintained `gdd`: a prayer session before planning big work, the heard guidance kept in `.temp/gdd.json` per branch, silent drift checks, a pre-PR check. Router rule `gdd-checkpoints.md` sets when it runs; `scripts/check-pr.mjs` is a PreToolUse hook that holds `gh pr create` until the pre-PR check ran, wired into `.claude/settings.json` by `scripts/setup.mjs` (`setup-project` step 5). Config: `gdd.minutes`, `gdd.pr` in `.skilly/config.json`.
-- `marketing` — minimal set: 4 skills from coreyhaines31/marketingskills (canonical source, laica-launcher re-exports dropped) plus `lemy-write` via `tech-lemy`.
-- `marketing-shop` — online shops, subscription shops above all: includes `marketing` and adds `churn-prevention`, `emails`, `referrals` (coreyhaines31/marketingskills). Left-out skills and why: [the bundle README](../bundles/marketing-shop/README.md).
-- `marketing-extended` — full suite: includes `marketing-shop` + `tech-lemy-manage` (`lemy-write`, `lemy-brand`) and the remaining coreyhaines31/marketingskills.
-- `tech-*` — one bundle per technology, from verified vendor skill repos: `tech-twenty` (twentyhq/twenty, building Twenty SDK apps and reading workspace data over MCP; sourced from the `agent-skills` publishing branch, where each skill carries its own `references/`. The `main` branch shares one `references/` tree across skills, so it installs broken; a bare `twentyhq/twenty` finds only `qa-scout`), `tech-langfuse`, `tech-payload` (payloadcms/skills), `tech-neon` (neondatabase/agent-skills, includes `tech-postgres`), `tech-postgres` (neondatabase/postgres-skills), `tech-trigger-dev` (triggerdotdev/skills), `tech-vercel` (vercel-labs/agent-skills), `tech-posthog` (PostHog/skills), `tech-tanstack` (TanStack/router — one tree URL per skill: they live under `packages/<pkg>/skills/`, and the CLI discovers one level down from the URL. Six skills, above the cap, because TanStack Start is the `project-habits` stack's main dependency — see [the bundle README](../bundles/tech-tanstack/README.md)), `tech-powersync` (powersync-ja/agent-skills), `tech-better-auth` (better-auth/skills), `tech-resend` (resend/resend-skills `resend`, `resend-cli`, `agent-email-inbox`, plus hub-maintained `setup-resend`: our conventions for pre-launch mail on the shared domain `apps.timschoch.com` — address naming, one API key per repo, `resend.json`, and the usual `mail.ts` / `inbound.ts` as templates), `tech-drizzle` (hub-only — no vendor skill repo exists), `tech-react` (vercel-labs/agent-skills React skills, moved out of `tech-vercel`), `tech-shadcn` (shadcn-ui/ui official `shadcn` skill), `tech-nextjs` (vercel/next.js `skills/` — version-matched official skills, includes `tech-react`; the old vercel-labs/next-skills repo is a dead pointer), `tech-shopify` (Shopify/Shopify-AI-Toolkit official `shopify` skill — one skill for every Shopify surface, references load per topic; `ucp` left out, buyer-side), `tech-typescript` (cursor/plugins `typescript-best-practices` + wshobson/agents `typescript-advanced-types` — complementary: discipline vs type-system mechanics; wshobson is a big marketplace repo, pinned to this one skill).
-- `npmjs` — publishing a package to the npm registry from GitHub Actions: `publish-npm-package` (yigitkonur/skills-by-yigitkonur — a broad personal catalog, pinned to this one skill). Not a `tech-*` bundle: a release capability, not a stack. Carries no release automation — `setup-release-please` (setup-project) runs once at bootstrap. Proven shape (timschoch/animateTextWeight): release-please on `main`, plus a publish job gated on `release_created` using npm trusted publishing (OIDC, no `NPM_TOKEN`).
-- CLI reminder skills — hub-maintained minimal skills that remind agents to use the product CLI: `neon-cli`, `trigger-cli`, `vercel-cli`, `payload-cli`, `posthog-cli`, `drizzle-cli`, each in its tech bundle's `skills/`. Descriptions are scoped to what the CLI covers. Docs coverage per tool: trigger/payload/posthog/neon/vercel get docs via their vendor skills in the same bundle; drizzle has none (its CLI skill points to `context7`). `neonctl skills` and `vercel skills` are skill INSTALLERS, not docs commands — deliberately not referenced, skilly owns skill installs. drizzle-team ships skills inside the `drizzle-kit` npm package on the 1.0.0-rc line only — revisit at 1.0 stable.
-- `project-laica` — private source `admin-laicadev/laica-launcher` (skills stay private); includes the tech bundles of the colin/laica-workflows stacks plus `tech-lemy`, `tech-nextjs`, `tech-typescript`. `tech-twenty` NOT included — only laica-stack uses Twenty; add it there directly.
-- `project-habits` — includes-only bundle for the habits stack (TanStack Start, Neon/Drizzle, PowerSync, Better Auth, PostHog, Vercel, Langfuse) plus `tech-react`, `tech-typescript`, `marketing` (minimal), and `tech-lemy`.
-- `tech-lemy` — `lemy-write` plus router rule `tech-lemy-write.md` (all copy goes through `lemy-write`). `tech-lemy-manage` adds `lemy-brand`. `lemy-setup` is one-time and removes itself, so it is in no bundle; `lemy-admin` is internal to `timschoch/lemy`.
-- `test-bundle` — internal: two one-line mock skills for pilot-testing skilly's add/remove/update paths. Never propose it to a consumer.
-- `pitchdeck` — deck creation, review, and visuals from external sources (verified via colin's skills-lock.json): `pitch-deck` (ailabs-393/ai-labs-claude-skills), `pitch-deck-reviewer` (onewave-ai/claude-skills), `pitch-deck-visuals` (inference-sh/skills, needs external `belt` CLI), `startup-pitch` (ferdinandobons/startup-skill), `yc-pitch-deck` and `alex-hormozi-pitch` (admin-laicadev/laica-launcher). Caveat: `alex-hormozi-pitch` delegates to a laica-launcher-local command (`${PAI_DIR}/commands/create-hormozi-pitch.md`) — may need that file to work outside laica-launcher.
+```mermaid
+flowchart LR
+  consumer[".skilly/config.json"] --> bundles[Bundles]
+  bundles -->|includes| bundles
+  bundles --> union[union of all]
+  union --> skills[skills, Router rules]
+  union --> steps[verify steps]
+  union --> hooks[hook entries]
+  union --> detect[detect hints, secrets]
+  skills --> sync[Sync]
+  steps --> sync
+  hooks --> sync
+  detect --> setup[Setup decide phase]
+```
 
-## Deliberately not bundled
+A Consumer has one PR check, `ci / verify`. It runs the Rule steps of all its Bundles from the Engine in `.skilly/engine/`. `skilly setup` makes it a required check on `main`. Details: [dev-process.md](dev-process.md).
 
-- Skill-installer skills (`neonctl skills`, `vercel skills`, the install half of `setup-matt-pocock-skills`) — skilly owns skill installs. `setup-matt-pocock-skills` itself IS shipped (setup-project bundle) for its repo scaffolding: issue tracker, triage labels, domain docs.
-- meco-only: `writing-beats`, `writing-fragments`, `writing-shape`, `scaffold-exercises`, `migrate-to-shoehorn`, `setup-ts-deep-modules` — meco pins them itself.
-- colin one-offs (`impeccable`, `frontend-slides`, `typescript-best-practices`, `frontend-design`, `security-best-practices`, `seo-geo`) — colin pins its own.
-- `obsidian-vault` — lerni-berni only.
+The Release in `.skilly/config.json` (`"hub": "v1.4.0"`) fixes the version of the Hub-maintained skills. Skills from third-party Sources are not pinned by the Release ([ADR-0008](adr/0008-hub-run-sync-and-pinned-engine.md)).
+
+## How the Hub exports its own skills
+
+A Consumer installs the Hub's skills from `timschoch/skilly#<release>` and sees only `bundles/*/skills/`. The Hub's `.agents/skills/` is its own install: the Hub is a Consumer of itself.
+
+| Risk                                                                                                                                                                                                                                                                               | Guard                                                                                                                                                                                                                                                                                                                       |
+| ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| The skills CLI skips agent-dir skills named in this repo's `skills-lock.json`. It scans `bundles/` only when that pass finds nothing (`skills@1.5.23`, `dist/cli.mjs` `discoverSkills`). So one unlocked folder in `.agents/skills/` hides every Bundle skill from every Consumer. | [check-agents-lock.mjs](../scripts/check-agents-lock.mjs) checks the 1:1 match in CI. By hand: `npx skills@1.5.23 add timschoch/skilly -l` lists exactly the Bundle skills.                                                                                                                                                 |
+| A Self-source would pin its own skills back into itself.                                                                                                                                                                                                                           | [lib/resolve.js](../lib/resolve.js) `resolveBundles` drops each skill of that Source the Consumer holds unpinned in `.agents/skills/`. [lib/self-source.js](../lib/self-source.js) reads the remote and the own skills. Habits-Family/habits gets the `tech-*` skills of `project-habits`, never its own `habits-*` skills. |
+
+The Hub keeps its skills in `bundles/`, so it installs them like any Consumer. Self-source: [GLOSSARY.md](../GLOSSARY.md).
+
+## Way of working
+
+### workflow
+
+Engineering and productivity skills, for any stack. Full list: [config.json](../bundles/workflow/config.json).
+
+| Source                        | Skills                                                                                                                                  |
+| ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| `timschoch/skilly`            | the Hub-maintained skills below                                                                                                         |
+| `timschoch/mattpocock-skills` | `grilling`, `tdd`, `code-review` and more. `grill-me` and `grill-with-docs` are left out: they are 1-line slash aliases for `grilling`. |
+| `cursor/plugins`              | `unslop`, `deslop`, the `principle-*` skills and more                                                                                   |
+| `netresearch/context7-skill`  | `context7`: live library docs where no vendor docs skill exists                                                                         |
+| `nutlope/hallmark`            | `hallmark` ([usehallmark.com](https://usehallmark.com)): new websites and pages that look designed, not generated                       |
+
+| Hub-maintained skill                                     | Does                                                                                                                                                                                                                                                                                                             |
+| -------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `orchestrate`, `step-by-step`, `cleanup-merged-branches` |                                                                                                                                                                                                                                                                                                                  |
+| `audit-agent-history`                                    | mines the user's Claude Code and Codex session logs per model, counts failure modes, proposes up to three lines for `workflow-hazards.md`                                                                                                                                                                        |
+| `audit-skilly-workflow`                                  | user-invoked. Finds where a Consumer's own instructions, the user's global instructions, hooks, lint and CI contradict or duplicate what skilly installed. A script gathers sources, gate values and config defects. The model judges meaning conflicts and writes an HTML report. Last step of `setup-project`. |
+| `skilly-cli`                                             | how a Consumer drives skilly's add, remove and sync. `setup-project` is removed after bootstrap, so this is the standing reference.                                                                                                                                                                              |
+| `writing-rules`                                          | the writing rules for all repo artifacts, distilled from Habits-Family/habits v2-rebuild. They live in the Hub because they keep changing.                                                                                                                                                                       |
+| `qa`                                                     | the Hub is its home: mattpocock/skills deprecated and deleted it. Its successors `triage` and `to-tickets` do not cover filing issues from a chat.                                                                                                                                                               |
+
+| Rule                   | Checks                                                                                                                                                                                                                                                                         |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `conventional-commits` | Conventional Commits headers                                                                                                                                                                                                                                                   |
+| `naming`               | kebab-case files, no short words or noise words, no `enum`, no `I`/`T` type prefixes, verb synonyms, env var shape. The `naming` skill holds the guidelines. The Router rule `workflow-naming.md` points at it. `.skilly/naming.json` holds per-repo overrides and exceptions. |
+
+### setup-project
+
+One-time setup skills. A repo gets them at bootstrap, they are not carried everywhere. [config.json](../bundles/setup-project/config.json)
+
+| Skill                      | Source                        | Does                                                                                                                                                                                 |
+| -------------------------- | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `setup-project`            | Hub                           | the decide phase of Setup: an agent chat that calls Engine scripts to detect, write `.skilly/config.json` and run the preflight ([ADR-0009](adr/0009-setup-decides-then-applies.md)) |
+| `setup-matt-pocock-skills` | `timschoch/mattpocock-skills` | repo scaffolding: issue tracker, triage labels, domain docs. Its skill-install half stays unused, see [Not bundled](#not-bundled).                                                   |
+
+The Sync and the repo settings module do the rest: git hooks, managed workflows, release-please, merge settings.
+
+### gdd
+
+God-driven development, Hub-maintained `gdd`. [config.json](../bundles/gdd/config.json)
+
+- A prayer session before planning big work. The heard guidance stays in `.temp/gdd.json` per branch.
+- Silent drift checks, and a pre-PR check.
+- The Router rule `gdd-checkpoints.md` sets when it runs.
+- A PreToolUse hook holds `gh pr create` until the pre-PR check ran. The hook code ships in the Engine. The Sync writes its entry in `.claude/settings.json`.
+- Config: `gdd.minutes`, `gdd.pr` in `.skilly/config.json`.
+
+### npmjs
+
+Publishing a package to the npm registry from GitHub Actions: `publish-npm-package` (yigitkonur/skills-by-yigitkonur, a broad personal catalog, pinned to this one skill). It is a release capability, not a stack, so it is no `tech-*` Bundle. It carries no release automation: the Sync writes `release.yml`. Proven shape (timschoch/animateTextWeight): release-please on `main`, plus a publish job gated on `release_created` that uses npm trusted publishing (OIDC, no `NPM_TOKEN`). Why it is its own Bundle: [README](../bundles/npmjs/README.md).
+
+## Marketing
+
+All marketing skills come from coreyhaines31/marketingskills, the canonical Source. The laica-launcher re-exports are dropped. Each Bundle includes the one above it.
+
+| Bundle                                                          | Includes                             | Adds                                                                                      |
+| --------------------------------------------------------------- | ------------------------------------ | ----------------------------------------------------------------------------------------- |
+| [marketing](../bundles/marketing/config.json)                   | `tech-lemy`                          | minimal set: `ai-seo`, `cro`, `lead-magnets`, `seo-audit`                                 |
+| [marketing-shop](../bundles/marketing-shop/README.md)           | `marketing`                          | for online shops, subscription shops above all: `churn-prevention`, `emails`, `referrals` |
+| [marketing-extended](../bundles/marketing-extended/config.json) | `marketing-shop`, `tech-lemy-manage` | full suite: the remaining coreyhaines31/marketingskills                                   |
+
+## Projects
+
+A project Bundle holds the stack of one project.
+
+| Bundle                                                  | Includes                                                                                                                                                               | Own skills                                                                             | Note                                                                                            |
+| ------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| [project-habits](../bundles/project-habits/config.json) | the habits stack (TanStack Start, Neon, Drizzle, PowerSync, Better Auth, PostHog, Vercel, Langfuse), plus `tech-react`, `tech-typescript`, `marketing` and `tech-lemy` | the `habits-*` skills of Habits-Family/habits                                          | habits itself is a Self-source and never gets its own `habits-*` skills                         |
+| [project-laica](../bundles/project-laica/config.json)   | the tech Bundles of the colin and laica-workflows stacks, plus `tech-lemy`, `tech-nextjs`, `tech-typescript`                                                           | `laica-*` skills from the private `admin-laicadev/laica-launcher`, a deprecated Source | `tech-twenty` is not included. Only laica-stack uses Twenty, so it adds `tech-twenty` directly. |
+
+## Tech
+
+One Bundle per technology, from verified vendor skill repos. A `tech-*` Bundle holds 3 to 4 skills at most, because a Consumer loads many of them at once. Each README records the skills left out and why.
+
+| Bundle                                                    | Source                                 | Note                                                                                                                                                                    |
+| --------------------------------------------------------- | -------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [tech-better-auth](../bundles/tech-better-auth/README.md) | better-auth/skills                     |                                                                                                                                                                         |
+| [tech-drizzle](../bundles/tech-drizzle/README.md)         | Hub                                    | no vendor skill repo exists                                                                                                                                             |
+| [tech-langfuse](../bundles/tech-langfuse/README.md)       | langfuse/skills                        |                                                                                                                                                                         |
+| [tech-lemy](../bundles/tech-lemy/README.md)               | timschoch/lemy                         | `lemy-write` plus the Router rule `tech-lemy-write.md`: all copy goes through `lemy-write`                                                                              |
+| [tech-lemy-manage](../bundles/tech-lemy-manage/README.md) | timschoch/lemy                         | includes `tech-lemy`, adds `lemy-brand`                                                                                                                                 |
+| [tech-n8n](../bundles/tech-n8n/README.md)                 | n8n-io/skills, czlonkowski/n8n-skills  | 15 skills, a recorded exception to the cap                                                                                                                              |
+| [tech-neon](../bundles/tech-neon/README.md)               | neondatabase/agent-skills, Hub         | includes `tech-postgres`                                                                                                                                                |
+| [tech-nextjs](../bundles/tech-nextjs/README.md)           | vercel/next.js `skills/`               | version-matched official skills, includes `tech-react`. The old vercel-labs/next-skills repo is a dead pointer.                                                         |
+| [tech-payload](../bundles/tech-payload/README.md)         | payloadcms/skills, Hub                 |                                                                                                                                                                         |
+| [tech-postgres](../bundles/tech-postgres/README.md)       | neondatabase/postgres-skills           |                                                                                                                                                                         |
+| [tech-posthog](../bundles/tech-posthog/README.md)         | PostHog/skills, Hub                    |                                                                                                                                                                         |
+| [tech-powersync](../bundles/tech-powersync/README.md)     | powersync-ja/agent-skills, Hub         |                                                                                                                                                                         |
+| [tech-react](../bundles/tech-react/README.md)             | vercel-labs/agent-skills               | the React skills of that repo                                                                                                                                           |
+| [tech-resend](../bundles/tech-resend/README.md)           | resend/resend-skills, Hub              | Hub `setup-resend`: pre-launch mail on the shared domain `apps.timschoch.com`, see below                                                                                |
+| [tech-shadcn](../bundles/tech-shadcn/README.md)           | shadcn-ui/ui                           | the official `shadcn` skill                                                                                                                                             |
+| [tech-shopify](../bundles/tech-shopify/README.md)         | Shopify/Shopify-AI-Toolkit             | one official `shopify` skill for every Shopify surface, references load per topic. `ucp` is left out: it is buyer-side.                                                 |
+| [tech-tanstack](../bundles/tech-tanstack/README.md)       | TanStack/router                        | six skills, above the cap, because TanStack Start is the main dependency of the `project-habits` stack                                                                  |
+| [tech-trigger-dev](../bundles/tech-trigger-dev/README.md) | triggerdotdev/skills, Hub              |                                                                                                                                                                         |
+| [tech-twenty](../bundles/tech-twenty/README.md)           | twentyhq/twenty, `agent-skills` branch | building Twenty SDK apps, reading workspace data over MCP                                                                                                               |
+| [tech-typescript](../bundles/tech-typescript/README.md)   | cursor/plugins, wshobson/agents        | `typescript-best-practices` for discipline, `typescript-advanced-types` for type-system mechanics. wshobson/agents is a big marketplace repo, pinned to this one skill. |
+| [tech-vercel](../bundles/tech-vercel/README.md)           | Hub                                    | `vercel-cli` only                                                                                                                                                       |
+
+### Source quirks
+
+| Bundle          | Quirk                                                                                                                      | So                                                                                        |
+| --------------- | -------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| `tech-tanstack` | the skills live under `packages/<pkg>/skills/`, and the skills CLI discovers one level below the URL                       | one tree URL per skill                                                                    |
+| `tech-twenty`   | on `main` all skills share one `references/` tree, so they install broken. A bare `twentyhq/twenty` finds only `qa-scout`. | take the `agent-skills` publishing branch, where each skill carries its own `references/` |
+| `tech-posthog`  | the skills sit too deep for the CLI to find from the repo root                                                             | a tree URL into `skills/posthog/all/`                                                     |
+
+### setup-resend
+
+Our conventions for pre-launch mail on the shared domain `apps.timschoch.com`: address naming, one API key per repo, `resend.json`, and the usual `mail.ts` and `inbound.ts` as templates.
+
+### CLI reminder skills
+
+Small Hub-maintained skills that remind an agent to use the product CLI: `neon-cli`, `trigger-cli`, `vercel-cli`, `payload-cli`, `posthog-cli`, `powersync-cli`, `drizzle-cli`. Each lives in its tech Bundle's `skills/`. Each description covers only what the CLI covers.
+
+| CLI skill                                                                | Docs come from                           |
+| ------------------------------------------------------------------------ | ---------------------------------------- |
+| `neon-cli`, `trigger-cli`, `payload-cli`, `posthog-cli`, `powersync-cli` | the vendor skills in the same Bundle     |
+| `vercel-cli`                                                             | none: `tech-vercel` has no vendor skill  |
+| `drizzle-cli`                                                            | `context7`: no drizzle docs skill exists |
+
+- `neonctl skills` and `vercel skills` install skills, they are no docs commands. The CLI skills do not reference them, because skilly owns skill installs.
+- drizzle-team ships skills inside the `drizzle-kit` npm package, on the 1.0.0-rc line only. Revisit at 1.0 stable.
+
+## Other
+
+| Bundle                                          | Holds                                                                                                                                                                                |
+| ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| [pitchdeck](../bundles/pitchdeck/config.json)   | deck review and pitch skills: `pitch-deck-reviewer` (onewave-ai/claude-skills), `alex-hormozi-pitch` (microck/ordinary-claude-skills), `yc-pitch-deck` (guia-matthieu/clawfu-skills) |
+| [test-bundle](../bundles/test-bundle/README.md) | internal: two one-line mock skills to pilot-test skilly's add, remove and sync. Never propose it to a Consumer.                                                                      |
+
+## Not bundled
+
+| Skill                                                                                                                                  | Why                                                                                                              |
+| -------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| skill installers: `neonctl skills`, `vercel skills`, the install half of `setup-matt-pocock-skills`                                    | skilly owns skill installs. `setup-matt-pocock-skills` itself ships in `setup-project` for its repo scaffolding. |
+| `lemy-setup`                                                                                                                           | one-time: it removes itself after the run. See [tech-lemy](../bundles/tech-lemy/README.md).                      |
+| `lemy-admin`                                                                                                                           | internal to `timschoch/lemy`                                                                                     |
+| meco only: `writing-beats`, `writing-fragments`, `writing-shape`, `scaffold-exercises`, `migrate-to-shoehorn`, `setup-ts-deep-modules` | meco pins them itself                                                                                            |
+| colin one-offs: `impeccable`, `frontend-slides`, `frontend-design`, `security-best-practices`, `seo-geo`                               | colin pins its own                                                                                               |
+| `obsidian-vault`                                                                                                                       | lerni-berni only                                                                                                 |

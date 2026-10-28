@@ -1,6 +1,6 @@
 # ADR-0007: Stryker checks the strength of the tests each night
 
-Status: proposed, 2026-10-21
+Status: accepted, 2026-10-28
 
 ## Context
 

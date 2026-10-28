@@ -1,3 +1,3 @@
 # tech-postgres
 
-Official `neondatabase/postgres-skills` — upstream ships a single consumer skill, we take it. Included by tech-neon.
+The one Consumer skill of the official `neondatabase/postgres-skills`. `tech-neon` includes this Bundle.

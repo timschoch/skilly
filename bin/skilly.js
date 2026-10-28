@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Porcelain only: parse args, dispatch to one verb script (docs/flows user.mmd).
+// Porcelain only: parse args, dispatch to one verb script.
 import { fileURLToPath } from 'node:url';
 import { setup } from '../lib/setup.js';
 import { add } from '../lib/add.js';

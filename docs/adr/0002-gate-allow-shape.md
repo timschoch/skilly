@@ -1,6 +1,6 @@
 # ADR-0002: One `allow` shape and stack files for every file-checking PR gate
 
-Status: accepted, 2026-09-28
+Status: accepted, 2026-09-28. Decisions 4 and 5 changed by [ADR-0008](0008-hub-run-sync-and-pinned-engine.md): the gate job goes, Rules run as verify steps.
 
 ## Context
 

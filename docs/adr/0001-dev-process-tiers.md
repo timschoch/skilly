@@ -1,6 +1,6 @@
 # ADR-0001: One verify regime, three nested tiers
 
-Status: accepted, 2026-09-15
+Status: accepted, 2026-09-15. Decisions 2 and 5 changed by [ADR-0008](0008-hub-run-sync-and-pinned-engine.md), 2026-10-28.
 
 ## Context
 
@@ -9,10 +9,10 @@ Checks ran too early and too often. An LLM review step in a pre-push hook cost u
 ## Decision
 
 1. Three tiers, nested: sandbox ⊂ tool ⊂ product. Every stage a lower tier runs, the higher tiers run too. Stage table: [dev-process.md](../dev-process.md#tiers).
-2. One config, `.skilly/verify.json`. Entry point `verify <stage>`. Hooks and CI call it. Adding a check is one line there, never a line in a hook or a workflow.
+2. One config, `.skilly/verify.json`. Entry point `verify <stage>`. Hooks and CI call it. Adding a check is one line there, never a line in a hook or a workflow. Since ADR-0008, hooks and CI run verify from the Engine in `.skilly/engine/`, not from the `verify` skill.
 3. No LLM in any git hook. Review runs on request: `/code-review` locally, `/ai-review` as a PR comment runs the same skill via `claude-code-action` on the Max OAuth token.
 4. `.skilly/` replaces `.skilly.json`, `docs/agents/naming.json`, and each consumer's own verify config.
-5. GitHub Pro per account for tool- and product-tier private repos, with `verify` as the required check on `main`.
+5. GitHub Pro per account for tool- and product-tier private repos, with `verify` as the required check on `main`. Since ADR-0008, every Consumer requires `ci / verify`, and `skilly setup` sets the ruleset.
 6. `babysit-pr` is ported from `openai/codex` (Apache-2.0, attribution required). No auto-merge. Reviewers come from `.skilly/config.json`.
 7. The product tier owns nightly full e2e, dependency drift, and security scan, plus `/security-review` before release.
 

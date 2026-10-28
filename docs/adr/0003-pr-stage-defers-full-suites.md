@@ -1,10 +1,19 @@
 # ADR-0003: A `pr` stage defers the full suites to the release PR and the nightly
 
-Status: accepted, 2026-10-05. Decision 3: verify picks the stage, per [ADR-0005](0005-shared-ci-workflows.md). Decision 5: replaced by [ADR-0004](0004-nightly-runs-only-on-change.md).
+Status: accepted, 2026-10-05. Decision 3: verify picks the stage. `ci.yml` is a Managed file per [ADR-0008](0008-hub-run-sync-and-pinned-engine.md), and the required check is `ci / verify`. Decision 5: replaced by [ADR-0004](0004-nightly-runs-only-on-change.md).
 
 ## Context
 
-The `ci` stage extends `push`, so each PR run of a Consumer ran `unit (changed)` and then the full `unit` suite, which holds the same tests. Measured in one product Consumer over 14 PR runs: mean 645 s for each run, full `unit` 243 to 440 s, `e2e smoke` 30 to 41 s plus about 23 s of browser install. On a wide diff both unit steps took about 410 s each. Source: [#154 verify: the ci stage runs the unit tests two times](https://github.com/timschoch/skilly/issues/154).
+The `ci` stage extends `push`, so each PR run of a Consumer ran `unit (changed)` and then the full `unit` suite, which holds the same tests. Measured in one product Consumer over 14 PR runs:
+
+| Step                          | Time                                           |
+| ----------------------------- | ---------------------------------------------- |
+| whole PR run, mean            | 645 s                                          |
+| full `unit`                   | 243 to 440 s                                   |
+| `e2e smoke`                   | 30 to 41 s, plus about 23 s of browser install |
+| each unit step on a wide diff | about 410 s                                    |
+
+Source: [#154 verify: the ci stage runs the unit tests two times](https://github.com/timschoch/skilly/issues/154).
 
 `vitest --changed` follows imports only. No test imports a lockfile or a migration, so such a diff ran too few tests. Vitest's `forceRerunTriggers` globs do not match in a checkout under a dot folder, because `**` skips a dot segment.
 
