@@ -86,6 +86,19 @@ sequenceDiagram
 10. lefthook runs the git hooks in every Consumer. A Consumer on husky moves to lefthook with its first Sync PR.
 11. `release.yml` runs release-please with the default `GITHUB_TOKEN`. A PR opened with that token starts no workflow, so `release.yml` then starts `ci.yml` on the release branch with `workflow_dispatch`. That run reports `ci / verify` on the PR's last commit. Verify this on one Consumer before the rollout.
 
+    ```mermaid
+    sequenceDiagram
+      participant Main as push to main
+      participant Rel as release.yml
+      participant GitHub
+      participant CI as ci.yml
+      Main->>Rel: run release-please
+      Rel->>GitHub: open or update release PR (default token)
+      Rel->>CI: gh workflow run ci.yml --ref <release branch>
+      CI->>GitHub: verify on the PR's commit
+      GitHub->>GitHub: check green, PR can merge
+    ```
+
 ### Setup skills
 
 12. `setup-repo`, `setup-release-please` and `setup-pre-commit` go away. Their work moves into the Sync (decisions 9 and 10) and the repo settings module (decision 8). `setup-project` keeps only the decide phase.

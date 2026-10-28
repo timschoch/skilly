@@ -102,6 +102,18 @@ Facts that shaped the decision, checked 2026-10-28:
 10. The nightly compares `.skilly/engine/` with the hash recorded for its Release. A mismatch skips that Consumer and opens or updates one issue there. The other Consumers still sync. The Consumer's CI keeps running its edited Engine. That is the repo owner's choice.
 11. A person starts the same Sync for one Consumer with `skilly sync` (decision 16). The Hub owner can also start the whole nightly by hand: `gh workflow run sync.yml --repo timschoch/skilly`.
 
+    ```mermaid
+    sequenceDiagram
+      participant You
+      participant Old as Engine (pinned Release)
+      participant New as Engine (newest Release)
+      participant GitHub
+      You->>Old: skilly sync
+      Old->>New: fetch newest Release
+      Old->>New: run Sync and delivery
+      New->>GitHub: push Sync PR branch, open PR, auto-merge rule
+    ```
+
 ### One App
 
 12. One skilly App, set to "any account can install". It is installed once per account with "all repositories". The Hub holds its ID and key. An owner allowlist in the Hub makes the sync ignore installs by anyone else.
