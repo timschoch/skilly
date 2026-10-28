@@ -8,7 +8,7 @@ description: >
 
 # Setup project
 
-Drives the setup flows in [flows user.mmd](https://github.com/timschoch/skilly/blob/main/docs/flows%20user.mmd): workflow setup first, tech stack second.
+Drives two setup flows: workflow setup first, tech stack second.
 
 Setup skills are just-in-time: `npx github:timschoch/skilly add <skill>`, then READ the installed SKILL.md and follow it directly (the session's skill list only loads at startup — no reload exists), then `npx github:timschoch/skilly remove <skill>`. This applies to EVERY skill named below — never invoke a copy installed elsewhere on the machine. Setup skills live in NO synced bundle: they would sit unused and pollute the context window.
 

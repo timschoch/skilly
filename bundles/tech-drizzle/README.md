@@ -4,4 +4,4 @@ Hub-maintained `drizzle-cli` only. Keep minimal.
 
 Left out (2026-08-31):
 
-- Upstream drizzle-kit skills — waiting for drizzle 1.0 stable, revisit then.
+- The drizzle-kit skills: they ship only on the 1.0.0-rc line. Revisit at drizzle 1.0 stable.

@@ -1,21 +1,45 @@
 # skilly
 
-Personal skill hub: Bundles + CLI + nightly Update behind a PR gate. Flows: [docs/flows user.mmd](docs/flows%20user.mmd) and [docs/flows sync.mmd](docs/flows%20sync.mmd) — the per-script diagrams in `docs/*.mmd` are the spec. Bundle catalog: [docs/bundles.md](docs/bundles.md).
+Private skill hub for one person and their agents. It keeps skills, checks and CI the same in every Consumer repo. Why it works this way: [ADR-0008](docs/adr/0008-hub-run-sync-and-pinned-engine.md). Bundle catalog: [docs/bundles.md](docs/bundles.md). Checks per tier: [docs/dev-process.md](docs/dev-process.md).
 
-## Commands (run in the Consumer repo)
+## How it works
 
-```sh
-npx github:timschoch/skilly setup                       # one-time: secrets, .skilly/config.json, caller workflow, setup-project skill
-npx github:timschoch/skilly add <bundle-or-skill...>    # install, rules, commit, ensure PR
-npx github:timschoch/skilly remove <bundle-or-skill...> # uninstall (keeps skills other bundles claim), rules, commit
-npx github:timschoch/skilly update                      # pull hub changes, update all skills, rules, commit
+A Consumer gets two things from the Hub, both at one Release:
+
+| What                                                | Lands in                            | Used by            |
+| --------------------------------------------------- | ----------------------------------- | ------------------ |
+| Knowledge: skills and Router rules                  | `.agents/skills/`, `.claude/rules/` | agents             |
+| Engine: the code for sync, setup, verify and checks | `.skilly/engine/`                   | hooks, CI, the CLI |
+
+`.skilly/config.json` names the Bundles, the tier and the Release (`"hub": "v1.4.0"`). Each night the Hub moves every Consumer to the newest Release with one Sync PR:
+
+```mermaid
+sequenceDiagram
+  participant You
+  participant Hub
+  participant Consumer
+  participant GitHub
+  You->>Hub: merge a change
+  You->>Hub: merge the Release PR
+  Hub->>Hub: tag v1.5.0
+  Hub->>Consumer: nightly Sync PR (skills + Engine)
+  GitHub->>Consumer: run ci / verify
+  GitHub->>Consumer: auto-merge when green
 ```
 
-Every command guards its branch (`chore/skilly-setup` or `chore/skilly-update` as is, main → `chore/skilly-setup`, anything else asks once and remembers in `.git/config`) and ends with its own commit + PR.
+The Sync PR waits for you when it removes a skill or the Release is a new major version.
 
-## New-repo setup, in order
+## Set up an account, once
 
-1. Create the repo and give `main` its first commit — skilly refuses a bare repo:
+1. Install the skilly App on the account, with "All repositories".
+2. Add the account to the owner allowlist in the Hub.
+3. Other accounts than `timschoch`: invite the account as a read collaborator on `timschoch/skilly`, then accept the invite as that account. `skilly setup` prints the command when it is missing.
+
+## Set up a repo
+
+Not every repo gets skilly. You choose the repos.
+
+1. Create the repo and push a first commit. skilly refuses an empty repo.
 
    ```sh
    gh repo create <owner>/<repo> --private --clone && cd <repo>
@@ -23,11 +47,29 @@ Every command guards its branch (`chore/skilly-setup` or `chore/skilly-update` a
    git add . && git commit -m "chore: initial commit" && git push -u origin main
    ```
 
-2. `npx -y github:timschoch/skilly setup` — switches to `chore/skilly-setup`, sets the App secrets, writes `.skilly/config.json` (no bundles), writes `.github/workflows/skilly-sync.yml`, adds formatter ignores, gitignores `.temp/` (agent scratch space), installs the `setup-project` skill, commits, opens the PR — then launches Claude Code (Opus) with `/setup-project`.
-   The App secrets come from the owner account's own [GitHub App](lib/github-app.js), one per account, shared by all its repos. The first setup for an account asks for it: create a private one in the browser, or use an existing one (App ID + key file). It is saved in `~/.config/skilly/apps/<owner>.json`, then setup waits until the App is installed on the repo. Org secrets `SKILLY_APP_ID` and `SKILLY_APP_PRIVATE_KEY` skip all of this: every repo of the org gets them, no key needed.
-   New repo (no README text, no stack file): opens the [setup interview](lib/interview/server.js) in the browser instead. Answer every question there, press Run AFK, walk away. Claude runs the whole setup and opens one setup PR. Steps 3–4 are then done.
-3. `/setup-project` — asks: setup workflow? tech stack? Drives the setup skills in order and adds Bundles via `skilly add`. (Or by hand: `npx -y github:timschoch/skilly add workflow` plus your `tech-*`/`project-*` bundles.)
-4. `npx -y github:timschoch/skilly update` — asks to drop bundle-less setup skills (e.g. `setup-project` once you're done with it); say yes.
-5. Merge the PR, then prove the workflow: `gh workflow run skilly-sync.yml && gh run watch`. No changes → no Sync PR.
+2. Run setup with the newest Release:
 
-From then on: `add` / `remove` / `update` any time. The nightly workflow runs `update` headless and keeps one standing Sync PR (`chore/skilly-update`); the gate merges it when green and removal-free, after the repo's required checks pass — removals always wait for you.
+   ```sh
+   npx -y github:timschoch/skilly#<release> setup
+   ```
+
+   Setup asks for the Bundles and the tier. It writes `.skilly/config.json`, runs the first sync, requires `ci / verify` on the default branch, turns on auto-merge, and opens the setup PR. A new repo without a README text or a stack file gets the [setup interview](lib/interview/server.js) in the browser instead. Setup is safe to run again: it fixes what is missing.
+
+3. Merge the setup PR. From then on the Hub's nightly keeps the repo up to date.
+
+## Commands in a Consumer
+
+The Engine runs them, at the repo's Release. Each one commits on the current branch.
+
+```sh
+node .skilly/engine/bin/skilly.js add <bundle-or-skill...>     # install now, do not wait for the nightly
+node .skilly/engine/bin/skilly.js remove <bundle-or-skill...>  # uninstall, keeps skills another Bundle needs
+```
+
+Do not edit `.skilly/engine/`, the managed workflow files or the synced skills. Change checks in `.skilly/verify.json` and the tier in `.skilly/config.json`. Who owns which file: [ADR-0008](docs/adr/0008-hub-run-sync-and-pinned-engine.md#who-owns-what-in-a-consumer).
+
+## Run the sync now
+
+```sh
+gh workflow run sync.yml --repo timschoch/skilly
+```

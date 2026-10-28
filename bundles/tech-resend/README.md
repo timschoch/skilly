@@ -4,5 +4,5 @@ Official `resend/resend-skills` core + hub `setup-resend` (our conventions for t
 
 Left out (2026-10-01):
 
-- `email-best-practices` — deliverability, compliance, marketing mail. Pre-launch apps send auth and notification mail only. Add when an app sends marketing mail.
-- `react-email` — HTML templates with React. The usual `mail.ts` sends text or plain HTML. Add when an app needs designed templates.
+- `email-best-practices`: deliverability, compliance, marketing mail. Pre-launch apps send auth and notification mail only. Add when an app sends marketing mail.
+- `react-email`: HTML templates with React. The usual `mail.ts` sends text or plain HTML. Add when an app needs designed templates.

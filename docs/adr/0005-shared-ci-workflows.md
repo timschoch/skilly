@@ -1,6 +1,6 @@
 # ADR-0005: CI and nightly run as Shared workflows from the Hub
 
-Status: proposed, 2026-10-21
+Status: superseded by [ADR-0008](0008-hub-run-sync-and-pinned-engine.md), 2026-10-28. Never built.
 
 ## Context
 

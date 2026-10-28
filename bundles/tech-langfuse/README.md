@@ -1,3 +1,5 @@
 # tech-langfuse
 
-Official `langfuse/skills` — upstream ships a single skill, we take it. Their `skill-creator` is internal tooling, not for consumers.
+The one skill of the official `langfuse/skills`.
+
+Left out: `skill-creator`, internal tooling of the langfuse team, not for Consumers.

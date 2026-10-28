@@ -15,8 +15,8 @@ Six skills, above the 3-4 cap. Only `project-habits` includes this bundle, and T
 
 Left out (2026-09-09):
 
-- `router-plugin` — `tanstackStart()` configures it. Add it for a plain Router app without Start.
-- `virtual-file-routes` — routes built in code. Add it only when file-based routes go.
-- `migrate-from-nextjs`, `migrate-from-react-router` — one-off migration helpers, add only for an actual migration.
-- `bundle-size-optimization` — the only skill at the repo root. It is for work inside the TanStack repo, not for app code.
-- `solid-router`, `solid-start`, `vue-router`, `vue-start` — not our stack.
+- `router-plugin`: `tanstackStart()` configures it. Add it for a plain Router app without Start.
+- `virtual-file-routes`: routes built in code. Add it only when file-based routes go.
+- `migrate-from-nextjs`, `migrate-from-react-router`: one-off migration helpers. Add them only for an actual migration.
+- `bundle-size-optimization`: the only skill at the repo root. It is for work inside the TanStack repo, not for app code.
+- `solid-router`, `solid-start`, `vue-router`, `vue-start`: not our stack.

@@ -1,6 +1,6 @@
 # ADR-0006: Oxlint replaces ESLint, and lint runs on each agent edit
 
-Status: proposed, 2026-10-21
+Status: proposed, 2026-10-21. Per [ADR-0008](0008-hub-run-sync-and-pinned-engine.md): the edit hook ships in the Engine, not in the verify skill, and the Sync PR writes its skilly entries. No Shared workflows.
 
 ## Context
 
