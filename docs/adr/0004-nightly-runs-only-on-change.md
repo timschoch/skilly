@@ -1,6 +1,6 @@
 # ADR-0004: The nightly runs its tests only after a change, and stops when stuck
 
-Status: proposed, 2026-10-21. `nightly.yml` is a Managed file per [ADR-0008](0008-hub-run-sync-and-pinned-engine.md), not a template or a Shared workflow.
+Status: accepted, 2026-10-28. `nightly.yml` is a Managed file per [ADR-0008](0008-hub-run-sync-and-pinned-engine.md).
 
 ## Context
 
@@ -24,7 +24,7 @@ The nightly opens one issue for the whole run, labels `critical` and `nightly-re
 3. A manual run (`workflow_dispatch`) always runs everything.
 4. One open issue per check, never one per problem or one per night. Labels: `nightly-tests` (unit and e2e, plus `critical`), `nightly-security` (plus `critical`), `nightly-stryker`, `nightly-stuck`. The issue lists all problems of its check. A later night with a different list adds a comment. Deps drift opens no issue: it only reports, and Dependabot opens the update PRs.
 5. `timeout-minutes: 30`, equal to the stage's `budgetSeconds`. The worst case per change on `main` is 2 nights of 30 minutes.
-6. A plan script in the [verify skill](../../bundles/workflow/skills/verify/SKILL.md) applies decision 1. It reads the nightly run history from the Actions API, the last commit on `main` and the open issues. It returns `nightly`, `nightly-scan` or stop. The workflow holds no date logic, so unit tests cover decision 1 with a fake run history. The nightly caller grants `actions: read`.
+6. A plan script in the Engine applies decision 1. It reads the nightly run history from the Actions API, the last commit on `main` and the open issues. It returns `nightly`, `nightly-scan` or stop. The workflow holds no date logic, so unit tests cover decision 1 with a fake run history. The managed `nightly.yml` grants `actions: read`.
 7. On `nightly` and `nightly-scan`, verify runs every step, also after a red one, and writes one result per step. The issue step reads these results. So a red test step does not hide a security finding.
 
 ## Consequences
