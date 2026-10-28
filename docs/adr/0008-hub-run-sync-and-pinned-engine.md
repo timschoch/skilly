@@ -118,7 +118,7 @@ Facts that shaped the decision, checked 2026-10-28:
 
 ### Setup and local commands
 
-13. `skilly setup` stays a manual, local command: a person decides which repo gets skilly, its Bundles and its tier. It runs with the person's own `gh` login: `npx github:timschoch/skilly#<release> setup`. Running it again is safe. It compares the repo with the wanted state and fixes the gaps.
+13. `skilly setup` stays a manual, local command: a person decides which repo gets skilly, its Bundles and its tier. It runs with the person's own `gh` login: `npx github:timschoch/skilly#<release> setup`. Running it again is safe. Each step checks first and skips what is already done.
 14. Setup writes `.skilly/config.json`, runs the first sync, sets the ruleset that requires `ci / verify` and drops `skilly / gate` from it, turns on `allow_auto_merge`, and opens the setup PR.
 15. Setup checks that the repo's account can read `timschoch/skilly`. When it can't, setup prints the `gh api` call that invites that account as a read collaborator and continues. The nightly does not need this access. Local commands do, because the skills CLI clones the private Hub at the Release.
 16. `skilly add` and `skilly remove` stay local, for "I want it now". Each one edits `.skilly/config.json` and runs the same sync code as the nightly, at the pinned Release, on the current branch. The Engine runs them: `node .skilly/engine/bin/skilly.js add <bundle>`.
@@ -130,6 +130,28 @@ flowchart LR
   config --> sync[sync code]
   nightly[Hub nightly] --> sync
   sync --> files["skills + engine + managed files"]
+```
+
+### Code shape
+
+The nightly and the local commands share one sync module, so both write the same files for the same Release.
+
+17. One sync module. It takes a Consumer checkout, its `.skilly/config.json` and a Release snapshot. It writes the files and returns one sync report. The nightly, setup, `add` and `remove` call it. Commit, push and PR stay outside it. It never prompts.
+18. A Release snapshot is a folder with the files of one tag: Bundle configs, Router rules, the Engine, managed-file templates. The sync never reads the folder next to its own code, so the nightly can run `main` code and write an older Release. The nightly checks out the tag, a local run fetches it, a test uses a fixture folder.
+19. The sync report is the one record of a sync. The Sync PR body, the auto-merge choice of decision 8 and the issue of decision 10 read it. Nothing parses commit subjects.
+20. The Engine is one folder in the Hub, with plain imports and no copies. Its hash is the hash of that folder. Hub-only code stays outside it: the nightly loop, the App key, the installation list.
+21. All GitHub calls go through `gh`. The nightly gives it the App installation token in `GH_TOKEN`. Local commands use the person's login. The auto-merge rule of decision 8 is one function.
+22. Two small mergers write the skilly entries in `lefthook.yml` and `.claude/settings.json`.
+
+```mermaid
+flowchart LR
+  snap["Release snapshot"] --> sync[sync module]
+  cfg[".skilly/config.json"] --> sync
+  sync --> files[files written]
+  sync --> report[sync report]
+  report --> body[Sync PR body]
+  report --> merge[auto-merge rule]
+  report --> issue[edited-Engine issue]
 ```
 
 ### Who owns what in a Consumer
@@ -173,3 +195,7 @@ flowchart LR
 | Canary repos that sync a day earlier                                         | The Hub runs `main` and a Release is a deliberate step.                                                                    |
 | A sync that sets up new repos                                                | Setup needs decisions a person makes: which repo, which Bundles, which tier.                                               |
 | `skilly add` only edits config and waits for the nightly                     | "Add" means "I want it now", on the current branch.                                                                        |
+| A GitHub interface with an App adapter and a `gh` adapter                    | Both end as a token for `gh`. A fake GitHub for tests needs many mocks for little gain.                                    |
+| A general system for managed file fragments                                  | Only 2 files hold fragments.                                                                                               |
+| Setup that diffs the repo against a full wanted state                        | A command you run once per repo needs only "check, then do" per step.                                                      |
+| A manifest that lists the Engine files                                       | The Engine is one folder. The folder is the list.                                                                          |
