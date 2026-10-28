@@ -162,6 +162,19 @@ DATABASE_URL=4
   assert.deepEqual(validate({ 'notes.txt': 'stripeKey=2\n' }).failures, []);
 });
 
+test('env-shape takes ENABLED as the role of an on/off switch', () => {
+  const result = validate({
+    '.env.example': `LAICA_SYNC_TWENTY_WRITE_ENABLED=true
+LAICA_SYNC_OUTBOX_ENABLED_FOR_COLIN=true
+LAICA_SYNC_OUTBOX_FLAG_FOR_COLIN=true
+`,
+  });
+  assert.deepEqual(
+    result.failures.map((finding) => finding.line),
+    [3],
+  );
+});
+
 test('discriminant only warns, and only in TypeScript type bodies', () => {
   const result = validate({
     'a.ts': `interface Message {
