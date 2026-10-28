@@ -12,6 +12,10 @@ _Avoid_: Registry, launcher
 A git tag of the Hub, for example `v1.4.0`, made when the Release PR from release-please merges. A Consumer runs one Release, named in `.skilly/config.json` as `"hub"`. A new major version never auto-merges.
 _Avoid_: Version (alone), SHA
 
+**Release snapshot**:
+A folder with the files of one Release: Bundle configs, Router rules, the Engine, Managed file templates. The Sync reads it as its input. The nightly checks out the tag, a local command fetches it, a test uses a fixture folder.
+_Avoid_: bundle dir, checkout
+
 **Engine**:
 All skilly code that hooks, CI or the CLI run: sync, setup, verify, checks, and the templates of the Managed files. Copied into each Consumer at `.skilly/engine/` by the Sync PR. A hand edit stops the nightly sync for that Consumer.
 _Avoid_: Tool (that's a tier), runtime, kit
@@ -61,6 +65,10 @@ _Avoid_: delete
 **Sync**:
 The Engine code that makes a Consumer match its `.skilly/config.json` at a Release: skills, Router rules, Engine, Managed files. The Hub's nightly runs it for every Consumer. Add and Remove run it locally.
 _Avoid_: update, upgrade
+
+**Sync report**:
+The one record of what a Sync changed: skills added and removed, Release before and after, Managed files written. The Sync PR body, the auto-merge choice and the edited-Engine issue read it.
+_Avoid_: summary, log
 
 **Setup**:
 The manual, local command that makes a repo a Consumer: `npx github:timschoch/skilly#<release> setup`. A person picks the Bundles and the tier. Sets the required check and auto-merge. Safe to run again.

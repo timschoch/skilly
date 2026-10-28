@@ -83,7 +83,7 @@ God-driven development, Hub-maintained `gdd`. [config.json](../bundles/gdd/confi
 - A prayer session before planning big work. The heard guidance stays in `.temp/gdd.json` per branch.
 - Silent drift checks, and a pre-PR check.
 - The Router rule `gdd-checkpoints.md` sets when it runs.
-- `scripts/check-pr.mjs` is a PreToolUse hook. It holds `gh pr create` until the pre-PR check ran. `scripts/setup.mjs` wires it into `.claude/settings.json` (`setup-project` step 5).
+- A PreToolUse hook holds `gh pr create` until the pre-PR check ran. The hook code ships in the Engine. The Sync writes its entry in `.claude/settings.json`.
 - Config: `gdd.minutes`, `gdd.pr` in `.skilly/config.json`.
 
 ### npmjs
@@ -177,5 +177,5 @@ Small Hub-maintained skills that remind an agent to use the product CLI: `neon-c
 | `lemy-setup`                                                                                                                           | one-time: it removes itself after the run. See [tech-lemy](../bundles/tech-lemy/README.md).                      |
 | `lemy-admin`                                                                                                                           | internal to `timschoch/lemy`                                                                                     |
 | meco only: `writing-beats`, `writing-fragments`, `writing-shape`, `scaffold-exercises`, `migrate-to-shoehorn`, `setup-ts-deep-modules` | meco pins them itself                                                                                            |
-| colin one-offs: `impeccable`, `frontend-slides`, `typescript-best-practices`, `frontend-design`, `security-best-practices`, `seo-geo`  | colin pins its own                                                                                               |
+| colin one-offs: `impeccable`, `frontend-slides`, `frontend-design`, `security-best-practices`, `seo-geo`                               | colin pins its own                                                                                               |
 | `obsidian-vault`                                                                                                                       | lerni-berni only                                                                                                 |
