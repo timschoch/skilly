@@ -1,7 +1,7 @@
-// The scripts in this folder moved into the Engine. Consumers' ci.yml and
-// verify.json steps still call them here, so each old path runs its Engine
-// script through this helper. #213 switches those callers to .skilly/engine/
-// and deletes the old paths. Hook entries already call .skilly/engine/.
+// The scripts in this folder moved into the Engine. A Consumer's own ci.yml or
+// .skilly/verify.json may still call them here, so each old path runs its
+// Engine script through this helper. The Engine's verify.json and the hook
+// entries already call .skilly/engine/.
 import { spawnSync } from 'node:child_process';
 import { existsSync, realpathSync } from 'node:fs';
 import { dirname, join } from 'node:path';

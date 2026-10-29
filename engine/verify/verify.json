@@ -22,7 +22,7 @@
       "steps": [
         {
           "name": "branch name",
-          "run": "node .agents/skills/verify/scripts/check-branch-name.mjs",
+          "run": "node .skilly/engine/verify/check-branch-name.mjs",
           "why": "Conventional Branch: <type>/<description>. In CI it reads the PR's head branch, so --no-verify does not get past it. Bot branches pass."
         },
         {
@@ -34,7 +34,7 @@
         { "name": "typecheck", "run": "npm run --if-present typecheck" },
         {
           "name": "unit (changed)",
-          "run": "node .agents/skills/verify/scripts/run-changed-tests.mjs origin/$DEFAULT_BRANCH npx vitest run --passWithNoTests",
+          "run": "node .skilly/engine/verify/run-changed-tests.mjs origin/$DEFAULT_BRANCH npx vitest run --passWithNoTests",
           "target": "vitest.config.ts",
           "why": "Only the tests the diff reaches, so the push stays inside the budget. A diff with a fullSuiteTriggers file runs the full suite: no test imports a lockfile or a test config. A repo adds its own paths, for example a migrations folder. The ci stage runs the full suite."
         }
@@ -55,7 +55,7 @@
         { "name": "build", "run": "npm run --if-present build" },
         {
           "name": "audit",
-          "run": "node .agents/skills/verify/scripts/audit.mjs",
+          "run": "node .skilly/engine/verify/audit.mjs",
           "tier": "tool",
           "why": "High and critical advisories only: lower levels fire on transitive dev dependencies and train everyone to ignore the check. Accept list: the verify skill's Audit section."
         },
