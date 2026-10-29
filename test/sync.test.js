@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { sync, engineState, writeEngine } from '../engine/lib/sync.js';
 import { run } from '../engine/lib/run.js';
@@ -141,6 +141,35 @@ test('a Bundle the Release no longer has leaves the config and is reported', () 
   const report = sync({ cwd, snapshot: makeSnapshot(), skills: fakeSkills() });
   assert.deepEqual(report.bundles.removed, ['gone']);
   assert.deepEqual(readJson(cwd, '.skilly/config.json').bundles, ['other']);
+});
+
+test('a Sync moves a husky Consumer to lefthook, writes the skilly hook entries and reports them', () => {
+  const cwd = makeCheckout({ bundles: ['hubby'] });
+  writeFileSync(join(cwd, 'package.json'), JSON.stringify({ scripts: { prepare: 'husky' } }));
+  mkdirSync(join(cwd, '.husky'));
+  writeFileSync(join(cwd, '.husky/pre-push'), 'node .agents/skills/verify/scripts/verify.mjs push\n');
+  const refreshed = [];
+  const report = sync({
+    cwd,
+    snapshot: makeSnapshot(),
+    skills: fakeSkills(),
+    refreshLock: (dir) => refreshed.push(dir),
+  });
+
+  assert.ok(!exists(cwd, '.husky'));
+  assert.equal(readFileSync(join(cwd, 'lefthook.yml'), 'utf8'), 'extends:\n  - .skilly/lefthook.json\n');
+  assert.ok(readJson(cwd, '.skilly/lefthook.json')['pre-push'].commands['skilly-verify']);
+  assert.equal(readJson(cwd, '.claude/settings.json').hooks.PreToolUse.length, 1);
+  assert.deepEqual(refreshed, [cwd]);
+  for (const path of [
+    '.husky/pre-push',
+    '.claude/settings.json',
+    '.skilly/lefthook.json',
+    'lefthook.yml',
+    'package.json',
+  ]) {
+    assert.ok(report.files.includes(path), `${path} in ${report.files}`);
+  }
 });
 
 test('the Engine copy skips the Hub, which runs engine/ itself', () => {

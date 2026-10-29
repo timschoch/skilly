@@ -32,23 +32,14 @@ node -e 'const fs=require("fs"),f=".skilly/config.json",c=JSON.parse(fs.readFile
 
 ## 1. Hooks
 
-Hooks stay deterministic and fast: they run shell commands only. A new check is a step in `.skilly/verify.json`, never a line in a hook.
+Nothing to do here. The Sync writes the git hooks and the Claude Code hooks from the Bundles' hook entries:
 
-The rule scripts ship with the verify skill (workflow bundle) in `.agents/skills/verify/scripts/`, so each Sync PR updates them. Point hooks at them there. Never copy them: a copy never updates. Add the workflow bundle first.
+- lefthook: the skilly commands in `.skilly/lefthook.json`, pulled into `lefthook.yml` by its `extends` list. A repo on husky moves to lefthook.
+- Claude Code: the skilly entries in `.claude/settings.json`.
 
-- `check-commit-msg.mjs`: conventional-commit gate, run by `commit-msg` (the why: the `writing-rules` skill, group 7)
-- `check-push-branch.mjs`: refuses a direct push to the detected trunk, run by `pre-push`
-- `check-branch-name.mjs`: Conventional Branch gate, a default `push` step of the verify skill, not a hook line
-- `block-destructive-git.sh`, `block-invalid-branch-push.sh`, `block-unverified-push.sh`: Claude Code hooks, wired in part 5
+The repo's own entries in both files stay. A new check is a step in `.skilly/verify.json`, never a line in a hook.
 
-A copy in `.claude/hooks/` from an earlier run: delete it, and point every caller (`.husky/`, `lefthook.yml`, `.claude/settings.json`) at the skill path.
-
-Then wire the manager the repo already has — `.husky/` → husky, `lefthook.yml` → lefthook, neither → `npm i -D husky && npx husky init`:
-
-- **husky**: copy `templates/husky/*` into `.husky/`, `chmod +x`.
-- **lefthook**: merge `templates/lefthook.yml` into the repo's, keeping its existing commands.
-
-`pre-commit` calls `lint-staged` directly instead of `verify commit`: lint-staged needs the staged-file list that only the hook holds, so the `commit` stage stays empty.
+A copy in `.claude/hooks/` from an earlier run: delete it, and delete the entry in `.claude/settings.json` that runs it.
 
 ## 2. `.skilly/verify.json`
 
@@ -130,49 +121,7 @@ updates: [{ package-ecosystem: npm, directory: /, schedule: { interval: weekly }
 
 ## 5. Claude Code hooks
 
-Merge each entry into `.claude/settings.json` `hooks.PreToolUse`; skip an entry whose command is already there, replace one that runs the same script from `.claude/hooks/`. Never overwrite other settings. The scripts live in the verify skill (part 1); `bash` runs them, so a sync that drops the executable bit breaks nothing.
-
-**Destructive-git guard** — blocks `reset --hard`, `clean -f`, `checkout .` / `restore .`, `branch -D`, bare `push --force`. Plain pushes and `--force-with-lease` pass; trunk safety is part 4 and the `pre-push` hook. Needs `jq`.
-
-```json
-{
-  "matcher": "Bash|mcp__lean-ctx__ctx_shell|mcp__lean-ctx__shell",
-  "hooks": [{ "type": "command", "command": "bash \"$CLAUDE_PROJECT_DIR\"/.agents/skills/verify/scripts/block-destructive-git.sh" }]
-}
-```
-
-Verify: `echo '{"tool_input":{"command":"git reset --hard"}}' | bash .agents/skills/verify/scripts/block-destructive-git.sh` exits 2.
-
-**Branch-name guard** — runs the verify skill's `check-branch-name.mjs`, the Conventional Branch gate behind the default `branch name` step, before the agent's `git push` or `gh pr create`. The `pre-push` hook needs `npm install`, which a fresh worktree lacks; this one needs only `node` and `jq`, and `--no-verify` does not skip it. The workflow bundle must be added first; without the verify skill the guard passes.
-
-```json
-{
-  "matcher": "Bash|mcp__lean-ctx__ctx_shell|mcp__lean-ctx__shell",
-  "hooks": [{ "type": "command", "command": "bash \"$CLAUDE_PROJECT_DIR\"/.agents/skills/verify/scripts/block-invalid-branch-push.sh" }]
-}
-```
-
-Verify: on a branch named `wip`, `echo '{"tool_input":{"command":"git push"}}' | bash .agents/skills/verify/scripts/block-invalid-branch-push.sh` exits 2.
-
-**Unverified-push guard** — runs the verify `push` stage before the agent's `git push` when git will not: no installed `pre-push` hook (a fresh worktree before `npm install`), or `--no-verify` in the command. With the hook installed it does nothing, so the stage runs once. The workflow bundle must be added first; without the verify skill the guard passes. Needs `node` and `jq`.
-
-```json
-{
-  "matcher": "Bash|mcp__lean-ctx__ctx_shell|mcp__lean-ctx__shell",
-  "hooks": [{ "type": "command", "command": "bash \"$CLAUDE_PROJECT_DIR\"/.agents/skills/verify/scripts/block-unverified-push.sh" }]
-}
-```
-
-Verify: `echo '{"tool_input":{"command":"git push --no-verify"}}' | bash .agents/skills/verify/scripts/block-unverified-push.sh` prints the `push` steps.
-
-**Writing-rules injection** — the `writing-rules` skill (workflow bundle) injects its rule sidecars on every file-writing tool call. The workflow bundle must be added first — the script lives in the installed skill. Not installed? Skip this entry and say so.
-
-```json
-{
-  "matcher": "Write|Edit|NotebookEdit|mcp__lean-ctx__ctx_patch|mcp__lean-ctx__ctx_call",
-  "hooks": [{ "type": "command", "command": "node \"$CLAUDE_PROJECT_DIR/.claude/skills/writing-rules/scripts/inject-writing-rules.mjs\"" }]
-}
-```
+Nothing to do here: the Sync writes them, see part 1. Check one guard after the first Sync: `echo '{"tool_input":{"command":"git reset --hard"}}' | bash .skilly/engine/verify/block-destructive-git.sh` exits 2.
 
 ## 6. CLAUDE.md
 
