@@ -1,0 +1,51 @@
+# Ships Hub Releases (ADR-0008 decision 2). A merge to main opens or updates
+# the Release PR; merging that PR creates the tag, e.g. v1.4.0.
+name: Release
+
+on:
+  push:
+    branches: [main]
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      # A PR or push made with GITHUB_TOKEN starts no workflows, so the
+      # required checks would never report. The App token makes them run.
+      - uses: actions/create-github-app-token@v3
+        id: app-token
+        with:
+          app-id: ${{ secrets.SKILLY_APP_ID }}
+          private-key: ${{ secrets.SKILLY_APP_PRIVATE_KEY }}
+      - uses: googleapis/release-please-action@v5
+        id: release
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+      # The Hub's own config records the Release the PR ships. release-please
+      # writes a version without the "v", so this step writes the tag itself.
+      - if: steps.release.outputs.prs_created == 'true'
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ fromJSON(steps.release.outputs.pr).headBranchName }}
+          token: ${{ steps.app-token.outputs.token }}
+      - if: steps.release.outputs.prs_created == 'true'
+        env:
+          COMMITTER: ${{ steps.app-token.outputs.app-slug }}[bot]
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+        run: |
+          hub="v$(jq -r '."."' .release-please-manifest.json)"
+          jq --arg hub "$hub" '.hub = $hub' .skilly/config.json > "$RUNNER_TEMP/config.json"
+          cp "$RUNNER_TEMP/config.json" .skilly/config.json
+          git diff --quiet && exit 0
+          id="$(gh api "users/$COMMITTER" --jq .id)"
+          git -c user.name="$COMMITTER" -c user.email="$id+$COMMITTER@users.noreply.github.com" \
+            commit -am "chore(release): record $hub in .skilly/config.json"
+          git push
