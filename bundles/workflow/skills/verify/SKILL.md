@@ -132,16 +132,17 @@ An entry needs an `id` and a `why`; without both it accepts nothing. It fails th
 
 ## Hook scripts
 
-The gates and guards ship here, so each Sync PR updates them. `/setup-repo` (setup-project bundle) wires them; never copy one into the repo.
+The gates and guards ship in the Engine, `.skilly/engine/verify/`, so each Sync PR updates them. The Sync wires them from the hook entries in the workflow Bundle's `config.json`; never copy one into the repo.
 
 | Script | Run by | Blocks |
 | --- | --- | --- |
-| [check-commit-msg.mjs](scripts/check-commit-msg.mjs) | `commit-msg`; with `--branch` the `conventional-commits` step | a commit header that is not Conventional Commits |
-| [check-push-branch.mjs](scripts/check-push-branch.mjs) | `pre-push` | a direct push to the trunk |
-| [check-branch-name.mjs](scripts/check-branch-name.mjs) | the `branch name` step | a branch not named `<type>/<description>` |
-| [block-destructive-git.sh](scripts/block-destructive-git.sh) | Claude Code PreToolUse | `reset --hard`, `clean -f`, `branch -D`, bare `push --force` |
-| [block-invalid-branch-push.sh](scripts/block-invalid-branch-push.sh) | Claude Code PreToolUse | an agent push from a bad branch name, even without installed git hooks |
-| [block-unverified-push.sh](scripts/block-unverified-push.sh) | Claude Code PreToolUse | an agent push that skips the `push` stage |
+| `check-commit-msg.mjs` | `commit-msg`; with `--branch` the `conventional-commits` step | a commit header that is not Conventional Commits |
+| `check-push-branch.mjs` | `pre-push` | a direct push to the trunk |
+| `check-branch-name.mjs` | the `branch name` step | a branch not named `<type>/<description>` |
+| `block-destructive-git.sh` | Claude Code PreToolUse | `reset --hard`, `clean -f`, `branch -D`, bare `push --force` |
+| `block-invalid-branch-push.sh` | Claude Code PreToolUse | an agent push from a bad branch name, even without installed git hooks |
+| `block-unverified-push.sh` | Claude Code PreToolUse | an agent push that skips the `push` stage |
+| `lint-edited-file.mjs` | Claude Code PostToolUse | an agent edit that leaves oxlint errors; it also runs Prettier on the file |
 
 ## Adding a check
 
