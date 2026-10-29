@@ -17,6 +17,7 @@ import { cloneRelease, latestRelease } from './add-remove.js';
 import { HUB_REPO } from './constants.js';
 import { ghCli, pushSyncBranch, reportSections } from './delivery.js';
 import { applySettings } from './repo-settings.js';
+import { tryRun } from './run.js';
 import { selfSource } from './self-source.js';
 import * as skillsCli from './skills-cli.js';
 import * as skillyFile from './skilly-file.js';
@@ -115,6 +116,27 @@ const setupBody = (report) =>
     '',
   ].join('\n');
 
+// The config Setup applies: the checkout's, else the one on the Setup PR branch.
+// Setup removes an uncommitted one from the checkout, so a second run reads the
+// branch. Returns null when neither has one.
+export function readSetupConfig(cwd) {
+  if (skillyFile.exists(cwd)) return skillyFile.read(cwd);
+  if (tryRun('git', ['fetch', '--quiet', 'origin', SETUP_BRANCH], { cwd }) === null) return null;
+  const text = tryRun('git', ['show', `origin/${SETUP_BRANCH}:${skillyFile.CONFIG_PATH}`], { cwd });
+  return text === null ? null : skillyFile.parse(text);
+}
+
+// origin holds the config now. An uncommitted copy in the checkout, untracked
+// or staged, would stop the person's `git pull` after the merge (#260).
+// Returns true when it removed one.
+function removeUncommittedConfig(cwd) {
+  if (!skillyFile.exists(cwd)) return false;
+  if (tryRun('git', ['cat-file', '-e', `HEAD:${skillyFile.CONFIG_PATH}`], { cwd }) !== null) return false;
+  tryRun('git', ['rm', '--quiet', '--cached', '--ignore-unmatch', '--', skillyFile.CONFIG_PATH], { cwd });
+  rmSync(join(cwd, skillyFile.CONFIG_PATH));
+  return true;
+}
+
 // Returns { invite, settings, report, pr }. pr is null when the default branch
 // already holds this setup. log prints each step for the person.
 export function setup({
@@ -126,10 +148,12 @@ export function setup({
   fetchSnapshot = cloneRelease,
   log = console.log,
 }) {
-  if (!skillyFile.exists(cwd)) {
-    throw new Error(`no ${skillyFile.CONFIG_PATH} — the decide phase writes it (the setup-project skill)`);
+  const config = readSetupConfig(cwd);
+  if (!config) {
+    throw new Error(
+      `no ${skillyFile.CONFIG_PATH} — the decide phase writes it (the setup-project skill). Setup PR merged: git pull`,
+    );
   }
-  const config = skillyFile.read(cwd);
   if (!repo) throw new Error('no GitHub origin here — create the repo on GitHub and push it first');
 
   const invite = hubInvite(gh);
@@ -157,6 +181,8 @@ export function setup({
   if (!pr) log(`nothing to set up: the default branch already runs Release ${snapshot.release}`);
   else if (!pr.pushed) log(`Setup PR unchanged: ${pr.url}`);
   else log(`Setup PR ${pr.created ? 'opened' : 'updated'}: ${pr.url}`);
+  if (removeUncommittedConfig(cwd))
+    log(`removed the uncommitted ${skillyFile.CONFIG_PATH}: origin holds it. Run git pull after the merge`);
 
   // Settings last: the ruleset requires `verify`, and only the Setup PR brings
   // the ci.yml that reports it. A failed Sync leaves the default branch open.

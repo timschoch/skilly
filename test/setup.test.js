@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { SETUP_BRANCH, setup } from '../engine/lib/setup.js';
 import { useFakeGitHub } from './fixtures/fake-github.js';
@@ -121,6 +121,54 @@ test('setup takes the config from the checkout, also before it is committed', ()
   runSetup(cwd, { release: 'v9.9.9' });
   assert.equal(JSON.parse(show(origin, '.skilly/config.json')).hub, 'v1.2.0');
   assert.equal(show(origin, '.gitignore'), 'node_modules/\n.temp/');
+});
+
+// #260: the untracked config would block the person's `git pull` after the merge.
+function makeUncommittedConfigClone() {
+  const clone = makeClone(null, { 'README.md': '# app\n' });
+  writeFiles(clone.cwd, { '.skilly/config.json': JSON.stringify(CONFIG) });
+  return clone;
+}
+
+test('setup removes the uncommitted config once the Setup PR holds it, so git pull works after the merge', () => {
+  useFakeGitHub();
+  const { cwd, origin } = makeUncommittedConfigClone();
+  runSetup(cwd);
+  assert.equal(git(cwd, 'status', '--porcelain'), '');
+  assert.equal(existsSync(join(cwd, '.skilly/config.json')), false);
+
+  git(origin, 'update-ref', 'refs/heads/main', `refs/heads/${SETUP_BRANCH}`);
+  git(cwd, 'pull', '-q', '--ff-only', 'origin', 'main');
+  assert.equal(JSON.parse(readFileSync(join(cwd, '.skilly/config.json'), 'utf8')).hub, 'v1.0.0');
+});
+
+test('setup also removes a staged config that no commit holds', () => {
+  useFakeGitHub();
+  const { cwd, origin } = makeUncommittedConfigClone();
+  git(cwd, 'add', '.skilly/config.json');
+  runSetup(cwd);
+  assert.equal(git(cwd, 'status', '--porcelain'), '');
+
+  git(origin, 'update-ref', 'refs/heads/main', `refs/heads/${SETUP_BRANCH}`);
+  git(cwd, 'pull', '-q', '--ff-only', 'origin', 'main');
+});
+
+test('a second setup run without the local config takes it from the Setup branch', () => {
+  useFakeGitHub();
+  const { cwd, origin } = makeUncommittedConfigClone();
+  runSetup(cwd);
+  const head = git(origin, 'rev-parse', SETUP_BRANCH);
+
+  const again = runSetup(cwd, { release: 'v9.9.9' });
+  assert.equal(again.pr.pushed, false);
+  assert.equal(git(origin, 'rev-parse', SETUP_BRANCH), head);
+});
+
+test('setup keeps a committed config in the checkout', () => {
+  useFakeGitHub();
+  const { cwd } = makeClone(CONFIG);
+  runSetup(cwd);
+  assert.equal(existsSync(join(cwd, '.skilly/config.json')), true);
 });
 
 test('setup moves a legacy .skilly.json to .skilly/config.json on the setup branch', () => {
