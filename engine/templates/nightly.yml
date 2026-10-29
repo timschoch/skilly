@@ -22,23 +22,23 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30 # the budgetSeconds of the nightly stage
     steps:
-      - uses: actions/checkout@v7
-@{setupNode}
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      # @{setupNode}
       - id: plan
         run: node .skilly/engine/verify/plan.mjs nightly >> "$GITHUB_OUTPUT"
         env:
           GH_TOKEN: ${{ github.token }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
       - if: steps.plan.outputs.stage != 'stop'
-        run: @{install}
+        run: '@{install}'
       # Every browser here, unlike the PR gate's single chromium.
       - if: contains(fromJSON(steps.plan.outputs.toolchains), 'playwright')
-        uses: actions/cache@v6
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.cache/ms-playwright
           key: playwright-all-${{ runner.os }}-${{ hashFiles('@{lockfile}') }}
       - if: contains(fromJSON(steps.plan.outputs.toolchains), 'playwright')
-        run: @{exec} playwright install --with-deps
+        run: '@{exec} playwright install --with-deps'
       # verify runs every step, also after a red one, and writes each result.
       - if: steps.plan.outputs.stage != 'stop'
         run: node .skilly/engine/verify/verify.mjs ${{ steps.plan.outputs.stage }} --results "$RUNNER_TEMP/verify-results.json"

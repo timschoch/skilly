@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parse } from 'yaml';
@@ -27,6 +27,38 @@ test('every Managed file renders to YAML with no placeholder left', () => {
     assert.match(text, /^# Managed by skilly\./, path);
     assert.ok(parse(text), path);
   }
+});
+
+// #155 "verify nightly: the security scan fails on the workflow files and config that skilly sets
+// up": the scan flags a mutable action tag and a Dependabot entry with no cooldown.
+test('every action in the Managed files is pinned to a commit SHA, its release as a comment', () => {
+  const npm = makeCheckout({});
+  const pnpm = makeCheckout({});
+  writeFiles(pnpm, { 'pnpm-lock.yaml': '' });
+  for (const cwd of [npm, pnpm]) {
+    writeManagedFiles(cwd, templatesDir, 'product');
+    for (const workflow of ['ci.yml', 'nightly.yml', 'ai-review.yml', 'release.yml']) {
+      const uses = read(cwd, `workflows/${workflow}`).match(/^ *(- )?uses: .*$/gm);
+      assert.ok(uses.length > 0, workflow);
+      for (const line of uses) assert.match(line, /uses: [\w-]+\/[\w-]+@[0-9a-f]{40} # v\d+\.\d+\.\d+$/, workflow);
+    }
+  }
+  assert.ok(stepsOf(pnpm, 'ci.yml').some((step) => step.uses.startsWith('pnpm/action-setup@')));
+});
+
+test('each Dependabot update waits 7 days after a release', () => {
+  const cwd = makeCheckout({});
+  writeManagedFiles(cwd, templatesDir, 'tool');
+  for (const update of parse(read(cwd, 'dependabot.yml')).updates) assert.ok(update.cooldown['default-days'] >= 7);
+});
+
+// The Hub's Dependabot bumps the action refs in engine/templates/. It stops on a file that is not YAML.
+test('every template is YAML, and the Hub Dependabot bumps the actions in it', () => {
+  for (const template of readdirSync(templatesDir))
+    assert.ok(parse(readFileSync(join(templatesDir, template), 'utf8')), template);
+  const hub = parse(readFileSync(new URL('../.github/dependabot.yml', import.meta.url), 'utf8'));
+  const actions = hub.updates.find((update) => update['package-ecosystem'] === 'github-actions');
+  assert.ok(actions.directories.includes('/engine/templates'));
 });
 
 test('ci.yml runs plan and verify from .skilly/engine/ with the npm install by default', () => {

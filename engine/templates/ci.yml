@@ -10,7 +10,7 @@ on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
   push:
-    branches: [@{defaultBranch}]
+    branches: ['@{defaultBranch}']
   workflow_dispatch: {} # release.yml starts the release PR's run this way
 
 # A newer push to the same ref cancels the run it superseded.
@@ -27,21 +27,21 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0 # the changed-files steps diff against the default branch
-@{setupNode}
-      - run: @{install}
+      # @{setupNode}
+      - run: '@{install}'
       - id: plan
         run: node .skilly/engine/verify/plan.mjs ci >> "$GITHUB_OUTPUT"
       # The lockfile pins the Playwright version, so it keys the browser cache.
       - if: contains(fromJSON(steps.plan.outputs.toolchains), 'playwright')
-        uses: actions/cache@v6
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.cache/ms-playwright
           key: playwright-chromium-${{ runner.os }}-${{ hashFiles('@{lockfile}') }}
       - if: contains(fromJSON(steps.plan.outputs.toolchains), 'playwright')
-        run: @{exec} playwright install --with-deps chromium
+        run: '@{exec} playwright install --with-deps chromium'
       - run: node .skilly/engine/verify/verify.mjs ${{ steps.plan.outputs.stage }}
         env:
           GITHUB_TOKEN: ${{ github.token }} # the audit step checks accepted advisories for a fix
