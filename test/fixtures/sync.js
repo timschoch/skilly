@@ -1,3 +1,4 @@
+import { execFileSync } from 'node:child_process';
 import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
@@ -49,6 +50,26 @@ export function makeCheckout(config) {
   const cwd = mkdtempSync(join(tmpdir(), 'skilly-checkout-'));
   writeFiles(cwd, { '.skilly/config.json': JSON.stringify({ tier: 'sandbox', bundles: [], ...config }) });
   return cwd;
+}
+
+export const git = (cwd, ...args) => execFileSync('git', args, { cwd, encoding: 'utf8' }).trim();
+
+// A Consumer clone with a bare origin, so a delivery pushes for real.
+// files: the default branch's files. Default: a config made of `config`.
+export function makeClone(config, files = null) {
+  const cwd = files ? mkdtempSync(join(tmpdir(), 'skilly-checkout-')) : makeCheckout(config);
+  if (files) writeFiles(cwd, files);
+  const origin = mkdtempSync(join(tmpdir(), 'skilly-origin-'));
+  git(origin, 'init', '-q', '--bare', '-b', 'main');
+  git(cwd, 'init', '-q', '-b', 'main');
+  git(cwd, 'config', 'user.name', 'test');
+  git(cwd, 'config', 'user.email', 'test@example.com');
+  git(cwd, 'add', '-A');
+  git(cwd, 'commit', '-q', '--allow-empty', '-m', 'init');
+  git(cwd, 'remote', 'add', 'origin', origin);
+  git(cwd, 'push', '-q', 'origin', 'main');
+  git(cwd, 'remote', 'set-head', 'origin', 'main');
+  return { cwd, origin };
 }
 
 // Stands in for the skills CLI: keeps skills-lock.json and the skill folders,

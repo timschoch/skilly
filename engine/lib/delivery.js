@@ -24,9 +24,9 @@ export function autoMerge({ release, skills, bundles }) {
   return { on: true, reason: 'merges when `ci / verify` is green' };
 }
 
-export function prBody(report) {
-  const { release, skills, bundles, files, settings } = report;
-  const merge = autoMerge(report);
+// The sections of a PR body that list what the Sync did. The Sync PR and the
+// setup PR share them.
+export function reportSections({ skills, bundles, files, settings }) {
   // Setup sets the repo settings; the Sync PR only reports them (ADR-0009 decision 8).
   const settingLines = [
     ...(settings?.drift ?? []).map(
@@ -37,56 +37,94 @@ export function prBody(report) {
   const section = (title, items, format = (item) => item) =>
     items.length ? ['', `## ${title}`, ...items.map((item) => `- ${format(item)}`)] : [];
   return [
-    `Sync to Release ${release.before ?? 'none'} → ${release.after}.`,
     ...section('⚠️ Removed', skills.removed),
     ...section('⚠️ Bundles the Release dropped', bundles.removed),
     ...section('⚠️ Repo settings drift', settingLines),
     ...section('Added', skills.added),
     ...section('Updated', skills.updated),
     ...section(`Files (${files.length})`, files, (file) => `\`${file}\``),
+  ];
+}
+
+export function prBody(report) {
+  const { release } = report;
+  const merge = autoMerge(report);
+  return [
+    `Sync to Release ${release.before ?? 'none'} → ${release.after}.`,
+    ...reportSections(report),
     '',
     `Auto-merge: ${merge.on ? 'on' : 'off'}, ${merge.reason}.`,
     '',
   ].join('\n');
 }
 
-const ghCli = (cwd) => (args) => run('gh', args, { cwd });
+export const ghCli = (cwd) => (args) => run('gh', args, { cwd });
 
-// Returns { report, pr, autoMerge }. pr is null when the Sync changed nothing.
-// The person's checkout stays as it was: the Sync runs in a temporary worktree.
-export function deliver({ cwd, snapshot, skills = skillsCli, gh = ghCli(cwd) }) {
+// Runs the Sync on a fresh copy of the default branch, commits the result onto
+// `branch`, pushes it and opens or updates the one PR from it. The person's
+// checkout stays as it was: the Sync runs in a temporary worktree.
+// prepare(tree) runs before the Sync and returns more paths to commit.
+// title(report) and body(report) write the PR. Returns { report, pr }. pr is
+// null when the branch would hold no change. pr.pushed is false when the open
+// PR's branch already holds the same files, so a second run changes nothing.
+export function pushSyncBranch({ cwd, snapshot, skills = skillsCli, gh = ghCli(cwd), branch, title, body, prepare = () => [] }) {
   const base = defaultBranch(cwd);
   run('git', ['fetch', '--quiet', 'origin', base], { cwd });
   const tree = join(mkdtempSync(join(tmpdir(), 'skilly-sync-')), 'checkout');
   try {
     run('git', ['worktree', 'add', '--quiet', '--detach', tree, `origin/${base}`], { cwd });
+    const paths = [...prepare(tree)];
     const report = sync({ cwd: tree, snapshot, skills, repo: selfSource(cwd) });
-    if (!report.files.length) return { report, pr: null, autoMerge: null };
+    paths.push(...report.files);
+    if (paths.length) run('git', ['add', '--all', '--', ...paths], { cwd: tree });
+    // `diff --quiet` exits 1 when something is staged.
+    if (tryRun('git', ['diff', '--cached', '--quiet'], { cwd: tree }) !== null) return { report, pr: null };
 
-    const title = `chore(skilly): sync to ${report.release.after}`;
-    // The Sync PR is checked by `ci / verify`; local hooks do not run on it.
-    run('git', ['add', '--all', '--', ...report.files], { cwd: tree });
-    run('git', ['commit', '--quiet', '--no-verify', '-m', title], { cwd: tree });
-    run('git', ['push', '--quiet', '--force', '--no-verify', 'origin', `HEAD:refs/heads/${SYNC_BRANCH}`], { cwd: tree });
+    const subject = title(report);
+    // The PR is checked by `ci / verify`; local hooks do not run on it.
+    run('git', ['commit', '--quiet', '--no-verify', '-m', subject], { cwd: tree });
+    const [open] = JSON.parse(gh(['pr', 'list', '--head', branch, '--state', 'open', '--json', 'number,url']));
+    tryRun('git', ['fetch', '--quiet', 'origin', branch], { cwd });
+    const pushedTree = tryRun('git', ['rev-parse', '--verify', '--quiet', `origin/${branch}^{tree}`], { cwd });
+    if (open && pushedTree === run('git', ['rev-parse', 'HEAD^{tree}'], { cwd: tree })) {
+      return { report, pr: { url: open.url, created: false, pushed: false } };
+    }
 
-    const body = prBody(report);
-    const [open] = JSON.parse(gh(['pr', 'list', '--head', SYNC_BRANCH, '--state', 'open', '--json', 'number,url']));
-    const pr = open
-      ? { url: open.url, created: false }
-      : { url: gh(['pr', 'create', '--base', base, '--head', SYNC_BRANCH, '--title', title, '--body', body]), created: true };
-    if (open) gh(['pr', 'edit', pr.url, '--title', title, '--body', body]);
-
-    // Turning auto-merge on fails when the repo does not allow it; that leaves
-    // the PR open for a person. Turning it off fails when it was never on, which
-    // does not matter.
-    const merge = autoMerge(report);
-    const done = tryGh(gh, ['pr', 'merge', pr.url, ...(merge.on ? ['--auto', '--squash'] : ['--disable-auto'])]);
-    const applied = !merge.on || done;
-    return { report, pr, autoMerge: { ...merge, applied } };
+    run('git', ['push', '--quiet', '--force', '--no-verify', 'origin', `HEAD:refs/heads/${branch}`], { cwd: tree });
+    const text = body(report);
+    if (open) {
+      gh(['pr', 'edit', open.url, '--title', subject, '--body', text]);
+      return { report, pr: { url: open.url, created: false, pushed: true } };
+    }
+    const url = gh(['pr', 'create', '--base', base, '--head', branch, '--title', subject, '--body', text]);
+    return { report, pr: { url, created: true, pushed: true } };
   } finally {
     tryRun('git', ['worktree', 'remove', '--force', tree], { cwd });
     rmSync(join(tree, '..'), { recursive: true, force: true });
   }
+}
+
+// Returns { report, pr, autoMerge }. pr is null when the Sync changed nothing.
+// autoMerge is null when nothing was pushed.
+export function deliver({ cwd, snapshot, skills = skillsCli, gh = ghCli(cwd) }) {
+  const { report, pr } = pushSyncBranch({
+    cwd,
+    snapshot,
+    skills,
+    gh,
+    branch: SYNC_BRANCH,
+    title: ({ release }) => `chore(skilly): sync to ${release.after}`,
+    body: prBody,
+  });
+  if (!pr?.pushed) return { report, pr, autoMerge: null };
+
+  // Turning auto-merge on fails when the repo does not allow it; that leaves
+  // the PR open for a person. Turning it off fails when it was never on, which
+  // does not matter.
+  const merge = autoMerge(report);
+  const done = tryGh(gh, ['pr', 'merge', pr.url, ...(merge.on ? ['--auto', '--squash'] : ['--disable-auto'])]);
+  const applied = !merge.on || done;
+  return { report, pr, autoMerge: { ...merge, applied } };
 }
 
 function tryGh(gh, args) {

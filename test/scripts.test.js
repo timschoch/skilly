@@ -15,17 +15,10 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { matchName } from '../engine/lib/match.js';
 import { planRemovals } from '../lib/remove.js';
-import { pickPrivateOwner } from '../lib/add.js';
 import { sourceRepo } from '../engine/lib/resolve.js';
 import { updateRules } from '../engine/lib/update-rules.js';
 import { addFormatterIgnores, biomeMajor } from '../engine/lib/formatter-ignores.js';
-import { ignoreTemp, linkSkillsDir } from '../lib/setup.js';
-import {
-  CALLER_WORKFLOW_PATH,
-  healCallerSecrets,
-  scaffoldCallerWorkflow,
-  setPrivateOwner,
-} from '../lib/caller-workflow.js';
+import { ignoreTemp, linkSkillsDir } from '../engine/lib/setup.js';
 import * as skillyFile from '../engine/lib/skilly-file.js';
 
 const bundlesDir = fileURLToPath(new URL('./fixtures/bundles', import.meta.url));
@@ -47,42 +40,6 @@ test('planRemovals keeps claimed skills and skips names not in the lock', () => 
   const claimed = new Set(['claimed']);
   const lock = { gone: {}, claimed: {} };
   assert.deepEqual(planRemovals(candidates, claimed, lock), ['gone']);
-});
-
-test('caller workflow names the App secrets; old inherit callers heal, private-owner lands once', () => {
-  const named = /^ {4}secrets:\n {6}SKILLY_APP_ID: \$\{\{ secrets\.SKILLY_APP_ID \}\}\n {6}SKILLY_APP_PRIVATE_KEY: /m;
-  const fresh = freshDir();
-  assert.equal(scaffoldCallerWorkflow(fresh), true);
-  const written = readFileSync(join(fresh, CALLER_WORKFLOW_PATH), 'utf8');
-  assert.match(written, named);
-  assert.doesNotMatch(written, /inherit/);
-  assert.equal(healCallerSecrets(fresh), false);
-
-  const old = freshDir();
-  mkdirSync(join(old, '.github', 'workflows'), { recursive: true });
-  writeFileSync(
-    join(old, CALLER_WORKFLOW_PATH),
-    'jobs:\n  skilly:\n    uses: timschoch/skilly/.github/workflows/sync.yml@main\n    secrets: inherit\n    with:\n      private-owner: timschoch\n',
-  );
-  assert.equal(setPrivateOwner(old, 'other'), true);
-  const healed = readFileSync(join(old, CALLER_WORKFLOW_PATH), 'utf8');
-  assert.match(healed, named);
-  assert.doesNotMatch(healed, /inherit/);
-  assert.equal(healed.match(/private-owner:/g).length, 1);
-  assert.match(healed, /private-owner: other/);
-
-  assert.equal(setPrivateOwner(fresh, 'priv'), true);
-  assert.match(
-    readFileSync(join(fresh, CALLER_WORKFLOW_PATH), 'utf8'),
-    /@main\n {4}with:\n {6}private-owner: priv\n {4}secrets:/,
-  );
-});
-
-test('pickPrivateOwner: one foreign private owner passes, two are a hard error', () => {
-  const isPrivate = (source) => source.startsWith('priv');
-  assert.equal(pickPrivateOwner(['me/a', 'pub/b'], 'me', isPrivate), null);
-  assert.equal(pickPrivateOwner(['me/a', 'priv/b'], 'me', isPrivate), 'priv');
-  assert.throws(() => pickPrivateOwner(['priv/a', 'priv2/b'], 'me', isPrivate), /one private-owner per consumer/);
 });
 
 test('skillyMessage keeps short subjects, moves long name lists to the body', async () => {
@@ -111,13 +68,6 @@ test('skillyMessage keeps short subjects, moves long name lists to the body', as
 test('sourceRepo reduces tree URLs to owner/repo and leaves shorthand alone', () => {
   assert.equal(sourceRepo('PostHog/skills'), 'PostHog/skills');
   assert.equal(sourceRepo('https://github.com/PostHog/skills/tree/main/skills/posthog/all'), 'PostHog/skills');
-});
-
-test('pickPrivateOwner reads the owner out of a tree-URL source', () => {
-  assert.equal(
-    pickPrivateOwner(['https://github.com/priv/deep/tree/main/sub'], 'me', () => true),
-    'priv',
-  );
 });
 
 test('addFormatterIgnores creates .prettierignore when missing, appends once', () => {

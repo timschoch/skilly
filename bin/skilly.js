@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Porcelain only: parse args, dispatch to one verb script.
 import { fileURLToPath } from 'node:url';
-import { setup } from '../lib/setup.js';
+import { setup } from '../engine/lib/setup.js';
 import { add } from '../lib/add.js';
 import { remove } from '../lib/remove.js';
 import { update } from '../lib/update.js';
@@ -9,7 +9,7 @@ import { update } from '../lib/update.js';
 const bundlesDir = fileURLToPath(new URL('../bundles', import.meta.url));
 
 const usage = `usage:
-  skilly setup                        one-time setup: secrets, .skilly/config.json, caller workflow, setup-project skill
+  skilly setup                        apply .skilly/config.json: first Sync, repo settings, setup PR. Asks nothing
   skilly add <bundle-or-skill...>     add bundles or single skills, commit, ensure PR
   skilly remove <bundle-or-skill...>  remove bundles or single skills, commit, ensure PR
   skilly update [--headless] [--report <path>]  pull hub changes, update all skills, commit, ensure PR`;
@@ -31,7 +31,7 @@ try {
     throw new Error(`--headless/--report only apply to update\n${usage}`);
 
   if (command === 'setup') {
-    await setup({ bundlesDir });
+    setup({ cwd: process.cwd() });
   } else if (command === 'add') {
     await add(names, { bundlesDir });
   } else if (command === 'remove') {
