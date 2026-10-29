@@ -19,24 +19,28 @@
 // for it, and only when the thing the step checks is there. `replaces` on a step drops the step
 // it covers, so the full unit suite does not rerun the changed tests. `without` on a stage drops
 // inherited steps: `pr` is `ci` without the suites that the release PR and the nightly run.
+// `changedOnly` on a stage skips a step with `paths` when none of them changed against the
+// default branch, patterns as in changed-files.mjs. A step without `paths` always runs.
 //
 // A budget warns and never fails. A gate that fails on slowness teaches you to bypass the gate,
 // and the bypass outlives the slowness. `budgetTicket` in the config says where a stage that has
 // outgrown its budget gets split.
 //
 // Usage:
-//   node .agents/skills/verify/scripts/verify.mjs <stage>
-//   node .agents/skills/verify/scripts/verify.mjs <stage> --steps    resolved steps as JSON, runs nothing
-//   node .agents/skills/verify/scripts/verify.mjs --config           merged config as JSON, runs nothing
+//   node .skilly/engine/verify/verify.mjs <stage>
+//   node .skilly/engine/verify/verify.mjs <stage> --results <file>   also writes each step result as JSON
+//   node .skilly/engine/verify/verify.mjs <stage> --steps    resolved steps as JSON, runs nothing
+//   node .skilly/engine/verify/verify.mjs --config           merged config as JSON, runs nothing
 //
 // The flag is `--steps` and not `--print`, because `--print` is node's own eval flag and the
 // shell allowlist refuses any command that carries it.
 
 import { spawnSync } from 'node:child_process';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { bundleSteps, findBundlesDir } from './bundle-steps.mjs';
+import { findMatch, listChangedFiles } from './changed-files.mjs';
 import { defaultBranch } from './default-branch.mjs';
 import { mergeConfig } from './merge-config.mjs';
 
@@ -136,6 +140,13 @@ const validateTier = (needed, where) => {
   if (!TIERS.includes(needed)) fail(`unknown tier ${JSON.stringify(needed)} on ${where}, tiers are ${TIERS.join(', ')}.`);
 };
 
+// Listed on the first step with `paths`, once. Null when git cannot list them: then every step runs.
+let changedFiles;
+const isPathChanged = (paths) => {
+  if (changedFiles === undefined) changedFiles = listChangedFiles(`origin/${defaultBranch(root)}`, root);
+  return changedFiles === null || findMatch(paths, changedFiles) !== undefined;
+};
+
 if (stage.tier !== undefined) validateTier(stage.tier, `stage ${stageName}`);
 const stageBlocked = stage.tier !== undefined && !meets(stage.tier);
 
@@ -151,6 +162,10 @@ if (stageBlocked) {
     }
     if (step.target !== undefined && !existsSync(join(root, step.target))) {
       skipped.push({ name: step.name, reason: `no ${step.target}` });
+      continue;
+    }
+    if (stage.changedOnly && step.paths !== undefined && !isPathChanged(step.paths)) {
+      skipped.push({ name: step.name, reason: 'none of its paths changed' });
       continue;
     }
     runnable.push(step);
@@ -191,7 +206,7 @@ for (const step of steps) {
   const seconds = (Date.now() - stepStartedAt) / 1000;
   // A step killed by a signal has no status, and still counts as red.
   const status = result.status ?? 1;
-  results.push({ name: step.name, seconds, status });
+  results.push({ name: step.name, seconds, status, issueLabels: step.issueLabels ?? [] });
   if (status !== 0) {
     console.error(`\nFAILED ${stageName}: ${step.name}, after ${seconds.toFixed(1)}s`);
     console.error(`  ${step.run}`);
@@ -200,6 +215,9 @@ for (const step of steps) {
     if (step.why) console.error(`  ${step.why}`);
   }
 }
+
+const resultsAt = process.argv.indexOf('--results');
+if (resultsAt !== -1) writeFileSync(process.argv[resultsAt + 1], `${JSON.stringify(results, null, 2)}\n`);
 
 const total = (Date.now() - startedAt) / 1000;
 const red = results.filter(({ status }) => status !== 0);

@@ -1,0 +1,46 @@
+# Managed by skilly. The Sync writes this file from the Engine and overwrites
+# a hand edit. Change .skilly/verify.json or the tier in .skilly/config.json.
+#
+# The PR gate: one job, because Actions rounds every job up to the minute. The
+# Engine picks the stage and the toolchains its steps need. The pr stage skips
+# a step when none of its paths changed.
+name: CI
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  push:
+    branches: [@{defaultBranch}]
+  workflow_dispatch: {} # release.yml starts the release PR's run this way
+
+# A newer push to the same ref cancels the run it superseded.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0 # the changed-files steps diff against the default branch
+@{setupNode}
+      - run: @{install}
+      - id: plan
+        run: node .skilly/engine/verify/plan.mjs ci >> "$GITHUB_OUTPUT"
+      # The lockfile pins the Playwright version, so it keys the browser cache.
+      - if: contains(fromJSON(steps.plan.outputs.toolchains), 'playwright')
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-chromium-${{ runner.os }}-${{ hashFiles('@{lockfile}') }}
+      - if: contains(fromJSON(steps.plan.outputs.toolchains), 'playwright')
+        run: @{exec} playwright install --with-deps chromium
+      - run: node .skilly/engine/verify/verify.mjs ${{ steps.plan.outputs.stage }}
+        env:
+          GITHUB_TOKEN: ${{ github.token }} # the audit step checks accepted advisories for a fix

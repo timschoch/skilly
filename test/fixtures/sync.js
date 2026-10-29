@@ -1,6 +1,9 @@
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const TEMPLATES_DIR = fileURLToPath(new URL('../../engine/templates/', import.meta.url));
 
 // A fixture Release snapshot and a fixture checkout for the Sync tests.
 // The snapshot holds two Bundles and a two-file Engine. The Hub bundle pulls
@@ -27,6 +30,8 @@ export function makeSnapshot(release = 'v1.0.0') {
     'engine/bin/skilly.js': `// engine ${release}\n`,
     'engine/lib/thing.js': 'export const thing = 1;\n',
   });
+  // The real Managed file templates, so the Sync tests check what Consumers get.
+  cpSync(TEMPLATES_DIR, join(dir, 'engine', 'templates'), { recursive: true });
   return { dir, release };
 }
 

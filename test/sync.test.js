@@ -151,6 +151,54 @@ test('the Engine copy skips the Hub, which runs engine/ itself', () => {
   assert.ok(!exists(cwd, '.skilly/engine'));
 });
 
+const MANAGED_BY_TIER = {
+  sandbox: ['.github/workflows/ci.yml'],
+  tool: ['.github/dependabot.yml', '.github/workflows/ai-review.yml', '.github/workflows/ci.yml'],
+  product: [
+    '.github/dependabot.yml',
+    '.github/workflows/ai-review.yml',
+    '.github/workflows/ci.yml',
+    '.github/workflows/nightly.yml',
+  ],
+};
+
+test('a Sync writes the Managed files of each tier and lists them in the Sync report', () => {
+  for (const [tier, paths] of Object.entries(MANAGED_BY_TIER)) {
+    const cwd = makeCheckout({ tier });
+    const report = sync({ cwd, snapshot: makeSnapshot(), skills: fakeSkills() });
+    const written = report.files.filter((path) => path.startsWith('.github/'));
+    assert.deepEqual(written, paths, tier);
+    for (const path of paths) assert.ok(exists(cwd, path), `${tier}: ${path}`);
+  }
+});
+
+test('a lower tier deletes the Managed files it no longer gets, and keeps a file the Sync did not write', () => {
+  const cwd = makeCheckout({ tier: 'product' });
+  sync({ cwd, snapshot: makeSnapshot(), skills: fakeSkills() });
+  writeFileSync(join(cwd, '.github/dependabot.yml'), 'version: 2\n');
+  writeFileSync(
+    join(cwd, '.skilly/config.json'),
+    JSON.stringify({ ...readJson(cwd, '.skilly/config.json'), tier: 'sandbox' }),
+  );
+
+  const report = sync({ cwd, snapshot: makeSnapshot(), skills: fakeSkills() });
+  assert.ok(!exists(cwd, '.github/workflows/nightly.yml'));
+  assert.ok(!exists(cwd, '.github/workflows/ai-review.yml'));
+  assert.equal(readFileSync(join(cwd, '.github/dependabot.yml'), 'utf8'), 'version: 2\n');
+  assert.deepEqual(
+    report.files.filter((path) => path.startsWith('.github/')),
+    ['.github/workflows/ai-review.yml', '.github/workflows/nightly.yml'],
+  );
+});
+
+test('the Managed files skip the Hub, which keeps its own workflows', () => {
+  const cwd = makeCheckout({ tier: 'product' });
+  run('git', ['init', '-q'], { cwd });
+  run('git', ['remote', 'add', 'origin', 'https://timschoch@github.com/timschoch/skilly.git'], { cwd });
+  sync({ cwd, snapshot: makeSnapshot(), skills: fakeSkills() });
+  assert.ok(!exists(cwd, '.github'));
+});
+
 test('the Engine copy adds its .gitattributes line once and keeps the rest', () => {
   const cwd = makeCheckout({});
   writeFileSync(join(cwd, '.gitattributes'), '*.png binary');

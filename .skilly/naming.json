@@ -5,6 +5,12 @@
       "names": ["^confirm$"],
       "rules": ["verb-synonym"],
       "why": "confirm asks the person y/N in the Hub's old verbs. It validates nothing."
+    },
+    "packageManager": {
+      "paths": ["^engine/lib/managed-files\\.js$"],
+      "names": ["PackageManager$"],
+      "rules": ["noise-word"],
+      "why": "package manager is the tool's own name: the packageManager field in package.json."
     }
   }
 }

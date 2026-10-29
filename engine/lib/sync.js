@@ -13,6 +13,7 @@ import {
 import { join, relative } from 'node:path';
 import { HUB_REPO } from './constants.js';
 import { addFormatterIgnores } from './formatter-ignores.js';
+import { MANAGED_PATHS, writeManagedFiles } from './managed-files.js';
 import { matchName } from './match.js';
 import { resolveBundles, sourceRepo } from './resolve.js';
 import { ownSkills, selfSource } from './self-source.js';
@@ -21,14 +22,22 @@ import * as skillyFile from './skilly-file.js';
 import { updateRules } from './update-rules.js';
 
 // The Sync module (ADR-0008 decisions 17 to 19). A checkout, its
-// .skilly/config.json and one Release snapshot go in. Skills, Router rules
-// and the Engine copy come out, plus the Sync report. It never prompts and
+// .skilly/config.json and one Release snapshot go in. Skills, Router rules,
+// the Engine copy and the Managed files come out, plus the Sync report. It never prompts and
 // never commits: callers own commit, push and the Sync PR.
 const ENGINE_DIR = join('.skilly', 'engine');
 const ENGINE_RECORD = join('.skilly', 'engine.json');
 const GITATTRIBUTES_LINE = '.skilly/engine/** linguist-generated=true';
 // Every path the Sync may write. The Sync report diffs these before and after.
-const OWNED_PATHS = ['.agents', '.claude/skills', '.claude/rules', '.skilly', 'skills-lock.json', '.gitattributes'];
+const OWNED_PATHS = [
+  '.agents',
+  '.claude/skills',
+  '.claude/rules',
+  '.skilly',
+  'skills-lock.json',
+  '.gitattributes',
+  ...MANAGED_PATHS,
+];
 const FORMATTER_FILES = ['.prettierignore', 'biome.json', 'biome.jsonc'];
 
 // path -> content, for every file under the given paths. A symlink is its
@@ -180,6 +189,7 @@ export function sync({ cwd, snapshot: { dir, release }, skills = skillsCli }) {
   for (const bundle of wanted.bundles) updateRules(cwd, bundle, join(bundlesDir, bundle));
 
   const hash = writeEngine(cwd, join(dir, 'engine'));
+  writeManagedFiles(cwd, join(dir, 'engine', 'templates'), config.tier);
   addFormatterIgnores(cwd);
   skillyFile.write(cwd, { ...config, hub: release ?? config.hub });
 
