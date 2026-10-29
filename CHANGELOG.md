@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.5.0](https://github.com/timschoch/skilly/compare/v0.4.0...v0.5.0) (2026-10-29)
+
+
+### Features
+
+* **engine:** setup applies .skilly/config.json, asks nothing, opens the setup PR ([#243](https://github.com/timschoch/skilly/issues/243)) ([8f63925](https://github.com/timschoch/skilly/commit/8f63925e932edccbbadb13eea68a2f273fe9da4e)), closes [#218](https://github.com/timschoch/skilly/issues/218)
+* **engine:** setup decide phase with detect, config and preflight scripts ([#248](https://github.com/timschoch/skilly/issues/248)) ([a798217](https://github.com/timschoch/skilly/commit/a7982175a4541687964eebe47a99b6723a7fa8ff))
+
+
+### Bug Fixes
+
+* **bundles:** install the cursor-team-kit skills of the workflow Bundle ([#247](https://github.com/timschoch/skilly/issues/247)) ([28455cb](https://github.com/timschoch/skilly/commit/28455cb10465d69243f85447b213e37d9271a2a8))
+* **engine:** verify steps run the Engine scripts, not the workflow Bundle's ([#245](https://github.com/timschoch/skilly/issues/245)) ([269e438](https://github.com/timschoch/skilly/commit/269e4380c805b89ddef3afa7a24f8d0976d4ccb3))
+
 ## [0.4.0](https://github.com/timschoch/skilly/compare/v0.3.0...v0.4.0) (2026-10-29)
 
 
