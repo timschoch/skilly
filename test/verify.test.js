@@ -45,10 +45,9 @@ const installSkillShims = (root) => {
   return join(scripts, 'verify.mjs');
 };
 
-test('the default branch name step runs in a Consumer that has the verify skill and the Engine', () => {
+test('the default branch name step runs in a Consumer with the Engine and no Bundle', () => {
   const step = shippedStages().push.steps.find(({ name }) => name === 'branch name');
-  const root = makeRepo({ defaults: { stages: { push: { steps: [step] } } }, tier: 'sandbox' });
-  installSkillShims(root);
+  const root = makeRepo({ defaults: { stages: { push: { steps: [step] } } }, tier: 'sandbox', uses: [] });
   spawnSync('git', ['init', '--quiet', '--initial-branch', 'wip', root]);
   const { GITHUB_HEAD_REF, ...env } = process.env;
   const result = spawnSync(process.execPath, [scriptIn(root), 'push'], { cwd: root, encoding: 'utf8', env });
@@ -73,16 +72,16 @@ test('the old skill-folder path names the missing Engine', () => {
   assert.match(result.stderr, /no \.skilly\/engine\/verify\/verify\.mjs/);
 });
 
-// Sync delivers the verify skill and nothing beside it. A default step that
-// runs a file from somewhere else fails in every Consumer that lacks the file.
-test('a default step runs a file only when the verify skill ships it or a target guards it', () => {
-  const installed = '.agents/skills/verify/';
+// Every Consumer has the Engine, but a Consumer may name no Bundle. A default step that
+// runs a file from a Bundle fails in every Consumer without that Bundle.
+test('a default step runs a file only when the Engine ships it or a target guards it', () => {
+  const installed = '.skilly/engine/verify/';
   for (const { steps = [] } of Object.values(shippedStages()))
     for (const { name, run: command, target } of steps) {
       const file = /^node (\S+)/.exec(command)?.[1];
       if (!file || file === target) continue;
-      assert.ok(file.startsWith(installed), `${name}: ${file} is outside the verify skill and has no target`);
-      assert.ok(existsSync(join(skillDir, file.slice(installed.length))), `${name}: the skill does not ship ${file}`);
+      assert.ok(file.startsWith(installed), `${name}: ${file} is outside the Engine and has no target`);
+      assert.ok(existsSync(join(engineDir, file.slice(installed.length))), `${name}: the Engine does not ship ${file}`);
     }
 });
 

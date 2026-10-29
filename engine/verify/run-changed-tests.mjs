@@ -8,7 +8,7 @@
 // folder: their `**` skips a dot segment.
 //
 // Usage:
-//   node .agents/skills/verify/scripts/run-changed-tests.mjs <base> <command...>
+//   node .skilly/engine/verify/run-changed-tests.mjs <base> <command...>
 //
 // Runs `<command> --changed <base>`, or `<command>` alone when a trigger is in the diff.
 
