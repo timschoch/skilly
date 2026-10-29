@@ -1,4 +1,5 @@
 {
+  "detect": { "dependencies": ["better-auth"] },
   "includes": [],
   "rules": [],
   "sources": [

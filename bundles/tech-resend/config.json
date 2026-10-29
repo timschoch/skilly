@@ -1,4 +1,5 @@
 {
+  "detect": { "dependencies": ["resend"] },
   "includes": [],
   "rules": [],
   "sources": [

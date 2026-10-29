@@ -4,11 +4,11 @@
   "sources": [
     {
       "source": "timschoch/skilly",
-      "skills": ["setup-project", "setup-release-please", "setup-repo"]
+      "skills": ["setup-project"]
     },
     {
       "source": "timschoch/mattpocock-skills",
-      "skills": ["setup-matt-pocock-skills", "setup-pre-commit"]
+      "skills": ["setup-matt-pocock-skills"]
     }
   ]
 }

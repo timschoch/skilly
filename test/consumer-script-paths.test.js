@@ -15,10 +15,7 @@ const SKILL_PATH = /^\.(?:agents|claude)\/skills\/([\w-]+)\/(.+)$/;
 const HOOKS_JOIN = /['"]\.claude['"],\s*['"]hooks['"]/;
 const OTHER_BUNDLE = /\.\.\/\.\.\/([\w-]+)\/skills\//g;
 // file -> skill it may run outside its own bundle, with the reason.
-const ALLOWED = {
-  // The same line runs `skilly add gdd` first, so the gdd skill is installed.
-  'bundles/setup-project/skills/setup-project/SKILL.md': 'gdd',
-};
+const ALLOWED = {};
 
 function listFiles(directory) {
   return readdirSync(join(ROOT, directory), { recursive: true, withFileTypes: true })

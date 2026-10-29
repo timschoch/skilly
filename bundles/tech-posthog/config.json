@@ -1,4 +1,5 @@
 {
+  "detect": { "dependencies": ["posthog-js", "posthog-node"] },
   "includes": [],
   "rules": [],
   "sources": [

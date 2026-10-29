@@ -1,4 +1,5 @@
 {
+  "detect": { "dependencies": ["n8n", "n8n-workflow"] },
   "includes": [],
   "rules": [],
   "sources": [

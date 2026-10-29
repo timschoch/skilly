@@ -97,6 +97,10 @@ _Avoid_: summary, log
 The manual, local command that makes a repo a Consumer: `npx github:timschoch/skilly#<release> setup`. Two phases: decide, then apply. In the decide phase an agent asks, and its scripts write `.skilly/config.json`. The apply phase asks nothing: it runs the first Sync and sets the repo settings. Safe to run again. [ADR-0009](docs/adr/0009-setup-decides-then-applies.md).
 _Avoid_: install, config, onboard
 
+**Preflight**:
+The last step of the decide phase of Setup: `skilly preflight`. It checks, read-only, that the apply phase can run: the config, the `gh` login, read access to the Hub, the repo, the skilly App's account, the repo settings, every secret the tier and Bundles need, the package manager. A red check stops Setup before the apply phase.
+_Avoid_: check, doctor
+
 **Setup PR**:
 The pull request the apply phase of Setup opens from `chore/skilly-setup`: the Consumer's `.skilly/config.json` and the first Sync. A person merges it. Built like a Sync PR, with no auto-merge.
 

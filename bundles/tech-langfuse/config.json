@@ -1,4 +1,5 @@
 {
+  "detect": { "dependencies": ["langfuse", "@langfuse/*"] },
   "includes": [],
   "rules": [],
   "sources": [

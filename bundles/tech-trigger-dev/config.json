@@ -1,4 +1,5 @@
 {
+  "detect": { "dependencies": ["@trigger.dev/*"], "files": ["trigger.config.ts"] },
   "includes": [],
   "rules": [],
   "sources": [

@@ -1,4 +1,5 @@
 {
+  "detect": { "dependencies": ["drizzle-orm", "drizzle-kit"] },
   "includes": [],
   "rules": [],
   "sources": [

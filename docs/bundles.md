@@ -15,14 +15,16 @@ bundles/<name>/
   README.md     # what the Bundle ships, and the skills left out and why
 ```
 
-| Field      | Holds                                                                                                                                    |
-| ---------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| `includes` | other Bundles, pulled in recursively. Adding `project-x` gives the union of `project-x` and all it includes. A cycle is an error.        |
-| `rules`    | the Rules this Bundle declares. The `skilly / gate` check runs each `rules/<rule>.sh`, until every Consumer requires only `ci / verify`. |
-| `verify`   | the Bundle's verify steps and full-suite triggers, see [Verify steps](#verify-steps). Each Rule of the Bundle is one of its steps.       |
-| `sources`  | one entry per Source repo, with the skills taken from it. Hub-maintained skills use the Source `timschoch/skilly`.                       |
+| Field      | Holds                                                                                                                                                                                             |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `includes` | other Bundles, pulled in recursively. Adding `project-x` gives the union of `project-x` and all it includes. A cycle is an error.                                                                 |
+| `rules`    | the Rules this Bundle declares. The `skilly / gate` check runs each `rules/<rule>.sh`, until every Consumer requires only `ci / verify`.                                                          |
+| `verify`   | the Bundle's verify steps and full-suite triggers, see [Verify steps](#verify-steps). Each Rule of the Bundle is one of its steps.                                                                |
+| `sources`  | one entry per Source repo, with the skills taken from it. Hub-maintained skills use the Source `timschoch/skilly`.                                                                                |
+| `detect`   | the hints that pre-tick the Bundle in the decide phase of Setup: `dependencies` in `package.json` (a trailing `*` matches a prefix such as `@tanstack/*`), `files` in the repo root, or `always`. |
+| `secrets`  | the repo secrets the Bundle needs. The preflight of Setup fails on each one the Consumer lacks.                                                                                                   |
 
-`config.json` also declares the Bundle's detect hints, secrets and hook entries ([ADR-0009](adr/0009-setup-decides-then-applies.md#bundles-declare-their-facts-as-data)).
+`config.json` also declares the Bundle's hook entries ([ADR-0009](adr/0009-setup-decides-then-applies.md#bundles-declare-their-facts-as-data)).
 
 ### Verify steps
 
@@ -98,14 +100,14 @@ Engineering and productivity skills, for any stack. Full list: [config.json](../
 | `netresearch/context7-skill`  | `context7`: live library docs where no vendor docs skill exists                                                                         |
 | `nutlope/hallmark`            | `hallmark` ([usehallmark.com](https://usehallmark.com)): new websites and pages that look designed, not generated                       |
 
-| Hub-maintained skill                                     | Does                                                                                                                                                                                                                                                                                                             |
-| -------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `orchestrate`, `step-by-step`, `cleanup-merged-branches` |                                                                                                                                                                                                                                                                                                                  |
-| `audit-agent-history`                                    | mines the user's Claude Code and Codex session logs per model, counts failure modes, proposes up to three lines for `workflow-hazards.md`                                                                                                                                                                        |
-| `audit-skilly-workflow`                                  | user-invoked. Finds where a Consumer's own instructions, the user's global instructions, hooks, lint and CI contradict or duplicate what skilly installed. A script gathers sources, gate values and config defects. The model judges meaning conflicts and writes an HTML report. Last step of `setup-project`. |
-| `skilly-cli`                                             | how a Consumer drives skilly's add, remove and sync. `setup-project` is removed after bootstrap, so this is the standing reference.                                                                                                                                                                              |
-| `writing-rules`                                          | the writing rules for all repo artifacts, distilled from Habits-Family/habits v2-rebuild. They live in the Hub because they keep changing.                                                                                                                                                                       |
-| `qa`                                                     | the Hub is its home: mattpocock/skills deprecated and deleted it. Its successors `triage` and `to-tickets` do not cover filing issues from a chat.                                                                                                                                                               |
+| Hub-maintained skill                                     | Does                                                                                                                                                                                                                                                                               |
+| -------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `orchestrate`, `step-by-step`, `cleanup-merged-branches` |                                                                                                                                                                                                                                                                                    |
+| `audit-agent-history`                                    | mines the user's Claude Code and Codex session logs per model, counts failure modes, proposes up to three lines for `workflow-hazards.md`                                                                                                                                          |
+| `audit-skilly-workflow`                                  | user-invoked. Finds where a Consumer's own instructions, the user's global instructions, hooks, lint and CI contradict or duplicate what skilly installed. A script gathers sources, gate values and config defects. The model judges meaning conflicts and writes an HTML report. |
+| `skilly-cli`                                             | how a Consumer drives skilly's add, remove and sync. `setup-project` runs from the setup command and is never installed, so this is the standing reference.                                                                                                                        |
+| `writing-rules`                                          | the writing rules for all repo artifacts, distilled from Habits-Family/habits v2-rebuild. They live in the Hub because they keep changing.                                                                                                                                         |
+| `qa`                                                     | the Hub is its home: mattpocock/skills deprecated and deleted it. Its successors `triage` and `to-tickets` do not cover filing issues from a chat.                                                                                                                                 |
 
 The Rules of `workflow` are its [verify steps](#verify-steps) in the `push` stage.
 

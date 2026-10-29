@@ -1,4 +1,5 @@
 {
+  "detect": { "dependencies": ["@shopify/*"], "files": ["shopify.app.toml"] },
   "includes": [],
   "rules": [],
   "sources": [

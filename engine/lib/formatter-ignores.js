@@ -80,7 +80,7 @@ export function addFormatterIgnores(cwd) {
     }
   }
   // Always ensure .prettierignore, even before any Prettier config exists:
-  // Prettier arrives later (setup-pre-commit) and would otherwise reformat
+  // Prettier can arrive later and would otherwise reformat
   // vendor skills and invalidate every computedHash in skills-lock.json.
   const prettierIgnore = join(cwd, '.prettierignore');
   const forms = folderForms(2); // .gitignore syntax: a bare folder covers its contents

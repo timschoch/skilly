@@ -12,12 +12,9 @@ import { join } from 'node:path';
 import { parseArgs } from 'node:util';
 import { pathToFileURL } from 'node:url';
 import { cloneRelease, latestRelease } from '../engine/lib/add-remove.js';
-import { HUB_REPO } from '../engine/lib/constants.js';
+import { HUB_OWNERS, HUB_REPO } from '../engine/lib/constants.js';
 import { run } from '../engine/lib/run.js';
 
-// The accounts whose installs the nightly syncs. Any account can install the
-// App; an install by anyone else is ignored.
-export const OWNERS = ['timschoch', 'admin-laicadev', 'swissdesign-md'];
 export const EDITED_ENGINE_TITLE = 'Nightly Sync paused: the skilly Engine was edited by hand';
 
 // A GitHub App JWT: RS256, issued 60 s back for clock drift, valid 9 minutes.
@@ -73,7 +70,7 @@ function reportEditedEngine(gh, repo, token, release) {
 export function nightly({ app, gh, clone, engineEdited, deliver, release, only, dryRun = false, log = console.log }) {
   const result = { synced: [], edited: [], failed: [] };
   for (const { id, owner } of app.installations()) {
-    if (!OWNERS.some((allowed) => sameName(allowed, owner))) {
+    if (!HUB_OWNERS.some((allowed) => sameName(allowed, owner))) {
       log(`${owner}: not on the owner allowlist, ignored`);
       continue;
     }
