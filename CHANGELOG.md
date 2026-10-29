@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.4.0](https://github.com/timschoch/skilly/compare/v0.3.0...v0.4.0) (2026-10-29)
+
+
+### Features
+
+* **engine:** repo settings module, check then set ([#232](https://github.com/timschoch/skilly/issues/232)) ([d51d738](https://github.com/timschoch/skilly/commit/d51d7383a49690438b3c1409b0e8b3d88d579ba3))
+* **engine:** Sync writes the Managed workflows ([#235](https://github.com/timschoch/skilly/issues/235)) ([9479271](https://github.com/timschoch/skilly/commit/94792718813fd8f267b2fe1a74f6a7c8196886a4))
+* **engine:** Sync writes the skilly hook entries, lefthook in every Consumer ([#236](https://github.com/timschoch/skilly/issues/236)) ([533c22f](https://github.com/timschoch/skilly/commit/533c22f5f84e550b66e8914ada0ccf262a158971))
+* **engine:** the Sync writes release.yml, release PRs get verify without a person ([#240](https://github.com/timschoch/skilly/issues/240)) ([c2ca3d2](https://github.com/timschoch/skilly/commit/c2ca3d2b762d304f3c59e7bda3a2d3caf6997df7))
+* **sync:** Hub nightly syncs every Consumer with the skilly App ([#237](https://github.com/timschoch/skilly/issues/237)) ([acfbf16](https://github.com/timschoch/skilly/commit/acfbf16d04b1e24314d8018de8330798f4d38100))
+
 ## [0.3.0](https://github.com/timschoch/skilly/compare/v0.2.0...v0.3.0) (2026-10-29)
 
 
