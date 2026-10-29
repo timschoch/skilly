@@ -20,11 +20,13 @@ const RELEASE_BRANCH_PREFIX = 'release-please--';
 
 /**
  * `pr` leaves the full suites to the release PR and the nightly, so it needs both, and the
- * nightly runs on the product tier only. Without that net, and on the release PR itself, `ci`.
+ * nightly runs on the product tier only. Without that net, on the release PR itself, and on a
+ * manual run, `ci`: a manual run is the full check of one commit.
  */
-export function pickCiStage({ tier, branch, hasNightly, hasReleasePlease }) {
+export function pickCiStage({ tier, branch, hasNightly, hasReleasePlease, event }) {
   const isNetThere = tier === 'product' && hasNightly && hasReleasePlease;
-  return isNetThere && !branch.startsWith(RELEASE_BRANCH_PREFIX) ? 'pr' : 'ci';
+  const isFullRun = event === 'workflow_dispatch' || branch.startsWith(RELEASE_BRANCH_PREFIX);
+  return isNetThere && !isFullRun ? 'pr' : 'ci';
 }
 
 /**
@@ -101,7 +103,13 @@ const plan = (kind) => {
   if (kind === 'ci') {
     const branch = process.env.GITHUB_HEAD_REF || process.env.GITHUB_REF_NAME || '';
     const hasNightly = existsSync(join('.github', 'workflows', 'nightly.yml'));
-    return pickCiStage({ tier: readTier(), branch, hasNightly, hasReleasePlease: hasReleasePlease() });
+    return pickCiStage({
+      tier: readTier(),
+      branch,
+      hasNightly,
+      hasReleasePlease: hasReleasePlease(),
+      event: process.env.GITHUB_EVENT_NAME,
+    });
   }
   if (kind === 'nightly') {
     const lastCommitAt = Date.parse(execFileSync('git', ['log', '-1', '--format=%cI'], { encoding: 'utf8' }).trim());

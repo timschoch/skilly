@@ -3,6 +3,7 @@ import { dirname, join } from 'node:path';
 import { HUB_REPO } from './constants.js';
 import { tryRun } from './run.js';
 import { selfSource } from './self-source.js';
+import { TIERS } from './skilly-file.js';
 
 // The Managed files (ADR-0009 decision 9): the Sync writes them from the Engine's templates, by
 // tier and package manager. A person changes .skilly/verify.json or the tier, never the file.
@@ -14,7 +15,6 @@ const MANAGED_FILES = [
 ];
 export const MANAGED_PATHS = MANAGED_FILES.map(({ path }) => path);
 
-const TIERS = ['sandbox', 'tool', 'product'];
 // The first line of every template. Only a file with it is the Sync's to delete.
 const HEADER = '# Managed by skilly.';
 const STEP_INDENT = '      ';

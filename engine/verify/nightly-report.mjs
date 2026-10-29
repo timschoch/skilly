@@ -11,7 +11,7 @@ import { readFileSync, realpathSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 const LIST_PREFIX = 'Red steps: ';
-// Red, as the old nightly-red label: each label marks a broken check.
+// Red: each label marks a broken check.
 const LABEL_COLOR = 'B60205';
 
 /** check label -> { labels, red }, red step names sorted, in the order the checks first appear. */

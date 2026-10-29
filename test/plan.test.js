@@ -20,6 +20,7 @@ test('ci: a product PR runs pr only when a nightly and a release PR run the full
   assert.equal(pickCiStage({ ...net, hasNightly: false }), 'ci');
   assert.equal(pickCiStage({ ...net, hasReleasePlease: false }), 'ci');
   assert.equal(pickCiStage({ ...net, tier: 'tool' }), 'ci');
+  assert.equal(pickCiStage({ ...net, event: 'workflow_dispatch' }), 'ci');
 });
 
 test('nightly: ADR-0004 decision 1, and a manual run runs everything', () => {
