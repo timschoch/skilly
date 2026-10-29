@@ -116,7 +116,7 @@ sequenceDiagram
       sync --> settings[".claude/settings.json"]
     ```
 
-11. `release.yml` runs release-please with the default `GITHUB_TOKEN`, on the product tier. A PR opened with that token starts no workflow, so `release.yml` then starts `ci.yml` on the release branch with `workflow_dispatch`. GitHub does not count the check run of a `workflow_dispatch` run for the PR. So `ci.yml`, when started by `workflow_dispatch`, ends with one step that writes the commit status `verify` (`state=success`) on its commit with `GITHUB_TOKEN` (`statuses: write`). The step runs only after a green verify. The status satisfies the required check, and the release PR merges by auto-merge. `release.yml` does not turn on auto-merge: a release stays a deliberate step. The Sync keeps a Consumer's own `release.yml`, one without the Managed header, because it can hold deploy steps.
+11. `release.yml` runs release-please with the default `GITHUB_TOKEN`, on the product tier. A PR opened with that token starts no workflow, so `release.yml` then starts `ci.yml` on the release branch with `workflow_dispatch`. GitHub does not count the check run of a `workflow_dispatch` run for the PR. So `ci.yml`, when started by `workflow_dispatch`, ends with one step that writes the commit status `verify` (`state=success`) on its commit with `GITHUB_TOKEN` (`statuses: write`). The step runs only after a green verify. The status satisfies the required check, and the release PR merges by auto-merge. `release.yml` does not turn on auto-merge: a person turns it on for the release PR, so a release stays a deliberate step. The Sync keeps a Consumer's own `release.yml`, one without the Managed header, because it can hold deploy steps.
 
     ```mermaid
     sequenceDiagram
@@ -143,7 +143,7 @@ sequenceDiagram
 - The tier logic lives once, in the Engine.
 - Tests run the apply phase on a fixture folder with a fake `gh` on the `PATH`.
 - [ADR-0006](0006-oxlint-and-an-edit-hook.md) decisions 1, 2 and 6: the Sync writes the Oxlint and `.vscode/` files, not `setup-repo`.
-- Decision 11 is tested in `timschoch/skilly-release-test-private`: a login that cannot bypass the ruleset turns on auto-merge, and GitHub merges the release PR once the `verify` status lands ([#215](https://github.com/timschoch/skilly/issues/215)).
+- Decision 11 is tested in `timschoch/skilly-release-test-private`: a login that cannot bypass the ruleset turns on auto-merge, and GitHub merges the release PR once the `verify` status lands ([#215 release.yml: release PRs get their ci / verify check without a person](https://github.com/timschoch/skilly/issues/215)).
 
 ## Rejected
 

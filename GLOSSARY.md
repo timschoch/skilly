@@ -44,7 +44,7 @@ All skilly code that hooks, CI or the CLI run: sync, setup, verify, checks, and 
 _Avoid_: Tool (that's a tier), runtime, kit
 
 **Managed file**:
-A file in a Consumer that the Sync PR writes from the Engine and a person does not edit: `.github/workflows/ci.yml`, `ai-review.yml`, `nightly.yml` and `.github/dependabot.yml`. The tier decides which ones a Consumer gets. In hook files such as `lefthook.yml`, the Sync PR owns only the skilly entries.
+A file in a Consumer that the Sync PR writes from the Engine and a person does not edit: `.github/workflows/ci.yml`, `ai-review.yml`, `nightly.yml`, `release.yml` and `.github/dependabot.yml`. The tier decides which ones a Consumer gets. The Sync keeps a Consumer's own `release.yml` (one without the Managed header `# Managed by skilly.`), because it can hold deploy steps. In hook files such as `lefthook.yml`, the Sync PR owns only the skilly entries.
 _Avoid_: Template, caller
 
 **skilly App**:

@@ -1,5 +1,7 @@
 # Managed by skilly. The Sync writes this file from the Engine and overwrites
-# a hand edit. Change the tier in .skilly/config.json.
+# a hand edit. Change the tier in .skilly/config.json. To keep your own
+# release.yml (for deploy steps), remove the first line. The Sync then keeps
+# the file.
 #
 # Product tier: release-please opens and updates the release PR with the
 # default token, so the release PR needs no secret. A PR that token opens
