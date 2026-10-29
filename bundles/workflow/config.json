@@ -141,18 +141,19 @@
       "skills": [
         "arena",
         "blast-radius",
-        "deslop",
         "how",
-        "make-pr-easy-to-review",
         "principle-encode-lessons-in-structure",
         "principle-fix-root-causes",
         "principle-guard-the-context-window",
         "principle-prove-it-works",
         "technical-writing",
-        "thermo-nuclear-code-quality-review",
         "unslop",
         "why"
       ]
+    },
+    {
+      "source": "https://github.com/cursor/plugins/tree/main/cursor-team-kit",
+      "skills": ["deslop", "make-pr-easy-to-review", "thermo-nuclear-code-quality-review"]
     },
     {
       "source": "netresearch/context7-skill",
