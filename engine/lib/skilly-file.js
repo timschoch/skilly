@@ -39,7 +39,12 @@ export function read(cwd) {
   if (!existsSync(pathOf(cwd))) {
     throw new Error(`no ${CONFIG_PATH} — run \`npx github:timschoch/skilly setup\` first`);
   }
-  const { tier, bundles, review, ...rest } = JSON.parse(readFileSync(pathOf(cwd), 'utf8'));
+  return parse(readFileSync(pathOf(cwd), 'utf8'));
+}
+
+// The config from its file text, such as one read from a git ref.
+export function parse(text) {
+  const { tier, bundles, review, ...rest } = JSON.parse(text);
   validateHub(rest.hub);
   // Unknown keys round-trip: other skills own their own keys in this file.
   return { ...rest, tier: tier ?? 'sandbox', bundles: bundles ?? [], review: { bots: [], ...review } };

@@ -60,6 +60,6 @@ Not asked: the App, the branch, hooks, release-please, the issue tracker, the do
 
 ## 4. Apply
 
-Preflight green: run `skilly setup`. It opens the Setup PR and sets the repo settings. Show the PR URL and stop. The person merges it once `ci / verify` is green.
+Preflight green: run `skilly setup`. It opens the Setup PR, sets the repo settings and removes the uncommitted `.skilly/config.json`: the Setup PR holds it. Show the PR URL and stop. The person merges it once `ci / verify` is green, then runs `git pull`.
 
-A second run starts again at [1. Detect](#1-detect): `detect` ticks what the config holds.
+`skilly setup` alone reruns the apply phase, with the config from the Setup PR. To change the answers, start again at [1. Detect](#1-detect): after the merge, `detect` ticks what the config holds.

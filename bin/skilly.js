@@ -2,7 +2,7 @@
 // Porcelain only: parse args, dispatch to one verb script.
 import { fileURLToPath } from 'node:url';
 import { listBundles, listPreflightChecks, listUnmatchedDependencies, setConfig } from '../engine/lib/decide.js';
-import { setup } from '../engine/lib/setup.js';
+import { readSetupConfig, setup } from '../engine/lib/setup.js';
 import { selfSource } from '../engine/lib/self-source.js';
 import * as skillyFile from '../engine/lib/skilly-file.js';
 import { update } from '../lib/update.js';
@@ -69,7 +69,7 @@ try {
   } else if (command === 'preflight') {
     process.exitCode = printPreflight();
   } else if (command === 'setup') {
-    if (!skillyFile.exists(cwd))
+    if (!readSetupConfig(cwd))
       throw new Error(
         `no ${skillyFile.CONFIG_PATH} yet. Setup starts with the decide phase: have your agent read ${decideSkill} in full and follow it`,
       );
