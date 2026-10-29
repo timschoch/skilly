@@ -57,6 +57,28 @@ test('setup on a repo with only .skilly/config.json opens the setup PR and sets 
   assert.equal(git(cwd, 'status', '--porcelain'), '');
 });
 
+// #251: GitHub reads only the first 300 files of a push. Past them, a repo
+// whose Actions never ran does not see .github/workflows.
+test('setup pushes the workflows alone before the rest of the setup commit', () => {
+  useFakeGitHub();
+  const { cwd, origin } = makeClone(CONFIG);
+  git(origin, 'config', 'core.logAllRefUpdates', 'always');
+  runSetup(cwd);
+
+  const pushes = git(origin, 'reflog', '--format=%H', SETUP_BRANCH).split('\n').reverse();
+  assert.equal(pushes.length, 2);
+  assert.equal(git(origin, 'rev-parse', `${pushes[1]}~1`), pushes[0]);
+  const first = git(origin, 'diff', '--name-only', 'main', pushes[0]).split('\n');
+  assert.ok(first.includes('.github/workflows/ci.yml'));
+  assert.ok(first.every((path) => path.startsWith('.github/workflows/')));
+  assert.match(git(origin, 'log', '-1', '--format=%s', pushes[0]), /^chore\(skilly\): /);
+
+  // The open Setup PR already had its first push: an update is one push.
+  runSetup(cwd, { release: 'v1.1.0' });
+  assert.equal(git(origin, 'reflog', '--format=%H', SETUP_BRANCH).split('\n').length, 3);
+  assert.equal(git(origin, 'rev-list', '--count', `main..${SETUP_BRANCH}`), '1');
+});
+
 test('a second setup run changes nothing', () => {
   const github = useFakeGitHub();
   const { cwd, origin } = makeClone(CONFIG);

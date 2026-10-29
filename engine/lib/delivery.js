@@ -14,6 +14,7 @@ import { sync } from './sync.js';
 // or update the one Sync PR, apply the auto-merge rule. The Hub nightly and
 // `skilly sync` both call it. All GitHub calls go through gh.
 export const SYNC_BRANCH = 'chore/skilly-sync';
+const WORKFLOWS = '.github/workflows';
 
 const major = (release) => release?.match(/^v(\d+)\./)?.[1];
 
@@ -67,7 +68,20 @@ export const ghCli = (cwd) => (args) => run('gh', args, { cwd });
 // title(report) and body(report) write the PR. Returns { report, pr }. pr is
 // null when the branch would hold no change. pr.pushed is false when the open
 // PR's branch already holds the same files, so a second run changes nothing.
-export function pushSyncBranch({ cwd, snapshot, skills = skillsCli, gh = ghCli(cwd), branch, title, body, prepare = () => [] }) {
+// workflowsFirst commits and pushes the .github/workflows change alone first:
+// GitHub reads only the first 300 files of a push, and a repo whose Actions
+// never ran sees no workflow past them, so its PR gets no run (#251).
+export function pushSyncBranch({
+  cwd,
+  snapshot,
+  skills = skillsCli,
+  gh = ghCli(cwd),
+  branch,
+  title,
+  body,
+  prepare = () => [],
+  workflowsFirst = false,
+}) {
   const base = defaultBranch(cwd);
   run('git', ['fetch', '--quiet', 'origin', base], { cwd });
   const tree = join(mkdtempSync(join(tmpdir(), 'skilly-sync-')), 'checkout');
@@ -81,16 +95,25 @@ export function pushSyncBranch({ cwd, snapshot, skills = skillsCli, gh = ghCli(c
     if (tryRun('git', ['diff', '--cached', '--quiet'], { cwd: tree }) !== null) return { report, pr: null };
 
     const subject = title(report);
-    // The PR is checked by `ci / verify`; local hooks do not run on it.
-    run('git', ['commit', '--quiet', '--no-verify', '-m', subject], { cwd: tree });
     const [open] = JSON.parse(gh(['pr', 'list', '--head', branch, '--state', 'open', '--json', 'number,url']));
+    // An open PR already had its first push.
+    const staged = run('git', ['diff', '--cached', '--name-only'], { cwd: tree }).split('\n');
+    const isWorkflow = (path) => path.startsWith(`${WORKFLOWS}/`);
+    const shouldPushWorkflowsFirst = workflowsFirst && !open && staged.some(isWorkflow) && !staged.every(isWorkflow);
+    // The PR is checked by `ci / verify`; local hooks do not run on it.
+    if (shouldPushWorkflowsFirst) {
+      run('git', ['commit', '--quiet', '--no-verify', '-m', 'chore(skilly): write the workflows first', '--', WORKFLOWS], { cwd: tree });
+    }
+    run('git', ['commit', '--quiet', '--no-verify', '-m', subject], { cwd: tree });
     tryRun('git', ['fetch', '--quiet', 'origin', branch], { cwd });
     const pushedTree = tryRun('git', ['rev-parse', '--verify', '--quiet', `origin/${branch}^{tree}`], { cwd });
     if (open && pushedTree === run('git', ['rev-parse', 'HEAD^{tree}'], { cwd: tree })) {
       return { report, pr: { url: open.url, created: false, pushed: false } };
     }
 
-    run('git', ['push', '--quiet', '--force', '--no-verify', 'origin', `HEAD:refs/heads/${branch}`], { cwd: tree });
+    const push = (ref) => run('git', ['push', '--quiet', '--force', '--no-verify', 'origin', `${ref}:refs/heads/${branch}`], { cwd: tree });
+    if (shouldPushWorkflowsFirst) push('HEAD~1');
+    push('HEAD');
     const text = body(report);
     if (open) {
       gh(['pr', 'edit', open.url, '--title', subject, '--body', text]);
