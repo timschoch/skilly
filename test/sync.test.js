@@ -42,6 +42,21 @@ test('a first Sync installs the Bundles, their Router rules and the Engine, and 
   }
 });
 
+// verify reads the Bundle steps from .skilly/engine/bundles/. An include can name
+// any Bundle, so the Engine carries every config.json of the Release.
+test('the Engine copy carries the config.json of every Bundle in the Release', () => {
+  const cwd = makeCheckout({ bundles: ['other'] });
+  const snapshot = makeSnapshot();
+  sync({ cwd, snapshot, skills: fakeSkills() });
+  for (const bundle of ['hubby', 'other']) {
+    assert.equal(
+      readFileSync(join(cwd, '.skilly/engine/bundles', bundle, 'config.json'), 'utf8'),
+      readFileSync(join(snapshot.dir, 'bundles', bundle, 'config.json'), 'utf8'),
+    );
+  }
+  assert.ok(!exists(cwd, '.skilly/engine/bundles/hubby/rules'), 'only config.json, no Router rules');
+});
+
 test('the Engine hash is recorded and a hand edit is detected', () => {
   const cwd = makeCheckout({ bundles: ['other'] });
   const report = sync({ cwd, snapshot: makeSnapshot(), skills: fakeSkills() });

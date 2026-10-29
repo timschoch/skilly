@@ -22,7 +22,13 @@ const makeRepo = ({ fullSuiteTriggers }) => {
   const root = join(mkdtempSync(join(tmpdir(), 'skilly-changed-')), '.worktrees', 'repo');
   const engine = join(root, '.skilly', 'engine', 'verify');
   mkdirSync(engine, { recursive: true });
-  for (const file of ['verify.mjs', 'merge-config.mjs', 'default-branch.mjs', 'run-changed-tests.mjs'])
+  for (const file of [
+    'verify.mjs',
+    'merge-config.mjs',
+    'bundle-steps.mjs',
+    'default-branch.mjs',
+    'run-changed-tests.mjs',
+  ])
     copyFileSync(join(engineDir, file), join(engine, file));
   writeFileSync(join(engine, 'verify.json'), JSON.stringify({ fullSuiteTriggers, stages: {} }));
   writeFileSync(join(root, '.skilly', 'config.json'), '{}');

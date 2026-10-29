@@ -13,14 +13,20 @@ const shippedDefaults = join(engineDir, 'verify.json');
 
 // Writes a fake Consumer and returns its root. The Engine's verify folder is copied in
 // with `defaults` as its verify.json, so a test sees only its own steps.
-const makeRepo = ({ verify, defaults = {}, tier, files = [] } = {}) => {
+// `bundles` maps a Bundle name to its config.json under `bundlesDir`; `uses`
+// lists the Bundles the Consumer names in .skilly/config.json.
+const makeRepo = ({ verify, defaults = {}, tier, files = [], bundles = {}, bundlesDir = 'bundles', uses } = {}) => {
   const root = mkdtempSync(join(tmpdir(), 'skilly-verify-'));
   const engine = join(root, '.skilly', 'engine', 'verify');
   mkdirSync(engine, { recursive: true });
   for (const file of readdirSync(engineDir)) copyFileSync(join(engineDir, file), join(engine, file));
   writeFileSync(join(engine, 'verify.json'), JSON.stringify(defaults));
   if (verify) writeFileSync(join(root, '.skilly', 'verify.json'), JSON.stringify(verify));
-  if (tier) writeFileSync(join(root, '.skilly', 'config.json'), JSON.stringify({ tier }));
+  if (tier || uses) writeFileSync(join(root, '.skilly', 'config.json'), JSON.stringify({ tier, bundles: uses }));
+  for (const [name, config] of Object.entries(bundles)) {
+    mkdirSync(join(root, bundlesDir, name), { recursive: true });
+    writeFileSync(join(root, bundlesDir, name, 'config.json'), JSON.stringify(config));
+  }
   for (const file of files) writeFileSync(join(root, file), '');
   return root;
 };
@@ -139,7 +145,7 @@ test('a step that runs replaces the step it names, so the tests run one time', (
   assert.equal(ci.status, 0, ci.stderr);
   assert.match(ci.stdout, /ran-full/);
   assert.doesNotMatch(ci.stdout, /ran-changed/);
-  assert.match(ci.stdout, /skip unit \(changed\): replaced by unit/);
+  assert.match(ci.stdout, /skip +unit \(changed\): replaced by unit/);
 
   // The stage below still runs its own step.
   assert.match(run(root, 'push').stdout, /ran-changed/);
@@ -225,7 +231,7 @@ test('a step above the repo tier is skipped and listed in --steps', () => {
 
   const result = run(root, 'ci');
   assert.equal(result.status, 0);
-  assert.match(result.stdout, /skip audit: needs tool, repo is sandbox/);
+  assert.match(result.stdout, /skip +audit: needs tool, repo is sandbox/);
 
   const listed = JSON.parse(run(root, 'ci', '--steps').stdout);
   assert.deepEqual(listed.steps, []);
@@ -249,7 +255,7 @@ test('a step whose target is missing is skipped, and runs once the target is the
 
   const without = run(makeRepo({ verify }), 'ci');
   assert.equal(without.status, 0);
-  assert.match(without.stdout, /skip e2e: no e2e\.config\.ts/);
+  assert.match(without.stdout, /skip +e2e: no e2e\.config\.ts/);
   assert.doesNotMatch(without.stdout, /ran-e2e/);
 
   const present = run(makeRepo({ verify, files: ['e2e.config.ts'] }), 'ci');
@@ -257,7 +263,7 @@ test('a step whose target is missing is skipped, and runs once the target is the
   assert.match(present.stdout, /ran-e2e/);
 });
 
-test('a failing step propagates its exit code and prints its why', () => {
+test('a red step does not stop the stage: every step runs and the summary lists each result', () => {
   const root = makeRepo({
     verify: {
       stages: {
@@ -265,17 +271,36 @@ test('a failing step propagates its exit code and prints its why', () => {
           steps: [
             { name: 'typecheck', run: 'true' },
             { name: 'unit', run: 'exit 3', why: 'a red unit test means the change is wrong' },
-            { name: 'build', run: 'echo never-runs' },
+            { name: 'lint', run: 'exit 4' },
+            { name: 'build', run: 'echo ran-build' },
+            { name: 'e2e', run: 'true', target: 'e2e.config.ts' },
           ],
         },
       },
     },
   });
   const result = run(root, 'ci');
+  // The first red step's exit code, so a caller sees the same code as before.
   assert.equal(result.status, 3);
+  assert.match(result.stdout, /ran-build/);
   assert.match(result.stderr, /FAILED ci: unit/);
   assert.match(result.stderr, /a red unit test means the change is wrong/);
-  assert.doesNotMatch(result.stdout, /never-runs/);
+  assert.match(result.stderr, /FAILED ci: lint/);
+  const summary = result.stdout.slice(result.stdout.indexOf('ci failed'));
+  assert.match(summary, /^ci failed: 2 of 4 steps red in [\d.]+s$/m);
+  assert.match(summary, /^ {2}ok +[\d.]+s {2}typecheck$/m);
+  assert.match(summary, /^ {2}FAILED +[\d.]+s {2}unit$/m);
+  assert.match(summary, /^ {2}FAILED +[\d.]+s {2}lint$/m);
+  assert.match(summary, /^ {2}ok +[\d.]+s {2}build$/m);
+  assert.match(summary, /^ {2}skip +e2e: no e2e\.config\.ts$/m);
+});
+
+test('a green stage lists each step in its summary', () => {
+  const root = makeRepo({ verify: { stages: { ci: { steps: [{ name: 'lint', run: 'true' }] } } } });
+  const result = run(root, 'ci');
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /^ci passed in [\d.]+s$/m);
+  assert.match(result.stdout, /^ {2}ok +[\d.]+s {2}lint$/m);
 });
 
 test('a stage over its budget warns and still passes', () => {
@@ -347,14 +372,127 @@ test('a repo file that copies the defaults in full resolves to the defaults', ()
   assert.deepEqual(JSON.parse(run(root, '--config').stdout), defaults);
 });
 
-test('the shipped defaults put the naming gate in the push stage', () => {
-  const root = mkdtempSync(join(tmpdir(), 'skilly-verify-'));
-  mkdirSync(join(root, '.skilly'));
-  writeFileSync(join(root, '.skilly', 'config.json'), '{}');
-  const result = spawnSync(process.execPath, [shippedScript, 'push', '--steps'], { cwd: root, encoding: 'utf8' });
-  const { skipped } = JSON.parse(result.stdout);
-  assert.ok(
-    skipped.some(({ name }) => name === 'naming'),
-    result.stdout,
+test('verify merges 3 layers: Engine defaults, Bundle steps, then .skilly/verify.json by step name', () => {
+  const root = makeRepo({
+    uses: ['web'],
+    defaults: {
+      fullSuiteTriggers: ['package.json'],
+      stages: {
+        push: { steps: [{ name: 'typecheck', run: 'tsc' }] },
+        ci: { extends: 'push', steps: [{ name: 'build', run: 'npm run build' }] },
+      },
+    },
+    bundles: {
+      web: {
+        includes: ['db'],
+        verify: {
+          fullSuiteTriggers: ['next.config.*'],
+          steps: [
+            { name: 'naming', stage: 'push', run: 'node naming.mjs', why: 'names' },
+            { name: 'e2e smoke', stage: 'ci', tier: 'product', run: 'npx playwright test', toolchain: ['playwright'] },
+          ],
+        },
+      },
+      db: {
+        verify: {
+          fullSuiteTriggers: ['drizzle/'],
+          steps: [{ name: 'migrations', stage: 'ci', run: 'drizzle-kit check', paths: ['drizzle/**'] }],
+        },
+      },
+    },
+    verify: {
+      fullSuiteTriggers: ['migrations/'],
+      stages: {
+        push: { steps: [{ name: 'naming', run: 'node own-naming.mjs' }] },
+        ci: { steps: ['-migrations'] },
+      },
+    },
+  });
+  assert.deepEqual(JSON.parse(run(root, '--config').stdout), {
+    fullSuiteTriggers: ['package.json', 'drizzle/', 'next.config.*', 'migrations/'],
+    stages: {
+      push: {
+        steps: [
+          { name: 'typecheck', run: 'tsc' },
+          { name: 'naming', run: 'node own-naming.mjs', why: 'names' },
+        ],
+      },
+      ci: {
+        extends: 'push',
+        steps: [
+          { name: 'build', run: 'npm run build' },
+          { name: 'e2e smoke', tier: 'product', run: 'npx playwright test', toolchain: ['playwright'] },
+        ],
+      },
+    },
+  });
+});
+
+test('a Bundle step lands in a stage the defaults do not have', () => {
+  const root = makeRepo({
+    uses: ['web'],
+    bundles: { web: { verify: { steps: [{ name: 'lighthouse', stage: 'nightly', run: 'echo ran-lighthouse' }] } } },
+  });
+  const result = run(root, 'nightly');
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /ran-lighthouse/);
+});
+
+test('the Engine copy of the Bundle configs wins over a bundles/ folder of the repo', () => {
+  const step = (name) => ({ verify: { steps: [{ name, stage: 'commit', run: 'true' }] } });
+  const root = makeRepo({
+    uses: ['web'],
+    bundlesDir: join('.skilly', 'engine', 'bundles'),
+    bundles: { web: step('engine') },
+  });
+  mkdirSync(join(root, 'bundles', 'web'), { recursive: true });
+  writeFileSync(join(root, 'bundles', 'web', 'config.json'), JSON.stringify(step('own folder')));
+  const listed = JSON.parse(run(root, 'commit', '--steps').stdout);
+  assert.deepEqual(
+    listed.steps.map(({ name }) => name),
+    ['engine'],
   );
+});
+
+test('without Bundle configs verify runs the other layers and says the Bundle steps are missing', () => {
+  const defaults = { stages: { commit: { steps: [{ name: 'lint', run: 'echo ran-default' }] } } };
+  const result = run(makeRepo({ uses: ['workflow'], defaults }), 'commit');
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /ran-default/);
+  assert.match(result.stderr, /no Bundle configs .* Bundle steps of workflow do not run/);
+});
+
+// A Bundle the Release dropped can stay in .skilly/config.json. Its steps are gone,
+// the rest of the plan still runs, the commit hook too.
+test('a Bundle with no config is skipped with a note, the other Bundles still run', () => {
+  const bundles = { web: { verify: { steps: [{ name: 'web', stage: 'commit', run: 'echo ran-web' }] } } };
+  const result = run(makeRepo({ uses: ['ghost', 'web'], bundles }), 'commit');
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /ran-web/);
+  assert.match(result.stderr, /no config for Bundle ghost .* its steps do not run/);
+});
+
+test('an include cycle or a step without a stage exits 2', () => {
+  const cases = [
+    [{ uses: ['a'], bundles: { a: { includes: ['b'] }, b: { includes: ['a'] } } }, /Bundle include cycle: a -> b -> a/],
+    [
+      { uses: ['web'], bundles: { web: { verify: { steps: [{ name: 'x', run: 'true' }] } } } },
+      /step x of Bundle web has no stage/,
+    ],
+  ];
+  for (const [options, message] of cases) {
+    const result = run(makeRepo(options), '--config');
+    assert.equal(result.status, 2, result.stdout);
+    assert.match(result.stderr, message);
+  }
+});
+
+// The Hub is a Consumer of itself: its ci stage runs the Rules of the workflow
+// Bundle from bundles/.
+test('the Hub ci stage runs the Rules of the workflow Bundle as steps', () => {
+  const hubRoot = fileURLToPath(new URL('..', import.meta.url));
+  const result = spawnSync(process.execPath, [shippedScript, 'ci', '--steps'], { cwd: hubRoot, encoding: 'utf8' });
+  assert.equal(result.status, 0, result.stderr);
+  const names = JSON.parse(result.stdout).steps.map(({ name }) => name);
+  for (const rule of ['naming', 'conventional-commits']) assert.ok(names.includes(rule), `${rule} in ${names}`);
 });

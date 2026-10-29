@@ -80,11 +80,17 @@ function refuseEditedEngine(cwd) {
 
 // Copy the Release's Engine into .skilly/engine/ and record its hash.
 // The Hub runs its Engine from engine/, so it gets no copy.
+// The copy carries the config.json of every Bundle of the Release, next to the
+// Engine in the snapshot: verify reads the Bundle steps from it.
 export function writeEngine(cwd, engineDir) {
   if (selfSource(cwd)?.toLowerCase() === HUB_REPO) return null;
   refuseEditedEngine(cwd);
   rmSync(join(cwd, ENGINE_DIR), { recursive: true, force: true });
   cpSync(engineDir, join(cwd, ENGINE_DIR), { recursive: true });
+  const bundlesDir = join(engineDir, '..', 'bundles');
+  for (const bundle of readdirSync(bundlesDir).filter((name) => existsSync(join(bundlesDir, name, 'config.json')))) {
+    cpSync(join(bundlesDir, bundle, 'config.json'), join(cwd, ENGINE_DIR, 'bundles', bundle, 'config.json'));
+  }
   const hash = folderHash(join(cwd, ENGINE_DIR));
   writeFileSync(join(cwd, ENGINE_RECORD), JSON.stringify({ hash }, null, 2) + '\n');
   const attributes = join(cwd, '.gitattributes');

@@ -3,10 +3,15 @@
 // stage of this script, so the local gate and the pipeline cannot drift into disagreeing about
 // what green means.
 //
-// The steps come from `verify.json`, the defaults every Consumer gets on sync, with
-// the repo's `.skilly/verify.json` merged on top (rules in merge-config.mjs). Steps match by
-// `name`: the repo changes a default step by naming it, drops one with `"-<name>"`, and adds its
-// own under a new name. The repo file is optional.
+// The steps come from 3 layers, merged in this order (rules in merge-config.mjs):
+//   1. `verify.json`, the defaults every Consumer gets on sync
+//   2. the verify steps of the Bundles named in `.skilly/config.json` (bundle-steps.mjs)
+//   3. the repo's `.skilly/verify.json`, optional
+// Steps match by `name`: the repo changes a default or Bundle step by naming it, drops one with
+// `"-<name>"`, and adds its own under a new name.
+//
+// A red step does not stop the stage. Every step runs, and the summary lists each result, so one
+// run shows everything to fix. The exit code is the first red step's.
 //
 // Stages are cumulative through `extends`: `push` contains `commit`, `ci` contains `push`.
 // Cumulative by default, so a stage skips a check the stage below it runs only where the config
@@ -29,8 +34,9 @@
 
 import { spawnSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
-import { dirname, join, resolve } from 'node:path';
+import { dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { bundleSteps, findBundlesDir } from './bundle-steps.mjs';
 import { defaultBranch } from './default-branch.mjs';
 import { mergeConfig } from './merge-config.mjs';
 
@@ -65,9 +71,31 @@ const readJson = (path, label) => {
 const root = findRoot(process.cwd());
 if (!root) fail('no .skilly/config.json or .skilly/verify.json in this directory or any parent, so there is no repo to verify.');
 
+const settingsPath = join(root, '.skilly', 'config.json');
+const settings = existsSync(settingsPath) ? readJson(settingsPath, '.skilly/config.json') : {};
+
+/** The Bundle layer, empty when the repo names no Bundle or has no Bundle configs to read. */
+const readBundleLayer = (names) => {
+  if (!names.length) return {};
+  const bundlesDir = findBundlesDir(root);
+  if (!bundlesDir) {
+    console.error(`verify: no Bundle configs in .skilly/engine/bundles/ or bundles/, so the Bundle steps of ${names.join(', ')} do not run.`);
+    return {};
+  }
+  let result;
+  try {
+    result = bundleSteps(names, bundlesDir);
+  } catch (error) {
+    return fail(error.message);
+  }
+  for (const name of result.unknown)
+    console.error(`verify: no config for Bundle ${name} in ${relative(root, bundlesDir)}/, so its steps do not run.`);
+  return result.layer;
+};
+
 const overridePath = join(root, '.skilly', 'verify.json');
 const config = mergeConfig(
-  readJson(DEFAULTS_PATH, 'the verify defaults'),
+  mergeConfig(readJson(DEFAULTS_PATH, 'the verify defaults'), readBundleLayer(settings.bundles ?? [])),
   existsSync(overridePath) ? readJson(overridePath, '.skilly/verify.json') : {},
 );
 if (process.argv.includes('--config')) {
@@ -75,8 +103,7 @@ if (process.argv.includes('--config')) {
   process.exit(0);
 }
 
-const settingsPath = join(root, '.skilly', 'config.json');
-const tier = (existsSync(settingsPath) ? readJson(settingsPath, '.skilly/config.json').tier : null) ?? 'sandbox';
+const tier = settings.tier ?? 'sandbox';
 if (!TIERS.includes(tier)) fail(`unknown tier ${JSON.stringify(tier)} in .skilly/config.json, tiers are ${TIERS.join(', ')}.`);
 
 const stages = config.stages ?? {};
@@ -146,10 +173,9 @@ if (stageBlocked) {
   process.exit(0);
 }
 
-for (const skip of skipped) process.stdout.write(`skip ${skip.name}: ${skip.reason}\n`);
 
 const startedAt = Date.now();
-const timings = [];
+const results = [];
 
 // A git hook exports GIT_DIR and friends, which point every `git` a step runs at the hook's
 // repo, temp repos included. Steps run as they would from a shell.
@@ -163,22 +189,30 @@ for (const step of steps) {
   // VERIFY_STEP hands a step script its own config, e.g. the audit step's accept list.
   const result = spawnSync(step.run, { cwd: root, shell: true, stdio: 'inherit', env: { ...env, VERIFY_STEP: JSON.stringify(step) } });
   const seconds = (Date.now() - stepStartedAt) / 1000;
-  timings.push({ name: step.name, seconds });
-  if (result.status !== 0) {
+  // A step killed by a signal has no status, and still counts as red.
+  const status = result.status ?? 1;
+  results.push({ name: step.name, seconds, status });
+  if (status !== 0) {
     console.error(`\nFAILED ${stageName}: ${step.name}, after ${seconds.toFixed(1)}s`);
     console.error(`  ${step.run}`);
     // `why` reaches the reader at the moment the step goes red, which is the moment they are
     // least likely to go looking for it.
     if (step.why) console.error(`  ${step.why}`);
-    process.exit(result.status ?? 1);
   }
 }
 
 const total = (Date.now() - startedAt) / 1000;
-process.stdout.write(`\n${stageName} passed in ${total.toFixed(1)}s\n`);
-for (const timing of timings) {
-  process.stdout.write(`  ${timing.seconds.toFixed(1).padStart(6)}s  ${timing.name}\n`);
+const red = results.filter(({ status }) => status !== 0);
+process.stdout.write(
+  red.length
+    ? `\n${stageName} failed: ${red.length} of ${results.length} steps red in ${total.toFixed(1)}s\n`
+    : `\n${stageName} passed in ${total.toFixed(1)}s\n`,
+);
+for (const { name, seconds, status } of results) {
+  const label = status === 0 ? 'ok' : 'FAILED';
+  process.stdout.write(`  ${label.padEnd(6)} ${seconds.toFixed(1).padStart(6)}s  ${name}\n`);
 }
+for (const skip of skipped) process.stdout.write(`  skip   ${skip.name}: ${skip.reason}\n`);
 
 if (typeof stage.budgetSeconds === 'number' && total > stage.budgetSeconds) {
   const lines = [
@@ -189,3 +223,5 @@ if (typeof stage.budgetSeconds === 'number' && total > stage.budgetSeconds) {
   if (config.budgetTicket) lines.push(`Split the stage: ${config.budgetTicket}`);
   process.stdout.write(`${lines.join('\n')}\n\n`);
 }
+
+if (red.length) process.exit(red[0].status);

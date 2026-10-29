@@ -13,8 +13,8 @@ flowchart LR
   verify --> steps[run steps]
 ```
 
-- verify merges the Consumer's `.skilly/verify.json` over the [default steps](../engine/verify/verify.json), matched by step `name`.
-- Each Bundle declares its verify steps in its `config.json`, for example `naming` from `workflow` ([ADR-0009](adr/0009-setup-decides-then-applies.md#bundles-declare-their-facts-as-data)).
+- verify merges 3 layers in this order: the [default steps](../engine/verify/verify.json), the steps of the Consumer's Bundles, then `.skilly/verify.json`. A later layer changes or drops a step by its `name`.
+- Each Bundle declares its verify steps in its `config.json`, for example the `naming` Rule of `workflow` ([bundles.md](bundles.md#verify-steps), [ADR-0009](adr/0009-setup-decides-then-applies.md#bundles-declare-their-facts-as-data)).
 - verify skips a stage above the repo's tier and a step whose `target` file does not exist.
 - CI and hooks never run code from `.agents/skills/`.
 
@@ -193,12 +193,12 @@ Details: [babysit-pr](../bundles/workflow/skills/babysit-pr/SKILL.md).
 
 ## `.skilly/`
 
-| File          | Holds                                                                 |
-| ------------- | --------------------------------------------------------------------- |
-| `config.json` | tier, the Consumer's Bundles, the Release it runs (`hub`)             |
-| `engine/`     | the Engine. The Sync PR writes it, never edit it by hand.             |
-| `verify.json` | changes to the default verify steps, matched by step `name`; optional |
-| `naming.json` | overrides and exceptions for the `naming` Rule                        |
+| File          | Holds                                                                            |
+| ------------- | -------------------------------------------------------------------------------- |
+| `config.json` | tier, the Consumer's Bundles, the Release it runs (`hub`)                        |
+| `engine/`     | the Engine. The Sync PR writes it, never edit it by hand.                        |
+| `verify.json` | changes to the default and Bundle verify steps, matched by step `name`; optional |
+| `naming.json` | overrides and exceptions for the `naming` Rule                                   |
 
 ## Terms
 
