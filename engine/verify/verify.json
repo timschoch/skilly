@@ -64,27 +64,23 @@
           "run": "npx playwright test --grep @smoke",
           "tier": "product",
           "target": "playwright.config.ts",
+          "toolchain": ["playwright"],
           "why": "A merge gate needs the critical paths, not the suite. Tag those specs @smoke; the rest runs nightly."
         }
       ]
     },
     "pr": {
-      "$comment": "The ci stage without the full suites. Only for a repo whose release PR runs ci and whose nightly runs: they are the net for what a PR leaves out. The ci.yml template of setup-repo picks the stage.",
+      "$comment": "The ci stage without the full suites. Only for a repo whose release PR runs ci and whose nightly runs: they are the net for what a PR leaves out. The Engine's plan.mjs picks the stage. A step with paths runs only when one of them changed.",
       "extends": "ci",
       "without": ["unit", "e2e smoke"],
+      "changedOnly": true,
       "budgetSeconds": 300
     },
-    "nightly": {
+    "nightly-scan": {
+      "$comment": "The checks that find new things without a code change. A night after no change runs only these (ADR-0004).",
       "tier": "product",
       "budgetSeconds": 1800,
       "steps": [
-        {
-          "name": "unit",
-          "run": "npx vitest run --passWithNoTests",
-          "target": "vitest.config.ts",
-          "why": "The pr stage runs only the tests a diff reaches. The full suite each night finds a main that broke with each PR green alone."
-        },
-        { "name": "e2e full", "run": "npx playwright test", "target": "playwright.config.ts" },
         {
           "name": "deps drift",
           "run": "npm outdated || true",
@@ -92,8 +88,31 @@
         },
         {
           "name": "security scan",
-          "run": "pipx run semgrep scan --config auto --error --exclude .agents",
-          "why": "Semgrep Community Edition ships on PyPI, not npm, so the runner needs python and pipx. --error turns findings into a non-zero exit. --exclude .agents skips skills that skilly vendors: the consumer cannot fix them, sync overwrites them. --exclude keeps Semgrep's default ignore list, a .semgrepignore would replace it."
+          "run": "pipx run semgrep scan --config auto --error --exclude .agents --exclude .skilly/engine",
+          "issueLabels": ["nightly-security", "critical"],
+          "why": "Semgrep Community Edition ships on PyPI, not npm, so the runner needs python and pipx. --error turns findings into a non-zero exit. --exclude skips the skills and the Engine that skilly vendors: the consumer cannot fix them, sync overwrites them. --exclude keeps Semgrep's default ignore list, a .semgrepignore would replace it."
+        }
+      ]
+    },
+    "nightly": {
+      "$comment": "A night after a change on the default branch: the scan plus the full suites the pr stage leaves out.",
+      "extends": "nightly-scan",
+      "tier": "product",
+      "budgetSeconds": 1800,
+      "steps": [
+        {
+          "name": "unit",
+          "run": "npx vitest run --passWithNoTests",
+          "target": "vitest.config.ts",
+          "issueLabels": ["nightly-tests", "critical"],
+          "why": "The pr stage runs only the tests a diff reaches. The full suite each night finds a main that broke with each PR green alone."
+        },
+        {
+          "name": "e2e full",
+          "run": "npx playwright test",
+          "target": "playwright.config.ts",
+          "toolchain": ["playwright"],
+          "issueLabels": ["nightly-tests", "critical"]
         }
       ]
     }

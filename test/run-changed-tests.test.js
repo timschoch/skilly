@@ -28,6 +28,7 @@ const makeRepo = ({ fullSuiteTriggers }) => {
     'bundle-steps.mjs',
     'default-branch.mjs',
     'run-changed-tests.mjs',
+    'changed-files.mjs',
   ])
     copyFileSync(join(engineDir, file), join(engine, file));
   writeFileSync(join(engine, 'verify.json'), JSON.stringify({ fullSuiteTriggers, stages: {} }));

@@ -16,9 +16,10 @@ Hooks and CI call a stage of the merged config, so the local gate and the pipeli
 ## Usage
 
 ```sh
-node .agents/skills/verify/scripts/verify.mjs <stage>           # run the stage
-node .agents/skills/verify/scripts/verify.mjs <stage> --steps   # resolved steps as JSON, runs nothing
-node .agents/skills/verify/scripts/verify.mjs --config          # merged config as JSON, runs nothing
+node .skilly/engine/verify/verify.mjs <stage>                  # run the stage
+node .skilly/engine/verify/verify.mjs <stage> --results <file> # run, and write each step's result as JSON
+node .skilly/engine/verify/verify.mjs <stage> --steps          # resolved steps as JSON, runs nothing
+node .skilly/engine/verify/verify.mjs --config                 # merged config as JSON, runs nothing
 ```
 
 Works from anywhere in the Consumer. A red step does not stop the stage: every step runs, and the summary lists each one as `ok`, `FAILED` or `skip`. Exit 0 passed, 2 config or usage error, anything else is the code of the first red step.
@@ -53,10 +54,11 @@ Shape of both files:
 | `commit` | nothing by default | `pre-commit` calls `lint-staged` directly |
 | `push` | branch name, typecheck, `unit (changed)`, plus `conventional-commits` and `naming` from the `workflow` Bundle | the `pre-push` hook |
 | `ci` | `push`, lint, full `unit`, build, audit, `e2e smoke` | CI on a PR; on the release PR where a PR runs `pr` |
-| `pr` | `ci` without full `unit` and `e2e smoke` | CI on a PR of a product repo with a release PR and a nightly |
-| `nightly` | full `unit`, `e2e full`, deps drift, security scan | the nightly workflow, product tier |
+| `pr` | `ci` without full `unit` and `e2e smoke`; a step with `paths` only when one of them changed | CI on a PR of a product repo with a release PR and a nightly |
+| `nightly-scan` | deps drift, security scan | the nightly workflow when no commit came since the last finished night |
+| `nightly` | `nightly-scan`, full `unit`, `e2e full` | the nightly workflow, product tier |
 
-`pr` needs its net: each merge to main meets the full suites on the release PR and in the nightly. The `ci.yml` template of `setup-repo` picks `pr` only where both exist.
+`pr` needs its net: each merge to main meets the full suites on the release PR and in the nightly. `.skilly/engine/verify/plan.mjs` picks the stage for the Managed `ci.yml` and `nightly.yml`: `pr` only where both exist, and the night from the last commit and the last finished night.
 
 ## Changed tests
 
@@ -85,7 +87,15 @@ A Bundle adds steps in its `config.json`. One flat list, each step names its sta
 { "verify": { "fullSuiteTriggers": [], "steps": [{ "name": "naming", "stage": "push", "run": "node .agents/skills/naming/scripts/check.mjs" }] } }
 ```
 
-A step needs `name`, `stage` and `run`. The other step fields work as in the defaults. verify reads the Bundle configs from `.skilly/engine/bundles/`, or from `bundles/` in the Hub. With neither, it prints a note and runs without the Bundle steps.
+A step needs `name`, `stage` and `run`. The other step fields work as in the defaults:
+
+| Field | Effect |
+| --- | --- |
+| `"paths": ["src/", "*.css"]` | in a stage with `changedOnly`, runs only when the diff to the default branch holds a match. Patterns as in [Changed tests](#changed-tests) |
+| `"toolchain": ["playwright"]` | CI installs and caches it before the stage runs. `plan.mjs` names the toolchains it knows |
+| `"issueLabels": ["nightly-tests"]` | in the nightly, a red step opens or updates one issue per first label |
+
+verify reads the Bundle configs from `.skilly/engine/bundles/`, or from `bundles/` in the Hub. With neither, it prints a note and runs without the Bundle steps.
 
 ## Override
 

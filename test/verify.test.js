@@ -496,3 +496,86 @@ test('the Hub ci stage runs the Rules of the workflow Bundle as steps', () => {
   const names = JSON.parse(result.stdout).steps.map(({ name }) => name);
   for (const rule of ['naming', 'conventional-commits']) assert.ok(names.includes(rule), `${rule} in ${names}`);
 });
+
+// A git repo on `main` with origin/main at its first commit, then `changed` written on top.
+const makeChangedRepo = (options, changed) => {
+  const root = makeRepo(options);
+  const git = (...args) => spawnSync('git', ['-C', root, ...args], { encoding: 'utf8' });
+  git('init', '--quiet', '--initial-branch', 'main');
+  git('add', '--all');
+  git('-c', 'user.name=test', '-c', 'user.email=test@example.com', 'commit', '--quiet', '--message', 'base');
+  git('update-ref', 'refs/remotes/origin/main', 'HEAD');
+  for (const path of changed) {
+    mkdirSync(join(root, path, '..'), { recursive: true });
+    writeFileSync(join(root, path), 'changed');
+  }
+  return root;
+};
+
+const changedOnlyStages = {
+  stages: {
+    pr: {
+      changedOnly: true,
+      steps: [
+        { name: 'app', run: 'echo ran-app', paths: ['src/', 'package.json'] },
+        { name: 'always', run: 'echo ran-always' },
+      ],
+    },
+  },
+};
+
+const runChanged = (root, ...args) =>
+  spawnSync(process.execPath, [scriptIn(root), ...args], {
+    cwd: root,
+    encoding: 'utf8',
+    env: { ...process.env, DEFAULT_BRANCH: 'main' },
+  });
+
+test('a changedOnly stage skips a step when none of its paths changed', () => {
+  const result = runChanged(makeChangedRepo({ verify: changedOnlyStages }, ['README.md']), 'pr');
+  assert.equal(result.status, 0, result.stderr);
+  assert.doesNotMatch(result.stdout, /ran-app/);
+  assert.match(result.stdout, /ran-always/);
+  assert.match(result.stdout, /skip {3}app: none of its paths changed/);
+});
+
+test('a changedOnly stage runs a step when one of its paths changed, at any depth for a file name', () => {
+  for (const changed of ['src/deep/user.ts', 'apps/web/package.json']) {
+    const result = runChanged(makeChangedRepo({ verify: changedOnlyStages }, [changed]), 'pr');
+    assert.equal(result.status, 0, result.stderr);
+    assert.match(result.stdout, /ran-app/, changed);
+  }
+});
+
+// Without a base to diff against, nothing can be skipped safely.
+test('a changedOnly stage runs every step when git cannot list the changes', () => {
+  const result = runChanged(makeRepo({ verify: changedOnlyStages }), 'pr');
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /ran-app/);
+});
+
+test('a stage without changedOnly runs a step with paths', () => {
+  const stages = { stages: { ci: { steps: changedOnlyStages.stages.pr.steps } } };
+  const result = runChanged(makeChangedRepo({ verify: stages }, ['README.md']), 'ci');
+  assert.match(result.stdout, /ran-app/);
+});
+
+// The nightly report step reads these to open one issue per check.
+test('--results writes each step result with its issue labels, also after a red step', () => {
+  const steps = [
+    { name: 'red', run: 'exit 4', issueLabels: ['nightly-tests', 'critical'] },
+    { name: 'green', run: 'true' },
+  ];
+  const root = makeRepo({ verify: { stages: { nightly: { steps } } } });
+  const resultsPath = join(root, 'results.json');
+  const result = run(root, 'nightly', '--results', resultsPath);
+  assert.equal(result.status, 4);
+  const written = JSON.parse(readFileSync(resultsPath, 'utf8'));
+  assert.deepEqual(
+    written.map(({ name, status, issueLabels }) => ({ name, status, issueLabels })),
+    [
+      { name: 'red', status: 4, issueLabels: ['nightly-tests', 'critical'] },
+      { name: 'green', status: 0, issueLabels: [] },
+    ],
+  );
+});
