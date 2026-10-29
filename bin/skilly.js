@@ -5,9 +5,10 @@ import { listBundles, listPreflightChecks, listUnmatchedDependencies, setConfig 
 import { setup } from '../engine/lib/setup.js';
 import { selfSource } from '../engine/lib/self-source.js';
 import * as skillyFile from '../engine/lib/skilly-file.js';
-import { add } from '../lib/add.js';
-import { remove } from '../lib/remove.js';
 import { update } from '../lib/update.js';
+
+// The Engine CLI runs these verbs. It reads the same arguments.
+const ENGINE_VERBS = ['add', 'remove', 'sync'];
 
 // The package is a Release snapshot: bundles/ and engine/templates/.
 const snapshotDir = fileURLToPath(new URL('..', import.meta.url));
@@ -19,9 +20,10 @@ const usage = `usage:
   skilly config <tier> <bundle...>    decide phase: write the tier and Bundles into .skilly/config.json
   skilly preflight                    decide phase: check gh, Hub access, App, repo settings, secrets
   skilly setup                        apply .skilly/config.json: first Sync, repo settings, setup PR. Asks nothing
-  skilly add <bundle-or-skill...>     add bundles or single skills, commit, ensure PR
-  skilly remove <bundle-or-skill...>  remove bundles or single skills, commit, ensure PR
-  skilly update [--headless] [--report <path>]  pull hub changes, update all skills, commit, ensure PR`;
+  skilly add <bundle-or-skill...>     add bundles or single skills at the pinned Release, print the Sync report
+  skilly remove <bundle-or-skill...>  remove bundles or single skills at the pinned Release, print the Sync report
+  skilly sync                         open or update the Sync PR at the newest Release
+  skilly update [--headless] [--report <path>]  old Sync, kept for the old sync.yml update job`;
 
 const [command, ...rest] = process.argv.slice(2);
 const cwd = process.cwd();
@@ -72,10 +74,8 @@ try {
         `no ${skillyFile.CONFIG_PATH} yet. Setup starts with the decide phase: have your agent read ${decideSkill} in full and follow it`,
       );
     setup({ cwd });
-  } else if (command === 'add') {
-    await add(names, { bundlesDir });
-  } else if (command === 'remove') {
-    await remove(names, { bundlesDir });
+  } else if (ENGINE_VERBS.includes(command)) {
+    await import('../engine/bin/skilly.js');
   } else if (command === 'update') {
     await update({ bundlesDir, headless, report });
   } else {

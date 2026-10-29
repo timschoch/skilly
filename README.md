@@ -79,6 +79,8 @@ node .skilly/engine/bin/skilly.js remove <bundle-or-skill...>  # uninstall, keep
 node .skilly/engine/bin/skilly.js sync                         # the nightly for this repo, now: Sync PR to the newest Release
 ```
 
+`npx -y github:timschoch/skilly add|remove|sync` runs the same Engine verbs. Use it when the repo has no `.skilly/engine/` yet.
+
 Do not edit `.skilly/engine/`, the managed workflow files or the synced skills. Change checks in `.skilly/verify.json` and the tier in `.skilly/config.json`. Who owns which file: [ADR-0008](docs/adr/0008-hub-run-sync-and-pinned-engine.md#who-owns-what-in-a-consumer).
 
 ## Run the sync now
