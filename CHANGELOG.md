@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.3.0](https://github.com/timschoch/skilly/compare/v0.2.0...v0.3.0) (2026-10-29)
+
+
+### Features
+
+* **engine:** skilly sync delivers the Sync PR for one Consumer ([#234](https://github.com/timschoch/skilly/issues/234)) ([cce80e8](https://github.com/timschoch/skilly/commit/cce80e8a3656f6b5b65e911db90464af762c071e))
+* **verify:** run Bundle steps from config.json next to the gate ([#230](https://github.com/timschoch/skilly/issues/230)) ([256bb33](https://github.com/timschoch/skilly/commit/256bb33154de69d4a49858b5ceae3ebd9e9bb877))
+
 ## [0.2.0](https://github.com/timschoch/skilly/compare/v0.1.0...v0.2.0) (2026-10-29)
 
 
