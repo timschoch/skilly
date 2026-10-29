@@ -41,7 +41,7 @@ export function validateBranchName(branch) {
     'Name the change, not the tool or agent that makes it.',
     '',
     'Rename, then push again:',
-    '  git branch -m <type>/<description>',
+    `  git branch -m ${branch} <type>/<description>`,
   ].join('\n');
 }
 

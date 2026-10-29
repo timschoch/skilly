@@ -483,7 +483,7 @@ test('check-branch-name: Conventional Branch passes, agent names fail, trunk, de
   assert.equal(bad.status, 1);
   assert.match(bad.stderr, /Invalid branch name: "t3code\/4075C2f1"/);
   assert.match(bad.stderr, /not the tool or agent/);
-  assert.match(bad.stderr, /git branch -m <type>\/<description>/);
+  assert.match(bad.stderr, /git branch -m t3code\/4075C2f1 <type>\/<description>/);
   for (const no of ['feature/x', 'feat/Add-Login', 'feat/a--b', 'wip']) assert.equal(validateBranch(no).status, 1, no);
 
   run('git', ['-C', repo, 'switch', '--detach']);
@@ -510,6 +510,7 @@ test('check-push-branch: checks each pushed branch name, not HEAD, and refuses t
   const bad = push(`refs/heads/my_feature ${sha} refs/heads/my_feature ${none}`);
   assert.equal(bad.status, 1);
   assert.match(bad.stderr, /Invalid branch name: "my_feature"/);
+  assert.match(bad.stderr, /git branch -m my_feature <type>\/<description>/, 'renames the pushed branch, not HEAD');
   assert.equal(push(`refs/heads/feat/add-sub ${sha} refs/heads/feat/add-sub ${none}`).status, 0);
   // The remote name is what lands on GitHub.
   assert.equal(push(`refs/heads/feat/add-sub ${sha} refs/heads/wip ${none}`).status, 1, 'renamed on push');
