@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.5.2](https://github.com/timschoch/skilly/compare/v0.5.1...v0.5.2) (2026-10-29)
+
+
+### Bug Fixes
+
+* **engine:** Managed files pin actions by SHA and give Dependabot a cooldown ([#263](https://github.com/timschoch/skilly/issues/263)) ([7b3c210](https://github.com/timschoch/skilly/commit/7b3c210f07e1f992e965be54914effc11bfc9c4c)), closes [#155](https://github.com/timschoch/skilly/issues/155)
+* **engine:** pre-push checks the name of each pushed branch, not HEAD ([#261](https://github.com/timschoch/skilly/issues/261)) ([c84f35f](https://github.com/timschoch/skilly/commit/c84f35f56d208c0da18c459075a5a0a35278fa00))
+* **engine:** setup removes the uncommitted config so git pull works after the merge ([#265](https://github.com/timschoch/skilly/issues/265)) ([12c25d1](https://github.com/timschoch/skilly/commit/12c25d10b3f865f0f7ea0a623c3f1daacdeabf20))
+
 ## [0.5.1](https://github.com/timschoch/skilly/compare/v0.5.0...v0.5.1) (2026-10-29)
 
 
