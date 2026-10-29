@@ -24,7 +24,7 @@ Source: [#154 verify: the ci stage runs the unit tests two times](https://github
 3. A PR runs `pr` only in a product-tier repo that has a nightly workflow and a release-please workflow. Each other repo runs `ci` on each PR. A push to main runs the same stage as a PR, so in a `pr` repo it runs no full suite. The [ci.yml template](../../bundles/setup-project/skills/setup-repo/templates/workflows/ci.yml) picks the stage on each run.
 4. The release PR runs `ci`. release-please updates that PR after each merge to main, so each releasable merge meets the full suites before it ships. `verify` is a required check, so a red release PR blocks the release.
 5. The `nightly` stage runs the full `unit` suite. A red night opens one issue with the labels `critical` and `nightly-red`.
-6. The verify skill owns the changed-tests guard: [run-changed-tests.mjs](../../bundles/workflow/skills/verify/scripts/run-changed-tests.mjs) runs the full suite when the diff holds a `fullSuiteTriggers` path. It reads paths from git, so a dot folder does not change the result.
+6. The verify skill owns the changed-tests guard: [run-changed-tests.mjs](../../engine/verify/run-changed-tests.mjs) runs the full suite when the diff holds a `fullSuiteTriggers` path. It reads paths from git, so a dot folder does not change the result.
 
 This narrows [ADR-0001](0001-dev-process-tiers.md) decision 1: a product repo on the `pr` stage runs fewer checks on a PR than a tool repo does. It runs them on the release PR and each night instead.
 

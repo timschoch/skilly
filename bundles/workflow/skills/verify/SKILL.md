@@ -5,7 +5,7 @@ description: The one definition of what each gate runs. Use to run a gate stage,
 
 # Verify
 
-[references/verify.json](references/verify.json) holds the default steps. Sync keeps them current in every Consumer. `.skilly/verify.json` holds only what the repo changes. Hooks and CI call a stage of the merged config, so the local gate and the pipeline cannot drift into disagreeing about what green means.
+`.skilly/engine/verify/verify.json` (Hub: `engine/verify/`) holds the default steps. Sync keeps them current in every Consumer. `.skilly/verify.json` holds only what the repo changes. Hooks and CI call a stage of the merged config, so the local gate and the pipeline cannot drift into disagreeing about what green means.
 
 ## Usage
 
@@ -73,7 +73,7 @@ A budget warns and never fails. A gate that fails on slowness teaches you to byp
 
 ## Override
 
-`.skilly/verify.json` merges over the defaults ([scripts/merge-config.mjs](scripts/merge-config.mjs)). Steps match by `name`, per stage:
+`.skilly/verify.json` merges over the defaults (`.skilly/engine/verify/merge-config.mjs`). Steps match by `name`, per stage:
 
 | Repo file | Effect |
 | --- | --- |
@@ -119,4 +119,4 @@ The gates and guards ship here, so each Sync PR updates them. `/setup-repo` (set
 
 ## Adding a check
 
-One step, never a line in a hook or a workflow. A check for this repo only goes in `.skilly/verify.json`. A check every Consumer needs goes in the hub's `bundles/workflow/skills/verify/references/verify.json`. Give it a `why`: it prints the moment the step goes red, when the reader is least likely to go looking for it.
+One step, never a line in a hook or a workflow. A check for this repo only goes in `.skilly/verify.json`. A check every Consumer needs goes in the hub's `engine/verify/verify.json`. Give it a `why`: it prints the moment the step goes red, when the reader is least likely to go looking for it.

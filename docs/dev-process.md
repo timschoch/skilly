@@ -13,21 +13,21 @@ flowchart LR
   verify --> steps[run steps]
 ```
 
-- verify merges the Consumer's `.skilly/verify.json` over the [default steps](../bundles/workflow/skills/verify/references/verify.json), matched by step `name`.
+- verify merges the Consumer's `.skilly/verify.json` over the [default steps](../engine/verify/verify.json), matched by step `name`.
 - Each Bundle declares its verify steps in its `config.json`, for example `naming` from `workflow` ([ADR-0009](adr/0009-setup-decides-then-applies.md#bundles-declare-their-facts-as-data)).
 - verify skips a stage above the repo's tier and a step whose `target` file does not exist.
 - CI and hooks never run code from `.agents/skills/`.
 
 ## Rules
 
-| Rule                                                                                                                                                                                                   | Why                                                                                                                                     |
-| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------- |
-| Keep every LLM out of every git hook.                                                                                                                                                                  | Hooks stay deterministic and fast. An LLM review in pre-push cost up to 5 minutes per push ([ADR-0001](adr/0001-dev-process-tiers.md)). |
-| Add a check as one step, never as a line in a hook or a workflow. One Consumer: `.skilly/verify.json`. All Consumers: [the verify defaults](../bundles/workflow/skills/verify/references/verify.json). | Hooks and CI read the same step, so a check runs the same everywhere.                                                                   |
-| Hold sandbox to the same code quality as product.                                                                                                                                                      | The tier sets the size of the net, not the standard.                                                                                    |
-| Run review on request: `/code-review` locally, `/ai-review` as a PR comment on tool and product repos.                                                                                                 | An LLM review costs minutes per run.                                                                                                    |
-| Leave the merge to the user. Stop at green and report, per [workflow-done](../.claude/rules/workflow-done.md). When the user says merge, `/babysit-pr` merges at green.                                | Pushed means the user signed off.                                                                                                       |
-| Give the product tier its nightly and its security scan. Never gate a merge on either.                                                                                                                 | Both run on `main` after the merge.                                                                                                     |
+| Rule                                                                                                                                                                       | Why                                                                                                                                     |
+| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| Keep every LLM out of every git hook.                                                                                                                                      | Hooks stay deterministic and fast. An LLM review in pre-push cost up to 5 minutes per push ([ADR-0001](adr/0001-dev-process-tiers.md)). |
+| Add a check as one step, never as a line in a hook or a workflow. One Consumer: `.skilly/verify.json`. All Consumers: [the verify defaults](../engine/verify/verify.json). | Hooks and CI read the same step, so a check runs the same everywhere.                                                                   |
+| Hold sandbox to the same code quality as product.                                                                                                                          | The tier sets the size of the net, not the standard.                                                                                    |
+| Run review on request: `/code-review` locally, `/ai-review` as a PR comment on tool and product repos.                                                                     | An LLM review costs minutes per run.                                                                                                    |
+| Leave the merge to the user. Stop at green and report, per [workflow-done](../.claude/rules/workflow-done.md). When the user says merge, `/babysit-pr` merges at green.    | Pushed means the user signed off.                                                                                                       |
+| Give the product tier its nightly and its security scan. Never gate a merge on either.                                                                                     | Both run on `main` after the merge.                                                                                                     |
 
 ## Tiers
 

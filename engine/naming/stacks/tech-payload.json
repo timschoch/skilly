@@ -1,5 +1,5 @@
 {
-  "$comment": "Naming defaults for consumers that pick the tech-payload bundle. Merged after references/naming.json, before .skilly/naming.json. Keys carry the payload/ prefix.",
+  "$comment": "Naming defaults for consumers that pick the tech-payload bundle. Merged after naming.json, before .skilly/naming.json. Keys carry the payload/ prefix.",
   "allow": {
     "payload/migrations": {
       "paths": ["(^|/)migrations/\\d{8}_\\d{6}(_[\\w-]+)?\\.(ts|js)$"],

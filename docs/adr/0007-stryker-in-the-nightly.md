@@ -12,7 +12,7 @@ Stryker runs the tests once per mutant, so a full run takes minutes to hours. Th
 
 ## Decision
 
-1. Stryker runs in the `nightly` stage of product Consumers, as one step in the [verify defaults](../../bundles/workflow/skills/verify/references/verify.json).
+1. Stryker runs in the `nightly` stage of product Consumers, as one step in the [verify defaults](../../engine/verify/verify.json).
 2. It mutates only the files that changed on `main` since the last finished nightly (`--mutate` with the list from git). Incremental mode (`--incremental`) keeps its result file in the Actions cache and only makes the run faster. A night with no cache entry costs as much as the diff, not as much as the whole code.
 3. It runs only on nights that run everything, per [ADR-0004](0004-nightly-runs-only-on-change.md) decision 1. A night with no change on `main` has no new code to mutate.
 4. Surviving mutants open or update the one `nightly-stryker` issue. It is not `critical`: a weak test blocks nothing.
