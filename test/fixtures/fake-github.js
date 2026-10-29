@@ -4,7 +4,7 @@ import { join } from 'node:path';
 
 // A fake GitHub behind a fake `gh` on the PATH (ADR-0009, Consequences).
 // It answers the `gh api` calls of the repo settings module from a JSON file
-// and logs each call as "METHOD path". A repo starts with every setting off.
+// and logs each call as "METHOD path". A repo starts with every setting off except squash merge.
 // `forbidden` lists "METHOD path" calls that answer HTTP 403.
 const GH_SCRIPT = String.raw`
 const { readFileSync, writeFileSync } = require('node:fs');

@@ -131,6 +131,13 @@ test('a setting the gh login may not change is reported, the others are still se
   assert.equal(github.read().repo.allow_auto_merge, true);
 });
 
+test('a repo field GitHub leaves out is unavailable, not drift', () => {
+  useFakeGitHub({ repo: { allow_squash_merge: true } });
+  const { drift, unavailable } = validateSettings(REPO);
+  assert.ok(!settingNames(drift).includes('allow_auto_merge'));
+  assert.match(unavailable.find(({ setting }) => setting === 'allow_auto_merge').reason, /admin rights/);
+});
+
 test('the Sync report carries the drift when the Sync is given the repo', () => {
   useFakeGitHub();
   const snapshot = makeSnapshot();

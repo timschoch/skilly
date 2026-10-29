@@ -66,7 +66,12 @@ function findRuleset(repo, get) {
 const repoField = (name, want) => ({
   name,
   want,
-  read: (repo, get) => get(`repos/${repo}`)[name],
+  read(repo, get) {
+    // GitHub leaves these fields out for a login without admin rights.
+    const value = get(`repos/${repo}`)[name];
+    if (value === undefined) throw new Error(`gh got no ${name} for ${repo}: the login needs admin rights`);
+    return value;
+  },
   write: (repo) => callApi(`repos/${repo}`, { method: 'PATCH', body: { [name]: want } }),
 });
 
