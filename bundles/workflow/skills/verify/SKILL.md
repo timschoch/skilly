@@ -51,7 +51,7 @@ Shape of both files:
 
 | Stage | Runs | Called by |
 | --- | --- | --- |
-| `commit` | nothing by default | `pre-commit` calls `lint-staged` directly |
+| `commit` | nothing by default | `pre-commit` calls `lint-edited-file.mjs` on the staged files directly |
 | `push` | branch name, typecheck, `unit (changed)`, plus `conventional-commits` and `naming` from the `workflow` Bundle | the `pre-push` hook |
 | `ci` | `push`, lint, full `unit`, build, audit, `e2e smoke` | CI on a PR; on the release PR where a PR runs `pr` |
 | `pr` | `ci` without full `unit` and `e2e smoke`; a step with `paths` only when one of them changed | CI on a PR of a product repo with a release PR and a nightly |
@@ -142,7 +142,7 @@ The gates and guards ship in the Engine, `.skilly/engine/verify/`, so each Sync 
 | `block-destructive-git.sh` | Claude Code PreToolUse | `reset --hard`, `clean -f`, `branch -D`, bare `push --force` |
 | `block-invalid-branch-push.sh` | Claude Code PreToolUse | an agent push from a bad branch name, even without installed git hooks |
 | `block-unverified-push.sh` | Claude Code PreToolUse | an agent push that skips the `push` stage |
-| `lint-edited-file.mjs` | Claude Code PostToolUse | an agent edit that leaves oxlint errors; it also runs Prettier on the file |
+| `lint-edited-file.mjs` | Claude Code PostToolUse, `pre-commit` | an agent edit or a staged file that leaves oxlint errors; it also runs Prettier on the file |
 
 ## Adding a check
 

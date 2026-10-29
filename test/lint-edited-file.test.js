@@ -71,6 +71,22 @@ test('the edit hook exits 2 with the errors left, so the agent sees them', () =>
   assert.match(result.stderr, /no-error: found an error/);
 });
 
+test('with paths as arguments, as the pre-commit hook calls it, it fixes and formats each and fails on errors left', () => {
+  const root = makeRepo();
+  writeFileSync(join(root, 'clean.ts'), 'export const a = 1;\n');
+  writeFileSync(join(root, 'bad.ts'), 'error\n');
+  const lintFiles = (...paths) => spawnSync('node', [SCRIPT, ...paths], { cwd: root, encoding: 'utf8' });
+
+  assert.equal(lintFiles('clean.ts').status, 0);
+  assert.deepEqual(calls(root), [
+    `oxlint --fix ${join(root, 'clean.ts')}`,
+    `prettier --write --ignore-unknown --log-level warn ${join(root, 'clean.ts')}`,
+  ]);
+  const result = lintFiles('clean.ts', 'bad.ts');
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /no-error: found an error in .*bad\.ts/);
+});
+
 test('the edit hook runs only Prettier on a file oxlint does not lint, and nothing without the bins', () => {
   const root = makeRepo();
   writeFileSync(join(root, 'notes.md'), '# error\n');

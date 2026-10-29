@@ -13,9 +13,11 @@ import { selfSource } from './self-source.js';
 // of a Bundle, or is one of the exact commands older skilly versions wrote. An
 // own entry that runs a file from an own skill folder stays.
 const SKILLY_PATH = /\.skilly\//;
-// Written by setup-repo (lefthook.yml, .husky/, .claude/settings.json) and gdd
-// setup.mjs. husky lines compare with `$1` as `{1}`.
+// Written by setup-repo (lefthook.yml, .husky/, .claude/settings.json),
+// setup-pre-commit (`npx lint-staged`) and gdd setup.mjs. husky lines compare
+// with `$1` as `{1}`.
 const LEGACY_COMMANDS = new Set([
+  'npx lint-staged',
   'node .agents/skills/verify/scripts/check-commit-msg.mjs {1}',
   'node .agents/skills/verify/scripts/check-push-branch.mjs',
   'node .agents/skills/verify/scripts/verify.mjs push',
