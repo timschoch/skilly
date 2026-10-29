@@ -79,6 +79,18 @@ test('the PR body comes from the Sync report and names removals first', () => {
   assert.match(body, /Auto-merge: off/);
 });
 
+test('the PR body lists the repo settings that drift or gh cannot reach', () => {
+  const settings = {
+    drift: [{ setting: 'allow_auto_merge', want: true, have: false }],
+    unavailable: [{ setting: 'vulnerability_alerts', reason: 'gh: Forbidden (HTTP 403)' }],
+  };
+  const body = prBody(report({ settings }));
+  assert.match(body, /## ⚠️ Repo settings drift\n- `allow_auto_merge`: `false`, wanted `true`/);
+  assert.match(body, /- `vulnerability_alerts`: unavailable, gh: Forbidden \(HTTP 403\)/);
+  assert.doesNotMatch(prBody(report({ settings: null })), /Repo settings/);
+  assert.doesNotMatch(prBody(report({ settings: { drift: [], unavailable: [] } })), /Repo settings/);
+});
+
 test('delivery twice opens one Sync PR, then updates it', () => {
   const { cwd, origin } = makeClone({ hub: 'v1.0.0', bundles: ['hubby'] });
   const { gh, calls, verbs } = fakeGh();
