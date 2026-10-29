@@ -10,11 +10,6 @@
           "run": "node bundles/workflow/skills/naming/scripts/check.mjs",
           "target": "bundles/workflow/skills/naming/scripts/check.mjs"
         },
-        {
-          "name": "shared copies",
-          "run": "node scripts/validate-shared-copies.mjs",
-          "why": "A skill must work alone, so code two skills share ships as one copy per skill. A copy that drifts from its source changes behaviour in one skill only."
-        },
         { "name": "unit", "run": "npm test" }
       ]
     },

@@ -1,8 +1,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
-import { mergeConfig } from '../bundles/workflow/skills/naming/scripts/merge-config.mjs';
-import { validateSharedCopies } from '../scripts/validate-shared-copies.mjs';
+import { readdirSync } from 'node:fs';
+import { basename } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { mergeConfig } from '../bundles/workflow/skills/verify/scripts/merge-config.mjs';
 
 test('objects merge by key, at every depth', () => {
   const merged = mergeConfig(
@@ -89,12 +90,13 @@ test('a leading dash removes the entry with that name', () => {
   assert.deepEqual(merged.steps, [{ name: 'unit', run: 'y' }]);
 });
 
-test('the shipped shared copies are identical', () => {
-  assert.deepEqual(validateSharedCopies(process.cwd()), []);
-});
-
-test('the copy check names a copy that differs', () => {
-  const drifted = 'bundles/workflow/skills/writing-rules/scripts/default-branch.mjs';
-  const read = (path) => (path.endsWith(drifted) ? 'changed' : readFileSync(path, 'utf8'));
-  assert.deepEqual(validateSharedCopies(process.cwd(), read), [drifted]);
+test('each shared helper ships once, in the verify skill', () => {
+  const bundles = fileURLToPath(new URL('../bundles', import.meta.url));
+  const helpers = readdirSync(bundles, { recursive: true })
+    .filter((path) => ['default-branch.mjs', 'merge-config.mjs'].includes(basename(path)))
+    .sort();
+  assert.deepEqual(helpers, [
+    'workflow/skills/verify/scripts/default-branch.mjs',
+    'workflow/skills/verify/scripts/merge-config.mjs',
+  ]);
 });

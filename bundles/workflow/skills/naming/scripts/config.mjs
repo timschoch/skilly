@@ -5,11 +5,11 @@
 // naming skill and the naming gate both read every word list from here, so a
 // consumer changes a rule once, in one file.
 //
-// Merge rules: see merge-config.mjs.
+// Merge rules: see ../../verify/scripts/merge-config.mjs.
 import { existsSync, readFileSync, realpathSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { isPlainObject, mergeConfig } from './merge-config.mjs';
+import { isPlainObject, mergeConfig } from '../../verify/scripts/merge-config.mjs';
 
 const REFERENCES_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', 'references');
 const DEFAULTS_PATH = join(REFERENCES_DIR, 'naming.json');

@@ -7,7 +7,7 @@ import { readFileSync, realpathSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { extname, join } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { defaultBranch } from './default-branch.mjs';
+import { defaultBranch } from '../../verify/scripts/default-branch.mjs';
 
 const DIAGRAM_EXTENSIONS = new Set(['.md', '.mdx', '.mmd']);
 // A CommonMark fence: up to 3 spaces, 3+ backticks or tildes, the info string.
