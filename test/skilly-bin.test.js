@@ -44,7 +44,7 @@ for (const verb of ['add', 'remove']) {
 }
 
 test('skilly update still runs the old update for the old sync.yml job', () => {
-  const { status, stderr } = runBin('update', '--headless');
+  const { status, stderr } = runBin('update', '--headless', '--report', join(tmpdir(), 'skilly-bin-report.json'));
   assert.equal(status, 1);
   assert.match(stderr, /no skills-lock\.json/);
 });
