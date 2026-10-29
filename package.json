@@ -18,11 +18,7 @@
   },
   "scripts": {
     "test": "node --test 'test/*.test.js'",
-    "test:e2e": "node test/interview.e2e.js",
     "prepare": "husky"
-  },
-  "dependencies": {
-    "@modelcontextprotocol/sdk": "1.32.0"
   },
   "devDependencies": {
     "husky": "^9.1.7",

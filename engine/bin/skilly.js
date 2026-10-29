@@ -29,6 +29,7 @@ function printEdit(report) {
 function printDelivery({ report, pr, autoMerge }) {
   console.log(`Release: ${report.release.before ?? 'none'} -> ${report.release.after}`);
   if (!pr) return console.log('Nothing to sync: the default branch already matches this Release.');
+  if (!pr.pushed) return console.log(`Sync PR unchanged: ${pr.url}`);
   console.log(`Sync PR ${pr.created ? 'opened' : 'updated'}: ${pr.url}`);
   const wanted = autoMerge.on ? 'on' : 'off';
   console.log(`Auto-merge ${autoMerge.applied ? wanted : `could not be turned ${wanted}`}: ${autoMerge.reason}.`);

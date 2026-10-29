@@ -97,6 +97,9 @@ _Avoid_: summary, log
 The manual, local command that makes a repo a Consumer: `npx github:timschoch/skilly#<release> setup`. Two phases: decide, then apply. In the decide phase an agent asks, and its scripts write `.skilly/config.json`. The apply phase asks nothing: it runs the first Sync and sets the repo settings. Safe to run again. [ADR-0009](docs/adr/0009-setup-decides-then-applies.md).
 _Avoid_: install, config, onboard
 
+**Setup PR**:
+The pull request the apply phase of Setup opens from `chore/skilly-setup`: the Consumer's `.skilly/config.json` and the first Sync. A person merges it. Built like a Sync PR, with no auto-merge.
+
 **Sync PR**:
 The pull request the Hub's nightly, or `skilly sync`, opens in a Consumer. It moves skills, Engine and Managed files to the newest Release in one step. GitHub auto-merges it when `ci / verify` is green, unless it removes a skill or is a new major version.
 

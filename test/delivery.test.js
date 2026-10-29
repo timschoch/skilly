@@ -1,29 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { execFileSync } from 'node:child_process';
-import { mkdtempSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
 import { autoMerge, deliver, prBody, SYNC_BRANCH, startSync } from '../engine/lib/delivery.js';
-import { fakeSkills, makeCheckout, makeSnapshot } from './fixtures/sync.js';
-
-const git = (cwd, ...args) => execFileSync('git', args, { cwd, encoding: 'utf8' }).trim();
-
-// A Consumer clone with a bare origin, so delivery pushes for real.
-function makeClone(config) {
-  const cwd = makeCheckout(config);
-  const origin = mkdtempSync(join(tmpdir(), 'skilly-origin-'));
-  git(origin, 'init', '-q', '--bare', '-b', 'main');
-  git(cwd, 'init', '-q', '-b', 'main');
-  git(cwd, 'config', 'user.name', 'test');
-  git(cwd, 'config', 'user.email', 'test@example.com');
-  git(cwd, 'add', '-A');
-  git(cwd, 'commit', '-q', '-m', 'init');
-  git(cwd, 'remote', 'add', 'origin', origin);
-  git(cwd, 'push', '-q', 'origin', 'main');
-  git(cwd, 'remote', 'set-head', 'origin', 'main');
-  return { cwd, origin };
-}
+import { fakeSkills, git, makeCheckout, makeClone, makeSnapshot } from './fixtures/sync.js';
 
 // Stands in for gh: records each call and keeps the open Sync PR.
 function fakeGh() {
@@ -95,13 +73,33 @@ test('delivery twice opens one Sync PR, then updates it', () => {
   const { cwd, origin } = makeClone({ hub: 'v1.0.0', bundles: ['hubby'] });
   const { gh, calls, verbs } = fakeGh();
   const first = deliver({ cwd, snapshot: makeSnapshot('v1.1.0'), skills: fakeSkills(), gh });
-  const second = deliver({ cwd, snapshot: makeSnapshot('v1.1.0'), skills: fakeSkills(), gh });
+  const second = deliver({ cwd, snapshot: makeSnapshot('v1.2.0'), skills: fakeSkills(), gh });
 
   assert.equal(first.pr.created, true);
   assert.equal(second.pr.created, false);
   assert.equal(second.pr.url, first.pr.url);
   assert.equal(verbs().filter((verb) => verb === 'pr create').length, 1);
   assert.equal(verbs().filter((verb) => verb === 'pr edit').length, 1);
+  assert.match(git(origin, 'show', `${SYNC_BRANCH}:.skilly/engine/bin/skilly.js`), /engine v1\.2\.0/);
+});
+
+test('delivery leaves an open Sync PR alone when its branch holds the same files', () => {
+  const { cwd, origin } = makeClone({ hub: 'v1.0.0', bundles: ['hubby'] });
+  const { gh, verbs } = fakeGh();
+  deliver({ cwd, snapshot: makeSnapshot('v1.1.0'), skills: fakeSkills(), gh });
+  const head = git(origin, 'rev-parse', SYNC_BRANCH);
+  const again = deliver({ cwd, snapshot: makeSnapshot('v1.1.0'), skills: fakeSkills(), gh });
+
+  assert.equal(again.pr.pushed, false);
+  assert.equal(again.autoMerge, null);
+  assert.equal(git(origin, 'rev-parse', SYNC_BRANCH), head);
+  assert.deepEqual(verbs(), ['pr list', 'pr create', 'pr merge', 'pr list']);
+});
+
+test('a delivery commits one Sync commit on top of the default branch', () => {
+  const { cwd, origin } = makeClone({ hub: 'v1.0.0', bundles: ['hubby'] });
+  const { gh, calls } = fakeGh();
+  deliver({ cwd, snapshot: makeSnapshot('v1.1.0'), skills: fakeSkills(), gh });
   assert.deepEqual(calls.find((args) => args[1] === 'create').slice(0, 6), [
     'pr',
     'create',
