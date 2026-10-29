@@ -4,7 +4,7 @@
 #            runs `skilly update --headless`, refreshes the one Sync PR
 #   gate   — pull_request: runs the gate Rules of the repo's bundles, then
 #            merges a green Sync PR that contains no removals
-# Run in the Hub itself, it is the Hub nightly (ADR-0008 decision 6):
+# Run in the Hub itself, not called, it runs the Hub nightly (ADR-0008 decision 6):
 #   nightly — schedule/dispatch: the skilly App syncs every Consumer
 #             (scripts/nightly.mjs). By hand: gh workflow run sync.yml
 name: skilly sync (shared)
@@ -43,8 +43,9 @@ jobs:
     if: >-
       startsWith(github.workflow_ref, 'timschoch/skilly/.github/workflows/sync.yml@') &&
       (github.event_name == 'workflow_dispatch' || vars.SKILLY_NIGHTLY == 'on')
-    # The schedule waits for the repo variable SKILLY_NIGHTLY=on: until #220,
-    # Consumers still run the update job below and would get two Sync PRs.
+    # The schedule waits for the repo variable SKILLY_NIGHTLY=on. Until #220
+    # (Move the remaining Consumers to the Hub-run Sync), Consumers still run
+    # the update job below and would get two Sync PRs.
     concurrency:
       group: skilly-nightly
     runs-on: ubuntu-latest

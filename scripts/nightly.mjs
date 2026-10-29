@@ -70,21 +70,10 @@ function reportEditedEngine(gh, repo, token, release) {
 // app: { installations() -> [{ id, owner }], token(id) }. gh(args, token).
 // clone(repo, token) -> { dir, cleanup }. engineEdited(dir). deliver({ dir, token, branch }).
 // Returns the repos synced, the repos with an edited Engine and the failures.
-export function nightly({
-  app,
-  gh,
-  clone,
-  engineEdited,
-  deliver,
-  release,
-  owners = OWNERS,
-  only,
-  dryRun = false,
-  log = console.log,
-}) {
+export function nightly({ app, gh, clone, engineEdited, deliver, release, only, dryRun = false, log = console.log }) {
   const result = { synced: [], edited: [], failed: [] };
   for (const { id, owner } of app.installations()) {
-    if (!owners.some((allowed) => sameName(allowed, owner))) {
+    if (!OWNERS.some((allowed) => sameName(allowed, owner))) {
       log(`${owner}: not on the owner allowlist, ignored`);
       continue;
     }
@@ -158,14 +147,21 @@ async function main() {
       dryRun: values['dry-run'],
       clone: (repo, token) => {
         const dir = mkdtempSync(join(tmpdir(), 'skilly-consumer-'));
-        run('git', [
-          'clone',
-          '--quiet',
-          '--depth',
-          '1',
-          `https://x-access-token:${token}@github.com/${repo.name}.git`,
-          dir,
-        ]);
+        // The token rides in the remote URL: the delivery pushes to origin with
+        // it. A failed clone names the URL, so its error hides the token.
+        try {
+          run('git', [
+            'clone',
+            '--quiet',
+            '--depth',
+            '1',
+            `https://x-access-token:${token}@github.com/${repo.name}.git`,
+            dir,
+          ]);
+        } catch (error) {
+          rmSync(dir, { recursive: true, force: true });
+          throw new Error(error.message.replaceAll(token, '***'));
+        }
         return { dir, cleanup: () => rmSync(dir, { recursive: true, force: true }) };
       },
       engineEdited: (dir) => engineState(dir).edited,
@@ -182,7 +178,9 @@ async function main() {
     console.log(
       `Release ${snapshot.release}: ${result.synced.length} ${synced}, ${result.edited.length} edited Engine, ${result.failed.length} failed`,
     );
-    if (result.failed.length) process.exitCode = 1;
+    const found = result.synced.length + result.edited.length + result.failed.length;
+    if (values.repo && !found) console.error(`${values.repo}: no Consumer of an allowed owner has this name`);
+    if (result.failed.length || (values.repo && !found)) process.exitCode = 1;
   } finally {
     snapshot.cleanup();
   }
