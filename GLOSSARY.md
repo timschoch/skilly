@@ -90,7 +90,7 @@ The Engine code that makes a Consumer match its `.skilly/config.json` at a Relea
 _Avoid_: update, upgrade
 
 **Sync report**:
-The one record of what a Sync changed: skills added and removed, Release before and after, Managed files written. The Sync PR body, the auto-merge choice and the edited-Engine issue read it.
+The one record of what a Sync changed: skills added and removed, Release before and after, Managed files written, and the repo settings that drift from what Setup set. The Sync PR body, the auto-merge choice and the edited-Engine issue read it.
 _Avoid_: summary, log
 
 **Setup**:

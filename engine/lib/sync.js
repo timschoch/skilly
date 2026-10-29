@@ -14,6 +14,7 @@ import { join, relative } from 'node:path';
 import { HUB_REPO } from './constants.js';
 import { addFormatterIgnores } from './formatter-ignores.js';
 import { matchName } from './match.js';
+import { validateSettings } from './repo-settings.js';
 import { resolveBundles, sourceRepo } from './resolve.js';
 import { ownSkills, selfSource } from './self-source.js';
 import * as skillsCli from './skills-cli.js';
@@ -118,7 +119,9 @@ function wantedSkills(config, bundlesDir, self, release) {
   return { bundles, sources: pinned };
 }
 
-export function sync({ cwd, snapshot: { dir, release }, skills = skillsCli }) {
+// repo: the Consumer's "owner/repo". Given, the report carries the repo
+// settings drift (ADR-0009 decision 8); a local Sync makes no GitHub call.
+export function sync({ cwd, snapshot: { dir, release }, skills = skillsCli, repo = null }) {
   const bundlesDir = join(dir, 'bundles');
   const config = skillyFile.read(cwd);
   refuseEditedEngine(cwd);
@@ -191,5 +194,6 @@ export function sync({ cwd, snapshot: { dir, release }, skills = skillsCli }) {
     skills: { added: added.sort(), removed, updated: [...updated].sort() },
     files: files.sort(),
     engine: { hash },
+    settings: repo ? validateSettings(repo) : null,
   };
 }
