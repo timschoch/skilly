@@ -3,7 +3,10 @@
 //   node .skilly/engine/verify/check-branch-name.mjs
 // Locally it reads the checked-out branch. In CI HEAD is detached, so it reads
 // the PR's head branch from GITHUB_HEAD_REF; a push build has neither and passes.
+// check-push-branch.mjs imports validateBranchName for each pushed branch.
 import { execFileSync } from 'node:child_process';
+import { realpathSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { defaultBranch } from './default-branch.mjs';
 
 const TYPES = ['feat', 'fix', 'hotfix', 'epic', 'release', 'chore', 'docs', 'ci', 'research'];
@@ -24,14 +27,12 @@ const git = (...args) => {
 // main stays a trunk while a repo moves its default branch away from it.
 const trunks = new Set(['main', defaultBranch()]);
 
-const branch = process.env.GITHUB_HEAD_REF || git('symbolic-ref', '--short', 'HEAD');
-
-if (!branch || trunks.has(branch)) process.exit(0);
-if (BOT_PREFIXES.some((prefix) => branch.startsWith(prefix))) process.exit(0);
-if (NAME.test(branch)) process.exit(0);
-
-console.error(
-  [
+// The error message for a bad branch name, null for a good one.
+export function validateBranchName(branch) {
+  if (!branch || trunks.has(branch)) return null;
+  if (BOT_PREFIXES.some((prefix) => branch.startsWith(prefix))) return null;
+  if (NAME.test(branch)) return null;
+  return [
     `Invalid branch name: "${branch}"`,
     '',
     'Format (Conventional Branch): <type>/<description>, lowercase, words joined by - or .',
@@ -40,7 +41,14 @@ console.error(
     'Name the change, not the tool or agent that makes it.',
     '',
     'Rename, then push again:',
-    '  git branch -m <type>/<description>',
-  ].join('\n'),
-);
-process.exit(1);
+    `  git branch -m ${branch} <type>/<description>`,
+  ].join('\n');
+}
+
+if (process.argv[1] && realpathSync(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  const error = validateBranchName(process.env.GITHUB_HEAD_REF || git('symbolic-ref', '--short', 'HEAD'));
+  if (error) {
+    console.error(error);
+    process.exit(1);
+  }
+}

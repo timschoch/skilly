@@ -483,7 +483,7 @@ test('check-branch-name: Conventional Branch passes, agent names fail, trunk, de
   assert.equal(bad.status, 1);
   assert.match(bad.stderr, /Invalid branch name: "t3code\/4075C2f1"/);
   assert.match(bad.stderr, /not the tool or agent/);
-  assert.match(bad.stderr, /git branch -m <type>\/<description>/);
+  assert.match(bad.stderr, /git branch -m t3code\/4075C2f1 <type>\/<description>/);
   for (const no of ['feature/x', 'feat/Add-Login', 'feat/a--b', 'wip']) assert.equal(validateBranch(no).status, 1, no);
 
   run('git', ['-C', repo, 'switch', '--detach']);
@@ -493,6 +493,49 @@ test('check-branch-name: Conventional Branch passes, agent names fail, trunk, de
   for (const bot of ['dependabot/npm_and_yarn/undici-5.28.5', 'release-please--branches--main', 'renovate/next-15.x']) {
     assert.equal(validateBranch(null, { GITHUB_HEAD_REF: bot }).status, 0, bot);
   }
+});
+
+test('check-push-branch: checks each pushed branch name, not HEAD, and refuses the trunk', async () => {
+  const { spawnSync } = await import('node:child_process');
+  const script = fileURLToPath(new URL('../engine/verify/check-push-branch.mjs', import.meta.url));
+  const sha = 'a'.repeat(40);
+  const none = '0'.repeat(40);
+  // git feeds one line per ref: <local ref> <local sha> <remote ref> <remote sha>.
+  const push = (...lines) => {
+    const { GITHUB_HEAD_REF, ...env } = process.env;
+    const input = lines.map((line) => `${line}\n`).join('');
+    return spawnSync(process.execPath, [script], { input, encoding: 'utf8', env: { ...env, DEFAULT_BRANCH: 'main' } });
+  };
+
+  const bad = push(`refs/heads/my_feature ${sha} refs/heads/my_feature ${none}`);
+  assert.equal(bad.status, 1);
+  assert.match(bad.stderr, /Invalid branch name: "my_feature"/);
+  assert.match(bad.stderr, /git branch -m my_feature <type>\/<description>/, 'renames the pushed branch, not HEAD');
+  assert.equal(push(`refs/heads/feat/add-sub ${sha} refs/heads/feat/add-sub ${none}`).status, 0);
+  // The remote name is what lands on GitHub.
+  assert.equal(push(`refs/heads/feat/add-sub ${sha} refs/heads/wip ${none}`).status, 1, 'renamed on push');
+  assert.equal(push(`refs/heads/wip ${sha} refs/heads/fix/thing ${none}`).status, 0, 'renamed to a good name');
+  const mixed = push(
+    `refs/heads/feat/a ${sha} refs/heads/feat/a ${none}`,
+    `refs/heads/wip ${sha} refs/heads/wip ${none}`,
+  );
+  assert.equal(mixed.status, 1, 'one bad ref fails the push');
+  assert.match(mixed.stderr, /"wip"/);
+  assert.equal(push(`(delete) ${none} refs/heads/my_feature ${sha}`).status, 0, 'deleting a bad name');
+  assert.equal(push(`refs/tags/v1.0.0 ${sha} refs/tags/v1.0.0 ${none}`).status, 0, 'tags have no branch name');
+  assert.equal(push(`refs/heads/x ${sha} refs/heads/dependabot/npm_and_yarn/undici-5.28.5 ${none}`).status, 0, 'bot');
+  assert.equal(push().status, 0, 'nothing pushed');
+  const trunk = push(`refs/heads/main ${sha} refs/heads/main ${sha}`);
+  assert.equal(trunk.status, 1);
+  assert.match(trunk.stderr, /Direct push to main is blocked/);
+});
+
+test('check-branch-name: validateBranchName is the one exported rule', async () => {
+  const { validateBranchName } = await import('../engine/verify/check-branch-name.mjs');
+  assert.equal(validateBranchName('feat/add-sub'), null);
+  assert.equal(validateBranchName('renovate/next-15.x'), null);
+  assert.equal(validateBranchName(''), null);
+  assert.match(validateBranchName('my_feature'), /^Invalid branch name: "my_feature"/);
 });
 
 test('block-invalid-branch-push: blocks push and PR on a bad branch name, through check-branch-name.mjs', async () => {

@@ -139,7 +139,7 @@ The gates and guards ship in the Engine, `.skilly/engine/verify/`, so each Sync 
 | Script | Run by | Blocks |
 | --- | --- | --- |
 | `check-commit-msg.mjs` | `commit-msg`; with `--branch` the `conventional-commits` step | a commit header that is not Conventional Commits |
-| `check-push-branch.mjs` | `pre-push` | a direct push to the trunk |
+| `check-push-branch.mjs` | `pre-push` | a direct push to the trunk; a pushed branch not named `<type>/<description>`, by its remote name, not `HEAD` |
 | `check-branch-name.mjs` | the `branch name` step | a branch not named `<type>/<description>` |
 | `block-destructive-git.sh` | Claude Code PreToolUse | `reset --hard`, `clean -f`, `branch -D`, bare `push --force` |
 | `block-invalid-branch-push.sh` | Claude Code PreToolUse | an agent push from a bad branch name, even without installed git hooks |
