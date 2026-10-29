@@ -188,11 +188,12 @@ One Bundle per technology, from verified vendor skill repos. A `tech-*` Bundle h
 
 ### Source quirks
 
-| Bundle          | Quirk                                                                                                                      | So                                                                                        |
-| --------------- | -------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
-| `tech-tanstack` | the skills live under `packages/<pkg>/skills/`, and the skills CLI discovers one level below the URL                       | one tree URL per skill                                                                    |
-| `tech-twenty`   | on `main` all skills share one `references/` tree, so they install broken. A bare `twentyhq/twenty` finds only `qa-scout`. | take the `agent-skills` publishing branch, where each skill carries its own `references/` |
-| `tech-posthog`  | the skills sit too deep for the CLI to find from the repo root                                                             | a tree URL into `skills/posthog/all/`                                                     |
+| Bundle          | Quirk                                                                                                                                    | So                                                                                                              |
+| --------------- | ---------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| `tech-tanstack` | the skills live under `packages/<pkg>/skills/`, and the skills CLI discovers one level below the URL                                     | one tree URL per skill                                                                                          |
+| `tech-twenty`   | on `main` all skills share one `references/` tree, so they install broken. A bare `twentyhq/twenty` finds only `qa-scout`.               | take the `agent-skills` publishing branch, where each skill carries its own `references/`                       |
+| `tech-posthog`  | the skills sit too deep for the CLI to find from the repo root                                                                           | a tree URL into `skills/posthog/all/`                                                                           |
+| `workflow`      | `cursor/plugins` has a `.claude-plugin/marketplace.json` that lists only `origin-apps` and `pstack`, so the CLI hides `cursor-team-kit/` | a tree URL into `cursor-team-kit/` for `deslop`, `make-pr-easy-to-review`, `thermo-nuclear-code-quality-review` |
 
 ### setup-resend
 

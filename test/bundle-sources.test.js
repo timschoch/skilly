@@ -9,7 +9,7 @@ import * as skillsCli from '../engine/lib/skills-cli.js';
 
 // Live: the real skills CLI installs every skill of every Bundle from the
 // source the Bundle names. Upstream repos move skills and add marketplace
-// files that hide folders, so only a real install proves a source.
+// files that hide folders, so only a real install proves a Source.
 // Needs the network and a GitHub token: run with SKILLY_LIVE=1.
 const bundlesDir = fileURLToPath(new URL('../bundles', import.meta.url));
 const bundles = readdirSync(bundlesDir, { withFileTypes: true })
