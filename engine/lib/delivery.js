@@ -8,7 +8,7 @@ import { run, tryRun } from './run.js';
 import * as skillsCli from './skills-cli.js';
 import { sync } from './sync.js';
 
-// The delivery for one Consumer (ADR-0008 decisions 8, 16 and 20): run the
+// The delivery for one Consumer (ADR-0008 decisions 8, 11, 20 and 21): run the
 // Sync on a fresh copy of the default branch, push the Sync PR branch, open
 // or update the one Sync PR, apply the auto-merge rule. The Hub nightly and
 // `skilly sync` both call it. All GitHub calls go through gh.
@@ -16,11 +16,9 @@ export const SYNC_BRANCH = 'chore/skilly-sync';
 
 const major = (release) => release?.match(/^v(\d+)\./)?.[1];
 
-// The one auto-merge rule. The first Sync has no Release to compare, so a
-// person merges it.
+// The one auto-merge rule. No Release before counts as a new major.
 export function autoMerge({ release, skills, bundles }) {
   if (skills.removed.length || bundles.removed.length) return { on: false, reason: 'the Sync removes skills or Bundles' };
-  if (!major(release.before)) return { on: false, reason: 'first Sync, no Release to compare' };
   if (major(release.after) !== major(release.before)) return { on: false, reason: 'new major Release' };
   return { on: true, reason: 'merges when `ci / verify` is green' };
 }
@@ -51,8 +49,8 @@ export function deliver({ cwd, snapshot, skills = skillsCli, gh = ghCli(cwd) }) 
   const base = defaultBranch(cwd);
   run('git', ['fetch', '--quiet', 'origin', base], { cwd });
   const tree = join(mkdtempSync(join(tmpdir(), 'skilly-sync-')), 'checkout');
-  run('git', ['worktree', 'add', '--quiet', '--detach', tree, `origin/${base}`], { cwd });
   try {
+    run('git', ['worktree', 'add', '--quiet', '--detach', tree, `origin/${base}`], { cwd });
     const report = sync({ cwd: tree, snapshot, skills });
     if (!report.files.length) return { report, pr: null, autoMerge: null };
 
@@ -69,10 +67,12 @@ export function deliver({ cwd, snapshot, skills = skillsCli, gh = ghCli(cwd) }) 
       : { url: gh(['pr', 'create', '--base', base, '--head', SYNC_BRANCH, '--title', title, '--body', body]), created: true };
     if (open) gh(['pr', 'edit', pr.url, '--title', title, '--body', body]);
 
-    // Turning auto-merge on fails when the repo does not allow it; turning it
-    // off fails when it was never on. Both leave the PR open for a person.
+    // Turning auto-merge on fails when the repo does not allow it; that leaves
+    // the PR open for a person. Turning it off fails when it was never on, which
+    // does not matter.
     const merge = autoMerge(report);
-    const applied = tryGh(gh, ['pr', 'merge', pr.url, ...(merge.on ? ['--auto', '--squash'] : ['--disable-auto'])]);
+    const done = tryGh(gh, ['pr', 'merge', pr.url, ...(merge.on ? ['--auto', '--squash'] : ['--disable-auto'])]);
+    const applied = !merge.on || done;
     return { report, pr, autoMerge: { ...merge, applied } };
   } finally {
     tryRun('git', ['worktree', 'remove', '--force', tree], { cwd });

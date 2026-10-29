@@ -65,8 +65,10 @@ test('auto-merge is off when the Sync removes a skill or the Release drops a Bun
   assert.equal(autoMerge(report({ bundles: { removed: ['old'] } })).on, false);
 });
 
-test('auto-merge is off for the first Sync, which has no Release to compare', () => {
-  assert.equal(autoMerge(report({ release: { before: null, after: 'v1.0.0' } })).on, false);
+test('auto-merge is off for the first Sync, which counts as a new major Release', () => {
+  const merge = autoMerge(report({ release: { before: null, after: 'v1.0.0' } }));
+  assert.equal(merge.on, false);
+  assert.match(merge.reason, /major/);
 });
 
 test('the PR body comes from the Sync report and names removals first', () => {
