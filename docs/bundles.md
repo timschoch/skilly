@@ -47,6 +47,7 @@ A Bundle adds checks to `verify` in every Consumer that has it, through an inclu
 | `verify.steps[].run`         | required. The shell command, run from the repo root                                                                                      |
 | `verify.steps[].tier`        | the lowest tier that runs the step: `sandbox`, `tool` or `product`                                                                       |
 | `verify.steps[].target`      | a path the step needs. Missing, the step is skipped                                                                                      |
+| `verify.steps[].dependency`  | a package the step needs in the root `package.json`, for example `"vitest"`. Not there, the step is skipped                              |
 | `verify.steps[].paths`       | the paths that trigger the step. The `pr` stage skips the step when none of them changed                                                 |
 | `verify.steps[].toolchain`   | what the step needs installed, for example `["playwright"]`. CI installs and caches only the toolchains of the resolved steps            |
 | `verify.steps[].issueLabels` | the labels of the issue the nightly opens when the step goes red, for example `["nightly-tests", "critical"]`. One issue per first label |

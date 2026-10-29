@@ -35,7 +35,7 @@
         {
           "name": "unit (changed)",
           "run": "node .skilly/engine/verify/run-changed-tests.mjs origin/$DEFAULT_BRANCH npx vitest run --passWithNoTests",
-          "target": "vitest.config.ts",
+          "dependency": "vitest",
           "why": "Only the tests the diff reaches, so the push stays inside the budget. A diff with a fullSuiteTriggers file runs the full suite: no test imports a lockfile or a test config. A repo adds its own paths, for example a migrations folder. The ci stage runs the full suite."
         }
       ]
@@ -48,7 +48,7 @@
         {
           "name": "unit",
           "run": "npx vitest run --passWithNoTests",
-          "target": "vitest.config.ts",
+          "dependency": "vitest",
           "replaces": "unit (changed)",
           "why": "The full suite holds the changed tests, so it replaces that step and each test runs one time."
         },
@@ -103,7 +103,7 @@
         {
           "name": "unit",
           "run": "npx vitest run --passWithNoTests",
-          "target": "vitest.config.ts",
+          "dependency": "vitest",
           "issueLabels": ["nightly-tests", "critical"],
           "why": "The pr stage runs only the tests a diff reaches. The full suite each night finds a main that broke with each PR green alone."
         },
