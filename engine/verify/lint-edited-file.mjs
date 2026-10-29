@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 // Claude Code PostToolUse hook (ADR-0006 decision 4): `oxlint --fix`, then
-// Prettier, on each file the agent edited. Silent when the file is clean. With
-// errors left it exits 2, so Claude Code shows them to the agent. A repo
-// without oxlint or Prettier in node_modules/.bin skips that tool.
-// The pre-commit hook runs it too, with the staged files as arguments
-// (ADR-0006 decision 5), so a Consumer needs no lint-staged.
+// Prettier, on each file the agent edited. The pre-commit hook runs it too,
+// with the staged files as arguments (ADR-0006 decision 5), so a Consumer
+// needs no lint-staged. Silent when the files are clean. With errors left it
+// exits 2, so Claude Code shows them to the agent. A repo without oxlint or
+// Prettier in node_modules/.bin skips that tool.
 import { spawnSync } from 'node:child_process';
 import { existsSync, readFileSync, realpathSync } from 'node:fs';
 import { join, resolve } from 'node:path';
@@ -44,7 +44,7 @@ function lint(root, path) {
   return problems;
 }
 
-// The pre-commit hook passes the staged paths as arguments, from the repo root.
+// Staged paths are relative to the repo root, the hook's working directory.
 function fromArguments(paths) {
   return { root: process.cwd(), paths: paths.map((path) => resolve(path)) };
 }

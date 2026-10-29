@@ -176,6 +176,31 @@ test('mergeLefthook: drops the old setup-repo commands and the empty hooks they 
   );
 });
 
+test('mergeLefthook: drops the own npx lint-staged command although no Bundle runs it', () => {
+  const old = [
+    'pre-commit:',
+    '  commands:',
+    '    lint-staged:',
+    '      run: npx lint-staged',
+    '    test:',
+    '      run: npm test',
+    '',
+  ];
+  assert.equal(
+    mergeLefthook(old.join('\n'), new Set()),
+    [
+      'extends:',
+      '  - .skilly/lefthook.json',
+      '',
+      'pre-commit:',
+      '  commands:',
+      '    test:',
+      '      run: npm test',
+      '',
+    ].join('\n'),
+  );
+});
+
 test('mergePackageJson: swaps husky for lefthook and installs it in prepare', () => {
   const merged = mergePackageJson({
     name: 'x',
@@ -264,6 +289,26 @@ test('writeHooks: a husky Consumer ends up on lefthook with its own lines and no
     before,
   );
   assert.equal(refreshed.length, 1);
+});
+
+test('writeHooks: the husky move drops npx lint-staged although no Bundle runs it', () => {
+  const cwd = makeHuskyConsumer();
+  const bundlesDir = mkdtempSync(join(tmpdir(), 'skilly-hook-bundles-'));
+  writeFiles(bundlesDir, {
+    'lint/config.json': JSON.stringify({
+      hooks: {
+        lefthook: {
+          'pre-commit': {
+            commands: { 'skilly-lint': { run: 'node .skilly/engine/verify/lint-edited-file.mjs {staged_files}' } },
+          },
+        },
+      },
+    }),
+  });
+  writeHooks(cwd, { bundles: ['lint'], bundlesDir, refreshLock: recordRefreshes().refreshLock });
+  const lefthook = readFileSync(join(cwd, 'lefthook.yml'), 'utf8');
+  assert.match(lefthook, /run: npm run typecheck/);
+  assert.doesNotMatch(lefthook, /lint-staged/);
 });
 
 test('writeHooks: the husky move keeps an own line that runs a file from an own skill', () => {
