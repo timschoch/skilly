@@ -5,6 +5,7 @@ import { join } from 'node:path';
 import { defaultBranch } from '../verify/default-branch.mjs';
 import { cloneRelease, latestRelease } from './add-remove.js';
 import { run, tryRun } from './run.js';
+import { selfSource } from './self-source.js';
 import * as skillsCli from './skills-cli.js';
 import { sync } from './sync.js';
 
@@ -24,14 +25,22 @@ export function autoMerge({ release, skills, bundles }) {
 }
 
 export function prBody(report) {
-  const { release, skills, bundles, files } = report;
+  const { release, skills, bundles, files, settings } = report;
   const merge = autoMerge(report);
+  // Setup sets the repo settings; the Sync PR only reports them (ADR-0009 decision 8).
+  const settingLines = [
+    ...(settings?.drift ?? []).map(
+      ({ setting, want, have }) => `\`${setting}\`: \`${JSON.stringify(have)}\`, wanted \`${JSON.stringify(want)}\``,
+    ),
+    ...(settings?.unavailable ?? []).map(({ setting, reason }) => `\`${setting}\`: unavailable, ${reason}`),
+  ];
   const section = (title, items, format = (item) => item) =>
     items.length ? ['', `## ${title}`, ...items.map((item) => `- ${format(item)}`)] : [];
   return [
     `Sync to Release ${release.before ?? 'none'} → ${release.after}.`,
     ...section('⚠️ Removed', skills.removed),
     ...section('⚠️ Bundles the Release dropped', bundles.removed),
+    ...section('⚠️ Repo settings drift', settingLines),
     ...section('Added', skills.added),
     ...section('Updated', skills.updated),
     ...section(`Files (${files.length})`, files, (file) => `\`${file}\``),
@@ -51,7 +60,7 @@ export function deliver({ cwd, snapshot, skills = skillsCli, gh = ghCli(cwd) }) 
   const tree = join(mkdtempSync(join(tmpdir(), 'skilly-sync-')), 'checkout');
   try {
     run('git', ['worktree', 'add', '--quiet', '--detach', tree, `origin/${base}`], { cwd });
-    const report = sync({ cwd: tree, snapshot, skills });
+    const report = sync({ cwd: tree, snapshot, skills, repo: selfSource(cwd) });
     if (!report.files.length) return { report, pr: null, autoMerge: null };
 
     const title = `chore(skilly): sync to ${report.release.after}`;
