@@ -188,6 +188,7 @@ const MANAGED_BY_TIER = {
     '.github/workflows/ai-review.yml',
     '.github/workflows/ci.yml',
     '.github/workflows/nightly.yml',
+    '.github/workflows/release.yml',
   ],
 };
 
@@ -213,10 +214,11 @@ test('a lower tier deletes the Managed files it no longer gets, and keeps a file
   const report = sync({ cwd, snapshot: makeSnapshot(), skills: fakeSkills() });
   assert.ok(!exists(cwd, '.github/workflows/nightly.yml'));
   assert.ok(!exists(cwd, '.github/workflows/ai-review.yml'));
+  assert.ok(!exists(cwd, '.github/workflows/release.yml'));
   assert.equal(readFileSync(join(cwd, '.github/dependabot.yml'), 'utf8'), 'version: 2\n');
   assert.deepEqual(
     report.files.filter((path) => path.startsWith('.github/')),
-    ['.github/workflows/ai-review.yml', '.github/workflows/nightly.yml'],
+    ['.github/workflows/ai-review.yml', '.github/workflows/nightly.yml', '.github/workflows/release.yml'],
   );
 });
 

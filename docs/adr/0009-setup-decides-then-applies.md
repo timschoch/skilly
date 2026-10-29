@@ -116,7 +116,7 @@ sequenceDiagram
       sync --> settings[".claude/settings.json"]
     ```
 
-11. `release.yml` runs release-please with the default `GITHUB_TOKEN`. A PR opened with that token starts no workflow, so `release.yml` then starts `ci.yml` on the release branch with `workflow_dispatch`. That run reports `ci / verify` on the PR's last commit. Verify this on one Consumer before the rollout.
+11. `release.yml` runs release-please with the default `GITHUB_TOKEN`, on the product tier. A PR opened with that token starts no workflow, so `release.yml` then starts `ci.yml` on the release branch with `workflow_dispatch`. GitHub does not count the check run of a `workflow_dispatch` run for the PR. So `ci.yml`, when started by `workflow_dispatch`, ends with one step that writes the commit status `verify` (`state=success`) on its commit with `GITHUB_TOKEN` (`statuses: write`). The step runs only after a green verify. The status satisfies the required check, and the release PR merges by auto-merge. `release.yml` does not turn on auto-merge: a release stays a deliberate step. The Sync keeps a Consumer's own `release.yml`, one without the Managed header, because it can hold deploy steps.
 
     ```mermaid
     sequenceDiagram
@@ -127,8 +127,9 @@ sequenceDiagram
       Main->>Rel: run release-please
       Rel->>GitHub: open or update release PR (default token)
       Rel->>CI: gh workflow run ci.yml --ref <release branch>
-      CI->>GitHub: verify on the PR's commit
-      GitHub->>GitHub: check green, PR can merge
+      CI->>CI: verify (ci stage)
+      CI->>GitHub: commit status verify = success on the PR's commit
+      GitHub->>GitHub: required check green, auto-merge merges
     ```
 
 ### Setup skills
@@ -142,7 +143,7 @@ sequenceDiagram
 - The tier logic lives once, in the Engine.
 - Tests run the apply phase on a fixture folder with a fake `gh` on the `PATH`.
 - [ADR-0006](0006-oxlint-and-an-edit-hook.md) decisions 1, 2 and 6: the Sync writes the Oxlint and `.vscode/` files, not `setup-repo`.
-- Open risk: decision 11 is untested. If GitHub does not count the `workflow_dispatch` run as the required check, release-please needs a new decision.
+- Decision 11 is tested in `timschoch/skilly-release-test-private`: a login that cannot bypass the ruleset turns on auto-merge, and GitHub merges the release PR once the `verify` status lands ([#215](https://github.com/timschoch/skilly/issues/215)).
 
 ## Rejected
 

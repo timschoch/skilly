@@ -15,7 +15,13 @@ const stepsOf = (cwd, workflow) => Object.values(parse(read(cwd, `workflows/${wo
 test('every Managed file renders to YAML with no placeholder left', () => {
   const cwd = makeCheckout({});
   writeManagedFiles(cwd, templatesDir, 'product');
-  for (const path of ['workflows/ci.yml', 'workflows/nightly.yml', 'workflows/ai-review.yml', 'dependabot.yml']) {
+  for (const path of [
+    'workflows/ci.yml',
+    'workflows/nightly.yml',
+    'workflows/ai-review.yml',
+    'workflows/release.yml',
+    'dependabot.yml',
+  ]) {
     const text = read(cwd, path);
     assert.doesNotMatch(text, /@\{/, path);
     assert.match(text, /^# Managed by skilly\./, path);
@@ -63,10 +69,51 @@ test('a package manager without a template stops the Sync with its name', () => 
   assert.throws(() => writeManagedFiles(cwd, templatesDir, 'sandbox'), /no Managed workflow for yarn/);
 });
 
-test('ci.yml runs on a push to the default branch of the checkout', () => {
+test('ci.yml and release.yml run on a push to the default branch of the checkout', () => {
   const cwd = makeCheckout({});
   run('git', ['init', '-q', '--initial-branch', 'trunk'], { cwd });
   run('git', ['symbolic-ref', 'refs/remotes/origin/HEAD', 'refs/remotes/origin/trunk'], { cwd });
-  writeManagedFiles(cwd, templatesDir, 'sandbox');
+  writeManagedFiles(cwd, templatesDir, 'product');
   assert.deepEqual(parse(read(cwd, 'workflows/ci.yml')).on.push.branches, ['trunk']);
+  assert.deepEqual(parse(read(cwd, 'workflows/release.yml')).on.push.branches, ['trunk']);
+});
+
+// ADR-0009 decision 11: a check run from workflow_dispatch does not count for the release PR,
+// a commit status does.
+test('a workflow_dispatch run of ci.yml writes the verify commit status, only after verify', () => {
+  const cwd = makeCheckout({});
+  writeManagedFiles(cwd, templatesDir, 'sandbox');
+  const ci = parse(read(cwd, 'workflows/ci.yml'));
+  assert.equal(ci.permissions.statuses, 'write');
+  const steps = stepsOf(cwd, 'ci.yml');
+  const status = steps.at(-1);
+  assert.equal(status.if, "github.event_name == 'workflow_dispatch'");
+  assert.match(status.run, /statuses\/\$\{\{ github\.sha \}\} -f state=success -f context=verify$/);
+  assert.match(steps.at(-2).run, /^node \.skilly\/engine\/verify\/verify\.mjs /);
+});
+
+test('release.yml runs release-please with the default token, then starts ci.yml on the release branch', () => {
+  const cwd = makeCheckout({});
+  writeManagedFiles(cwd, templatesDir, 'product');
+  const release = parse(read(cwd, 'workflows/release.yml'));
+  assert.deepEqual(release.permissions, { contents: 'write', 'pull-requests': 'write', actions: 'write' });
+  const [releasePlease, dispatch] = stepsOf(cwd, 'release.yml');
+  assert.match(releasePlease.uses, /^googleapis\/release-please-action@/);
+  assert.deepEqual(releasePlease.with, { 'release-type': 'simple' });
+  assert.match(dispatch.run, /^gh workflow run ci\.yml --ref /);
+  assert.equal(dispatch.env.GH_TOKEN, '${{ github.token }}');
+
+  writeFiles(cwd, { 'package.json': '{}' });
+  writeManagedFiles(cwd, templatesDir, 'product');
+  assert.deepEqual(stepsOf(cwd, 'release.yml')[0].with, { 'release-type': 'node' });
+});
+
+test("a Consumer's own release.yml stays: it can hold deploy steps", () => {
+  const cwd = makeCheckout({});
+  writeFiles(cwd, { '.github/workflows/release.yml': 'name: Release\n' });
+  writeManagedFiles(cwd, templatesDir, 'product');
+  assert.equal(read(cwd, 'workflows/release.yml'), 'name: Release\n');
+
+  writeManagedFiles(cwd, templatesDir, 'tool');
+  assert.equal(read(cwd, 'workflows/release.yml'), 'name: Release\n');
 });
