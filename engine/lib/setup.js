@@ -147,6 +147,8 @@ export function setup({
       title: ({ release }) => `chore(skilly): set up skilly at ${release.after}`,
       body: setupBody,
       prepare: (tree) => prepareTree(tree, config),
+      // The Setup PR is often the first run of the repo's Actions.
+      workflowsFirst: true,
     });
   } finally {
     snapshot.cleanup();

@@ -50,7 +50,7 @@ sequenceDiagram
 
 1. **Decide.** An agent runs [setup-project](../../bundles/setup-project/skills/setup-project/SKILL.md) as a chat, in the style of the `grilling` skill. It reads the repo, proposes Bundles and a tier, and names missing dependencies. It calls a ready-made Engine script for every check and every write. It never writes `.skilly/config.json` by hand.
 2. The decide phase ends with a preflight script: `gh` login, read access to the Hub, the skilly App on the account, a plan that allows rulesets, every secret the Bundles need. A red preflight stops before the apply phase.
-3. **Apply.** `skilly setup` with a complete `.skilly/config.json` asks nothing and needs no terminal. It creates the branch `chore/skilly-setup`, runs the Sync, sets the repo settings and opens the setup PR. Running it again runs only this phase.
+3. **Apply.** `skilly setup` with a complete `.skilly/config.json` asks nothing and needs no terminal. It creates the branch `chore/skilly-setup`, runs the Sync, sets the repo settings and opens the setup PR. Running it again runs only this phase. The `.github/workflows` change goes in its own first commit, pushed alone before the rest. GitHub reads only the first 300 files of a push. A repo whose Actions never ran sees no workflow past them, so its setup PR gets no run ([#251 The Setup PR gets no CI run in a repo where Actions never ran](https://github.com/timschoch/skilly/issues/251)).
 4. Questions left for the person:
 
    | Question                                     | Default                                         |
