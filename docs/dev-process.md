@@ -37,7 +37,7 @@ The tiers nest: everything `sandbox` runs, `tool` runs too, and everything `tool
 | ---------------------------------------------------------------------------- | :-----: | :--: | :-----: |
 | IDE: Oxlint errors and fix on save, from `.vscode/`                          |   yes   | yes  |   yes   |
 | agent edit hook: `oxlint --fix` + Prettier on the edited file                |   yes   | yes  |   yes   |
-| pre-commit: `lint-staged`, `oxlint --fix` + Prettier on staged files         |   yes   | yes  |   yes   |
+| pre-commit: `oxlint --fix` + Prettier on staged files                        |   yes   | yes  |   yes   |
 | pre-push: typecheck + the tests the diff reaches                             |   yes   | yes  |   yes   |
 | `ci / verify`, the only PR check: lint, typecheck, unit, build, Bundle steps |   yes   | yes  |   yes   |
 | `ci / verify` required on `main`, set by `skilly setup`                      |   yes   | yes  |   yes   |
@@ -90,7 +90,7 @@ flowchart LR
 ```mermaid
 flowchart TD
   edit[agent edits a file] --> hook[edit hook: oxlint, Prettier]
-  hook --> commit[pre-commit: lint-staged]
+  hook --> commit[pre-commit: oxlint, Prettier on staged files]
   commit --> push[pre-push: typecheck, changed tests]
   push --> gate[ci / verify: ci or pr]
   gate --> ai["/ai-review, optional"]

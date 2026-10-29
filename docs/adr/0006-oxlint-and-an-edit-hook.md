@@ -21,7 +21,7 @@ ESLint is too slow for a check on each edit. State in October 2026, from vendor 
 2. An existing Consumer migrates when it chooses: it runs `npx @oxlint/migrate`. A Consumer whose ESLint plugin has no Oxlint port keeps ESLint, or runs both with `eslint-plugin-oxlint`.
 3. Prettier stays the formatter until oxfmt leaves beta.
 4. A Claude Code PostToolUse hook runs `oxlint --fix` and Prettier on each file the agent edits. It is silent when the file is clean. With errors left it exits 2, so Claude Code shows the errors to the agent. Oxc's own [coding agents recipe](https://oxc.rs/docs/guide/usage/coding-agents.html) exits 0, and Claude Code hides the output of a hook that exits 0. The hook script ships in the Engine. The Sync PR updates it and writes its entry in `.claude/settings.json`.
-5. lint-staged runs `oxlint --fix` and Prettier on the staged files.
+5. The pre-commit hook runs `oxlint --fix` and Prettier on the staged files. Amended 2026-10-29 for [#249 Every commit fails in a new Consumer](https://github.com/timschoch/skilly/issues/249): the Engine's edit hook script does it, with lefthook's `{staged_files}` and `stage_fixed`, not lint-staged. The Sync ships no lint-staged config and no dependency, so a new Consumer commits without one.
 6. The Sync writes `.vscode/extensions.json` (the Oxc and Prettier extensions) and `.vscode/settings.json` (format on save, `source.fixAll.oxc`).
 7. `verify.json` and the managed `ci.yml` do not change: they call `npm run lint`, and the Consumer decides what that runs.
 

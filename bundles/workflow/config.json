@@ -6,7 +6,10 @@
     "lefthook": {
       "pre-commit": {
         "commands": {
-          "skilly-lint-staged": { "run": "npx lint-staged" }
+          "skilly-lint": {
+            "run": "node .skilly/engine/verify/lint-edited-file.mjs {staged_files}",
+            "stage_fixed": true
+          }
         }
       },
       "commit-msg": {

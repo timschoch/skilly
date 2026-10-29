@@ -3,6 +3,8 @@
 // Prettier, on each file the agent edited. Silent when the file is clean. With
 // errors left it exits 2, so Claude Code shows them to the agent. A repo
 // without oxlint or Prettier in node_modules/.bin skips that tool.
+// The pre-commit hook runs it too, with the staged files as arguments
+// (ADR-0006 decision 5), so a Consumer needs no lint-staged.
 import { spawnSync } from 'node:child_process';
 import { existsSync, readFileSync, realpathSync } from 'node:fs';
 import { join, resolve } from 'node:path';
@@ -42,13 +44,21 @@ function lint(root, path) {
   return problems;
 }
 
-function main() {
+// The pre-commit hook passes the staged paths as arguments, from the repo root.
+function fromArguments(paths) {
+  return { root: process.cwd(), paths: paths.map((path) => resolve(path)) };
+}
+
+function fromToolInput() {
   const input = JSON.parse(readFileSync(0, 'utf8') || '{}');
   const root = process.env.CLAUDE_PROJECT_DIR ?? input.cwd ?? process.cwd();
-  const problems = editedPaths(input.tool_name, input.tool_input)
-    .map((path) => resolve(input.cwd ?? root, path))
-    .filter(existsSync)
-    .flatMap((path) => lint(root, path));
+  return { root, paths: editedPaths(input.tool_name, input.tool_input).map((path) => resolve(input.cwd ?? root, path)) };
+}
+
+function main() {
+  const args = process.argv.slice(2);
+  const { root, paths } = args.length ? fromArguments(args) : fromToolInput();
+  const problems = paths.filter(existsSync).flatMap((path) => lint(root, path));
   if (!problems.length) return;
   console.error(problems.join('\n\n'));
   process.exit(BLOCKING_EXIT);
