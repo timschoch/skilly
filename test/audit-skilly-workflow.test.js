@@ -44,7 +44,7 @@ test('audit-skilly-workflow: each planted defect yields its finding', () => {
 
   assert.deepEqual(result.gates.commit.skilly.types.slice(0, 4), ['feat', 'fix', 'chore', 'docs']);
   assert.equal(result.gates.commit.skilly.descriptionMax, 72);
-  // lefthook.yml is setup-repo's template, which runs the skilly commit hook: no second gate.
+  // lefthook.yml is the Sync's, whose skilly commands run the skilly commit hook: no second gate.
   assert.deepEqual(result.gates.commit.others, ['commitlint.config.js']);
   assert.equal(result.tier, 'tool');
   assert.equal(result.gates.verify.file, '.skilly/verify.json');

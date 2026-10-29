@@ -9,7 +9,8 @@ import { dirname, join } from 'node:path';
 // What skilly ships, so a change to its format breaks the gate parser test.
 const readBundle = (path) => readFileSync(new URL(`../../bundles/${path}`, import.meta.url), 'utf8');
 const COMMIT_HOOK = readFileSync(new URL('../../engine/verify/check-commit-msg.mjs', import.meta.url), 'utf8');
-const SKILLY_LEFTHOOK = readBundle('setup-project/skills/setup-repo/templates/lefthook.yml');
+// The lefthook.yml the Sync writes: the skilly commands sit in .skilly/lefthook.json.
+const SKILLY_LEFTHOOK = 'extends:\n  - .skilly/lefthook.json\n';
 
 export const REPO_FILES = {
   '.skilly/config.json': JSON.stringify({ tier: 'tool', bundles: ['workflow'] }),
@@ -28,9 +29,6 @@ export const REPO_FILES = {
     '# Commits\n\n1. Conventional commits, see `.agents/skills/verify/scripts/check-commit-msg.mjs`.\n',
   '.claude/rules/workflow-retired.local.md': '# Retired overlay\n\n1. Overrides a rule that no longer ships.\n',
   '.skilly/engine/verify/check-commit-msg.mjs': COMMIT_HOOK,
-  '.agents/skills/verify/scripts/check-commit-msg.mjs': readBundle(
-    'workflow/skills/verify/scripts/check-commit-msg.mjs',
-  ),
   '.claude/hooks/guard.sh': '#!/bin/sh\nexit 0\n',
   '.claude/settings.json': JSON.stringify({
     hooks: {
@@ -44,7 +42,7 @@ export const REPO_FILES = {
       ],
     },
   }),
-  '.husky/commit-msg': 'node .agents/skills/verify/scripts/check-commit-msg.mjs "$1"\n',
+  '.husky/commit-msg': 'node .skilly/engine/verify/check-commit-msg.mjs "$1"\n',
   'commitlint.config.js': "export default { extends: ['@commitlint/config-conventional'] };\n",
   'CLAUDE.md': [
     '# Project',

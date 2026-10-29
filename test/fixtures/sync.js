@@ -20,6 +20,16 @@ export function makeSnapshot(release = 'v1.0.0') {
   writeFiles(dir, {
     'bundles/hubby/config.json': JSON.stringify({
       sources: [{ source: 'timschoch/skilly', skills: ['hub-skill'] }],
+      hooks: {
+        lefthook: {
+          'pre-push': { commands: { 'skilly-verify': { run: 'node .skilly/engine/verify/verify.mjs push' } } },
+        },
+        claude: {
+          PreToolUse: [
+            { matcher: 'Bash', hooks: [{ type: 'command', command: 'node .skilly/engine/gdd/check-pr.mjs' }] },
+          ],
+        },
+      },
     }),
     'bundles/hubby/rules/hubby-rule.md': '# hubby rule\n',
     'bundles/other/config.json': JSON.stringify({

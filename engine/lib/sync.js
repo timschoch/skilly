@@ -13,6 +13,8 @@ import {
 import { join, relative } from 'node:path';
 import { HUB_REPO } from './constants.js';
 import { addFormatterIgnores } from './formatter-ignores.js';
+import { HOOK_PATHS, writeHooks } from './hooks.js';
+import * as lockfile from './lockfile.js';
 import { MANAGED_PATHS, writeManagedFiles } from './managed-files.js';
 import { matchName } from './match.js';
 import { validateSettings } from './repo-settings.js';
@@ -24,8 +26,9 @@ import { updateRules } from './update-rules.js';
 
 // The Sync module (ADR-0008 decisions 17 to 19). A checkout, its
 // .skilly/config.json and one Release snapshot go in. Skills, Router rules,
-// the Engine copy and the Managed files come out, plus the Sync report. It never prompts and
-// never commits: callers own commit, push and the Sync PR.
+// the Engine copy, the Managed files and the skilly hook entries come out, plus
+// the Sync report. It never prompts and never commits: callers own commit, push
+// and the Sync PR.
 const ENGINE_DIR = join('.skilly', 'engine');
 const ENGINE_RECORD = join('.skilly', 'engine.json');
 const GITATTRIBUTES_LINE = '.skilly/engine/** linguist-generated=true';
@@ -38,6 +41,7 @@ const OWNED_PATHS = [
   'skills-lock.json',
   '.gitattributes',
   ...MANAGED_PATHS,
+  ...HOOK_PATHS,
 ];
 const FORMATTER_FILES = ['.prettierignore', 'biome.json', 'biome.jsonc'];
 
@@ -130,7 +134,13 @@ function wantedSkills(config, bundlesDir, self, release) {
 
 // repo: the Consumer's "owner/repo". Given, the report carries the repo
 // settings drift (ADR-0009 decision 8); a local Sync makes no GitHub call.
-export function sync({ cwd, snapshot: { dir, release }, skills = skillsCli, repo = null }) {
+export function sync({
+  cwd,
+  snapshot: { dir, release },
+  skills = skillsCli,
+  repo = null,
+  refreshLock = lockfile.refreshLock,
+}) {
   const bundlesDir = join(dir, 'bundles');
   const config = skillyFile.read(cwd);
   refuseEditedEngine(cwd);
@@ -193,6 +203,7 @@ export function sync({ cwd, snapshot: { dir, release }, skills = skillsCli, repo
 
   const hash = writeEngine(cwd, join(dir, 'engine'));
   writeManagedFiles(cwd, join(dir, 'engine', 'templates'), config.tier);
+  writeHooks(cwd, { bundles: wanted.bundles, bundlesDir, refreshLock });
   addFormatterIgnores(cwd);
   skillyFile.write(cwd, { ...config, hub: release ?? config.hub });
 
