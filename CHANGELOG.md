@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.5.1](https://github.com/timschoch/skilly/compare/v0.5.0...v0.5.1) (2026-10-29)
+
+
+### Bug Fixes
+
+* **bundles:** pre-commit lints staged files without lint-staged ([#254](https://github.com/timschoch/skilly/issues/254)) ([9bfb2f6](https://github.com/timschoch/skilly/commit/9bfb2f68ebbb7a99c1788abe08c1c85168afc3ce))
+* **cli:** npx skilly add, remove and sync run the Engine verbs ([#256](https://github.com/timschoch/skilly/issues/256)) ([09bb321](https://github.com/timschoch/skilly/commit/09bb3211befce174e8443880d1b4d80e0ebfe10b))
+* **engine:** setup pushes the workflows alone first, so the Setup PR gets a CI run ([#258](https://github.com/timschoch/skilly/issues/258)) ([c4669c9](https://github.com/timschoch/skilly/commit/c4669c9d0eb2ae5f5799093997d4b6484f01c1c8)), closes [#251](https://github.com/timschoch/skilly/issues/251)
+* **engine:** unit steps run in every repo with vitest ([#255](https://github.com/timschoch/skilly/issues/255)) ([d43f9d4](https://github.com/timschoch/skilly/commit/d43f9d45eae9420635c482d95057ca78339d0d9f)), closes [#250](https://github.com/timschoch/skilly/issues/250)
+
 ## [0.5.0](https://github.com/timschoch/skilly/compare/v0.4.0...v0.5.0) (2026-10-29)
 
 
