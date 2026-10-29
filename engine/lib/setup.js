@@ -126,12 +126,13 @@ export function readSetupConfig(cwd) {
   return text === null ? null : skillyFile.parse(text);
 }
 
-// The Setup PR holds the config now. An uncommitted copy in the checkout would
-// stop the person's `git pull` after the merge (#260). Returns true when it
-// removed one.
+// origin holds the config now. An uncommitted copy in the checkout, untracked
+// or staged, would stop the person's `git pull` after the merge (#260).
+// Returns true when it removed one.
 function removeUncommittedConfig(cwd) {
   if (!skillyFile.exists(cwd)) return false;
-  if (tryRun('git', ['ls-files', '--error-unmatch', '--', skillyFile.CONFIG_PATH], { cwd }) !== null) return false;
+  if (tryRun('git', ['cat-file', '-e', `HEAD:${skillyFile.CONFIG_PATH}`], { cwd }) !== null) return false;
+  tryRun('git', ['rm', '--quiet', '--cached', '--ignore-unmatch', '--', skillyFile.CONFIG_PATH], { cwd });
   rmSync(join(cwd, skillyFile.CONFIG_PATH));
   return true;
 }
@@ -181,7 +182,7 @@ export function setup({
   else if (!pr.pushed) log(`Setup PR unchanged: ${pr.url}`);
   else log(`Setup PR ${pr.created ? 'opened' : 'updated'}: ${pr.url}`);
   if (removeUncommittedConfig(cwd))
-    log(`removed ${skillyFile.CONFIG_PATH} from this checkout: the Setup PR holds it. After the merge: git pull`);
+    log(`removed the uncommitted ${skillyFile.CONFIG_PATH}: origin holds it. Run git pull after the merge`);
 
   // Settings last: the ruleset requires `verify`, and only the Setup PR brings
   // the ci.yml that reports it. A failed Sync leaves the default branch open.

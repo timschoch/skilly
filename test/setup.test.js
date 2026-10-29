@@ -142,6 +142,17 @@ test('setup removes the uncommitted config once the Setup PR holds it, so git pu
   assert.equal(JSON.parse(readFileSync(join(cwd, '.skilly/config.json'), 'utf8')).hub, 'v1.0.0');
 });
 
+test('setup also removes a staged config that no commit holds', () => {
+  useFakeGitHub();
+  const { cwd, origin } = makeUncommittedConfigClone();
+  git(cwd, 'add', '.skilly/config.json');
+  runSetup(cwd);
+  assert.equal(git(cwd, 'status', '--porcelain'), '');
+
+  git(origin, 'update-ref', 'refs/heads/main', `refs/heads/${SETUP_BRANCH}`);
+  git(cwd, 'pull', '-q', '--ff-only', 'origin', 'main');
+});
+
 test('a second setup run without the local config takes it from the Setup branch', () => {
   useFakeGitHub();
   const { cwd, origin } = makeUncommittedConfigClone();
