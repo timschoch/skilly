@@ -193,7 +193,8 @@ test('a stage runs without the inherited steps it names, and the replaced step c
 
 const stepNames = (tier, stage) => {
   const root = makeRepo({ tier, defaults: JSON.parse(readFileSync(shippedDefaults, 'utf8')) });
-  for (const file of ['vitest.config.ts', 'playwright.config.ts']) writeFileSync(join(root, file), '');
+  writeFileSync(join(root, 'package.json'), JSON.stringify({ devDependencies: { vitest: '^5.0.0' } }));
+  writeFileSync(join(root, 'playwright.config.ts'), '');
   return JSON.parse(run(root, stage, '--steps').stdout).steps.map(({ name }) => name);
 };
 
@@ -260,6 +261,50 @@ test('a step whose target is missing is skipped, and runs once the target is the
   const present = run(makeRepo({ verify, files: ['e2e.config.ts'] }), 'ci');
   assert.equal(present.status, 0);
   assert.match(present.stdout, /ran-e2e/);
+});
+
+test('a step whose dependency is not in package.json is skipped, and runs once a dependency field lists it', () => {
+  const verify = { stages: { ci: { steps: [{ name: 'unit', run: 'echo ran-unit', dependency: 'vitest' }] } } };
+  const withPackage = (packageJson) => {
+    const root = makeRepo({ verify });
+    if (packageJson) writeFileSync(join(root, 'package.json'), JSON.stringify(packageJson));
+    return run(root, 'ci');
+  };
+
+  for (const packageJson of [undefined, { dependencies: { jest: '^30.0.0' } }]) {
+    const without = withPackage(packageJson);
+    assert.equal(without.status, 0, without.stderr);
+    assert.match(without.stdout, /skip +unit: no vitest in package\.json/);
+    assert.doesNotMatch(without.stdout, /ran-unit/);
+  }
+
+  for (const field of ['dependencies', 'devDependencies']) {
+    const present = withPackage({ [field]: { vitest: '^5.0.0' } });
+    assert.equal(present.status, 0, present.stderr);
+    assert.match(present.stdout, /ran-unit/);
+  }
+});
+
+// Vitest runs without a config file, and its config has many names (#250).
+test('the default unit steps run in a vitest repo with no config file, and skip in a repo without vitest', () => {
+  const defaults = JSON.parse(readFileSync(shippedDefaults, 'utf8'));
+  const unitSteps = (packageJson) => {
+    const root = makeRepo({ defaults, tier: 'product' });
+    writeFileSync(join(root, 'package.json'), JSON.stringify(packageJson));
+    return Object.fromEntries(
+      ['push', 'ci', 'nightly'].map((stage) => {
+        const { steps } = JSON.parse(run(root, stage, '--steps').stdout);
+        return [stage, steps.map(({ name }) => name).filter((name) => name.startsWith('unit'))];
+      }),
+    );
+  };
+
+  assert.deepEqual(unitSteps({ scripts: { test: 'vitest run' }, devDependencies: { vitest: '^5.0.0' } }), {
+    push: ['unit (changed)'],
+    ci: ['unit'],
+    nightly: ['unit'],
+  });
+  assert.deepEqual(unitSteps({ scripts: { test: 'node --test' } }), { push: [], ci: [], nightly: [] });
 });
 
 test('a red step does not stop the stage: every step runs and the summary lists each result', () => {

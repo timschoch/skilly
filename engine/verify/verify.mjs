@@ -15,10 +15,10 @@
 //
 // Stages are cumulative through `extends`: `push` contains `commit`, `ci` contains `push`.
 // Cumulative by default, so a stage skips a check the stage below it runs only where the config
-// says so by name. `tier` and `target` subtract: a repo runs a step only once it is big enough
-// for it, and only when the thing the step checks is there. `replaces` on a step drops the step
-// it covers, so the full unit suite does not rerun the changed tests. `without` on a stage drops
-// inherited steps: `pr` is `ci` without the suites that the release PR and the nightly run.
+// says so by name. `tier`, `target` and `dependency` subtract: a repo runs a step only once it is
+// big enough for it, and only when the thing the step checks is there. `replaces` on a step drops
+// the step it covers, so the full unit suite does not rerun the changed tests. `without` on a
+// stage drops inherited steps: `pr` is `ci` without the suites that the release PR and the nightly run.
 // `changedOnly` on a stage skips a step with `paths` when none of them changed against the
 // default branch, patterns as in changed-files.mjs. A step without `paths` always runs.
 //
@@ -147,6 +147,18 @@ const isPathChanged = (paths) => {
   return changedFiles === null || findMatch(paths, changedFiles) !== undefined;
 };
 
+// Read on the first step with `dependency`, once. A tool such as vitest needs no config file, so
+// the package.json entry is what says the repo has it.
+let declaredPackages;
+const hasDependency = (name) => {
+  if (declaredPackages === undefined) {
+    const packagePath = join(root, 'package.json');
+    const { dependencies, devDependencies } = existsSync(packagePath) ? readJson(packagePath, 'package.json') : {};
+    declaredPackages = { ...dependencies, ...devDependencies };
+  }
+  return Object.hasOwn(declaredPackages, name);
+};
+
 if (stage.tier !== undefined) validateTier(stage.tier, `stage ${stageName}`);
 const stageBlocked = stage.tier !== undefined && !meets(stage.tier);
 
@@ -162,6 +174,10 @@ if (stageBlocked) {
     }
     if (step.target !== undefined && !existsSync(join(root, step.target))) {
       skipped.push({ name: step.name, reason: `no ${step.target}` });
+      continue;
+    }
+    if (step.dependency !== undefined && !hasDependency(step.dependency)) {
+      skipped.push({ name: step.name, reason: `no ${step.dependency} in package.json` });
       continue;
     }
     if (stage.changedOnly && step.paths !== undefined && !isPathChanged(step.paths)) {

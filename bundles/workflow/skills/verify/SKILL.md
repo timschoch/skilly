@@ -120,6 +120,8 @@ The file is optional. Check the result with `--config` or `<stage> --steps`.
 
 A step's `target` is a path relative to the repo root; missing, the step is skipped. That is how one stage list fits repos that do not all have an `e2e/` or a Dockerfile.
 
+A step's `dependency` is a package name; not in `dependencies` or `devDependencies` of the root `package.json`, the step is skipped. The unit steps use `"dependency": "vitest"`: vitest runs with no config file, and its config has many names. Vitest only in a workspace `package.json`: set `"dependency": null` on the unit steps in `.skilly/verify.json`.
+
 ## Audit
 
 The `audit` step ([scripts/audit.mjs](scripts/audit.mjs)) fails on every high or critical advisory. It runs `yarn audit` (yarn 1) when `yarn.lock` exists, else `npm audit`. An advisory with no patched version goes on the step's `accept` list in `.skilly/verify.json`:
