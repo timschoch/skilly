@@ -1,41 +1,65 @@
 ---
 name: setup-project
 description: >
-  Main entry point when starting work in a new repo, right after `skilly setup`.
-  Drives the workflow setup skills in order, then the tech-stack bundles.
-  Use when the user wants to set up a new project or repo.
+  The decide phase of skilly Setup: a short chat that picks Bundles and a tier, writes
+  .skilly/config.json with Engine scripts, runs the preflight, then starts the apply phase.
+  Use when the user wants to set up a repo with skilly, or `skilly setup` points here.
 ---
 
 # Setup project
 
-Drives two setup flows: workflow setup first, tech stack second.
+Ask the few questions Setup needs, then run the rest without the person. Every check and every write is an Engine script. Never edit `.skilly/config.json` by hand.
 
-Setup skills are just-in-time: `npx github:timschoch/skilly add <skill>`, then READ the installed SKILL.md and follow it directly (the session's skill list only loads at startup — no reload exists), then `npx github:timschoch/skilly remove <skill>`. This applies to EVERY skill named below — never invoke a copy installed elsewhere on the machine. Setup skills live in NO synced bundle: they would sit unused and pollute the context window.
+`skilly` below means the `npx github:timschoch/skilly` command that started Setup, with its `#<release>` when it had one.
 
-## Workflow setup
+```mermaid
+flowchart LR
+  detect[skilly detect] --> ask[ask once]
+  ask --> config[skilly config]
+  config --> preflight[skilly preflight]
+  preflight -->|red| fix[fix, rerun]
+  fix --> preflight
+  preflight -->|green| setup[skilly setup]
+```
 
-Ask which parts apply, then run the chosen skills in this order, finishing one before the next:
+## 1. Detect
 
-1. Husky + lint-staged + Prettier pre-commit? → `setup-pre-commit`; the repo's own stack → skip (nothing automated for it yet — add a sibling skill when one earns its place).
-2. GitHub scaffolding (conventional commits/branches)? → `setup-repo` — GitHub settings, commit/branch rules wired into the hooks just chosen, `CLAUDE.md` scaffold.
-3. Release automation? → `setup-release-please` — plus merge settings.
-4. Wayfinder? → `setup-matt-pocock-skills` — issue tracker, triage labels, domain-doc layout.
-5. GDD (God-driven development: prayer before working)? → `npx github:timschoch/skilly add gdd`. The Sync writes its PR hook in `.claude/settings.json`.
+Run `skilly detect`. It prints JSON:
 
-Remove the used setup skills, commit conventionally, push, and make sure a PR exists.
+| Key                     | Holds                                                                                |
+| ----------------------- | ------------------------------------------------------------------------------------ |
+| `repo`                  | `owner/name` of the GitHub origin, `null` without one                                |
+| `tier`                  | the default: `tool`, or the tier `.skilly/config.json` already holds                 |
+| `bundles`               | every Bundle of the Release: `ticked` from its detect hints or the config, `reasons` |
+| `unmatchedDependencies` | packages no Bundle covers                                                            |
 
-## Tech stack
+Read `README.md`, `package.json` and the top-level folders. Judge the stack yourself: a hint can miss.
 
-1. Propose Bundles from the [catalog](https://github.com/timschoch/skilly/blob/main/docs/bundles.md), let the user confirm:
-   - every repo: `workflow`
-   - a `project-<x>` bundle when one exists (it already includes its tech bundles)
-   - otherwise the `tech-*` bundles matching the stack (check `package.json` / lockfiles)
-   - `marketing` only where the repo produces marketing content
-2. `npx github:timschoch/skilly add <bundle...>` — installs, rules, commit, PR.
-3. Stack setup skills where the stack needs them (e.g. `trigger-setup`): add, follow, remove.
-4. `npx github:timschoch/skilly update` — ends with its own commit.
-5. Read `.agents/skills/audit-skilly-workflow/SKILL.md` in full and follow it: the rules, hooks and gates just installed get checked against what the repo and the user's global files already say. Show the report path, stop; fix only what the user picks.
+## 2. Ask once
 
-## Validate
+Ask all questions in one message, each with your pick. Accept "ok" as yes to every pick.
 
-After the PR merges: `gh workflow run skilly-sync.yml`, then `gh run watch` until green. Local auth tests on this Mac lie (the machine SSH key bypasses `$HOME` isolation).
+1. Bundles: the ticked ones with their reasons, plus any you add. Add a `project-<x>` Bundle when one fits the repo; it includes its `tech-*` Bundles. Add `marketing` only where the repo makes marketing content. Catalog: [docs/bundles.md](https://github.com/timschoch/skilly/blob/main/docs/bundles.md).
+2. Tier, default `tool`:
+   - `sandbox`: `ci.yml` only
+   - `tool`: plus `ai-review.yml` and `dependabot.yml`
+   - `product`: plus `nightly.yml` and `release.yml`
+3. Only when `repo` is `null`: owner and name. Default: the folder name, private.
+
+Name the notable `unmatchedDependencies`: frameworks and services no Bundle has skills for yet. Ask nothing about them.
+
+Not asked: the App, the branch, hooks, release-please, the issue tracker, the docs layout. Setup and the Sync own them.
+
+## 3. Write and check
+
+1. `skilly config <tier> <bundle...>` writes `.skilly/config.json`.
+2. `repo` was `null`: `gh repo create <owner>/<name> --private --source . --push`.
+3. `skilly preflight` prints one line per check and exits 1 on a red one. Fix each red line, then rerun:
+   - a missing secret: the person runs `gh secret set <name> --repo <owner>/<name>` in their own terminal, so the value never enters the chat. `claude setup-token` makes `CLAUDE_CODE_OAUTH_TOKEN`.
+   - any other red line: do what its text says, or show it to the person when only they can.
+
+## 4. Apply
+
+Preflight green: run `skilly setup`. It opens the Setup PR and sets the repo settings. Show the PR URL and stop. The person merges it once `ci / verify` is green.
+
+A second run starts again at [1. Detect](#1-detect): `detect` ticks what the config holds.

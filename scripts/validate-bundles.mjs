@@ -3,6 +3,7 @@
 //   - includes resolve, no cycles
 //   - every declared rule has its <rule>.sh in the declaring bundle (resolve throws)
 //   - every verify step has a name, a stage and a run command
+//   - detect hints and secrets have the shape the decide phase reads
 //   - every SKILL.md frontmatter is YAML the skills CLI accepts, with name and description
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
@@ -35,6 +36,16 @@ for (const name of names) {
     errors.push(`${name}: "includes" must be a string array`);
   if (config.rules !== undefined && !isStringArray(config.rules))
     errors.push(`${name}: "rules" must be a string array`);
+  if (config.detect !== undefined) {
+    const { always, dependencies, files, ...unknown } = config.detect;
+    if (always !== undefined && typeof always !== 'boolean') errors.push(`${name}: "detect.always" must be a boolean`);
+    if (dependencies !== undefined && !isStringArray(dependencies))
+      errors.push(`${name}: "detect.dependencies" must be a string array`);
+    if (files !== undefined && !isStringArray(files)) errors.push(`${name}: "detect.files" must be a string array`);
+    for (const key of Object.keys(unknown)) errors.push(`${name}: unknown key "detect.${key}"`);
+  }
+  if (config.secrets !== undefined && !isStringArray(config.secrets))
+    errors.push(`${name}: "secrets" must be a string array`);
   if (config.verify !== undefined) {
     const { fullSuiteTriggers, steps } = config.verify;
     if (fullSuiteTriggers !== undefined && !isStringArray(fullSuiteTriggers))

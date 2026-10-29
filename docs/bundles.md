@@ -15,14 +15,16 @@ bundles/<name>/
   README.md     # what the Bundle ships, and the skills left out and why
 ```
 
-| Field      | Holds                                                                                                                                    |
-| ---------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| `includes` | other Bundles, pulled in recursively. Adding `project-x` gives the union of `project-x` and all it includes. A cycle is an error.        |
-| `rules`    | the Rules this Bundle declares. The `skilly / gate` check runs each `rules/<rule>.sh`, until every Consumer requires only `ci / verify`. |
-| `verify`   | the Bundle's verify steps and full-suite triggers, see [Verify steps](#verify-steps). Each Rule of the Bundle is one of its steps.       |
-| `sources`  | one entry per Source repo, with the skills taken from it. Hub-maintained skills use the Source `timschoch/skilly`.                       |
+| Field      | Holds                                                                                                                                                                                             |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `includes` | other Bundles, pulled in recursively. Adding `project-x` gives the union of `project-x` and all it includes. A cycle is an error.                                                                 |
+| `rules`    | the Rules this Bundle declares. The `skilly / gate` check runs each `rules/<rule>.sh`, until every Consumer requires only `ci / verify`.                                                          |
+| `verify`   | the Bundle's verify steps and full-suite triggers, see [Verify steps](#verify-steps). Each Rule of the Bundle is one of its steps.                                                                |
+| `sources`  | one entry per Source repo, with the skills taken from it. Hub-maintained skills use the Source `timschoch/skilly`.                                                                                |
+| `detect`   | the hints that pre-tick the Bundle in the decide phase of Setup: `dependencies` in `package.json` (a trailing `*` matches a prefix such as `@tanstack/*`), `files` in the repo root, or `always`. |
+| `secrets`  | the repo secrets the Bundle needs. The preflight of Setup fails on each one the Consumer lacks.                                                                                                   |
 
-`config.json` also declares the Bundle's detect hints, secrets and hook entries ([ADR-0009](adr/0009-setup-decides-then-applies.md#bundles-declare-their-facts-as-data)).
+`config.json` also declares the Bundle's hook entries ([ADR-0009](adr/0009-setup-decides-then-applies.md#bundles-declare-their-facts-as-data)).
 
 ### Verify steps
 

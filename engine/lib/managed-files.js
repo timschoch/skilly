@@ -34,7 +34,7 @@ const readPackageJson = (cwd) => {
 };
 
 // `packageManager` in package.json names it. Without one, the lockfile does; without both, npm.
-function detectPackageManager(cwd, packageJson) {
+export function detectPackageManager(cwd, packageJson = readPackageJson(cwd)) {
   const named = packageJson.packageManager?.split('@')[0];
   const found =
     named ??
@@ -74,6 +74,18 @@ const render = (template, values) =>
     return values[key];
   });
 
+const isForTier = (file, tier) => TIERS.indexOf(tier) >= TIERS.indexOf(file.tier);
+
+// The repo secrets the Managed files of `tier` read. Every run has GITHUB_TOKEN.
+export function listManagedSecrets(templatesDir, tier) {
+  const names = new Set();
+  for (const file of MANAGED_FILES.filter((item) => isForTier(item, tier))) {
+    const template = readFileSync(join(templatesDir, file.template), 'utf8');
+    for (const [, name] of template.matchAll(/\bsecrets\.(\w+)/g)) if (name !== 'GITHUB_TOKEN') names.add(name);
+  }
+  return [...names].sort();
+}
+
 /**
  * Writes the Managed files of `tier` into `cwd` from `templatesDir`, and deletes the ones the
  * tier no longer gets when the Sync wrote them. The Hub keeps its own workflows: it runs
@@ -94,7 +106,7 @@ export function writeManagedFiles(cwd, templatesDir, tier = 'sandbox') {
     const target = join(cwd, file.path);
     const exists = existsSync(target);
     const isOwn = exists && !readFileSync(target, 'utf8').startsWith(HEADER);
-    if (TIERS.indexOf(tier) >= TIERS.indexOf(file.tier)) {
+    if (isForTier(file, tier)) {
       if (isOwn && file.keepsOwn) continue;
       mkdirSync(dirname(target), { recursive: true });
       writeFileSync(target, render(readFileSync(join(templatesDir, file.template), 'utf8'), values));

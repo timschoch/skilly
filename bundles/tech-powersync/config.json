@@ -1,4 +1,5 @@
 {
+  "detect": { "dependencies": ["@powersync/*"] },
   "includes": [],
   "rules": [],
   "sources": [

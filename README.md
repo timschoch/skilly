@@ -32,7 +32,7 @@ The Sync PR waits for you when it removes a skill or the Release is a new major 
 ## Set up an account, once
 
 1. Install the skilly App on the account, with "All repositories".
-2. Add the account to the owner allowlist in the Hub.
+2. Add the account to `HUB_OWNERS`, the owner allowlist in [engine/lib/constants.js](engine/lib/constants.js).
 3. Other accounts than `timschoch`: invite the account as a read collaborator on `timschoch/skilly`, then accept the invite as that account. `skilly setup` prints the command when it is missing.
 
 ## Set up a repo
@@ -47,17 +47,25 @@ Not every repo gets skilly. You choose the repos.
    git add . && git commit -m "chore: initial commit" && git push -u origin main
    ```
 
-2. Run setup with the newest Release:
+2. Ask your agent to run setup with the newest Release:
 
    ```sh
    npx -y github:timschoch/skilly#<release> setup
    ```
 
    Setup has two phases ([ADR-0009](docs/adr/0009-setup-decides-then-applies.md)):
-   - **Decide.** An agent reads the repo and asks you for the Bundles, the tier and the secrets. It proposes missing dependencies. Its scripts write `.skilly/config.json` and check that everything is ready.
-   - **Apply.** No more questions, so you can walk away. Setup runs the first sync, sets the repo settings, requires `ci / verify` on the default branch, turns on auto-merge and opens the setup PR.
+   - **Decide.** Without `.skilly/config.json`, setup points the agent at the [setup-project](bundles/setup-project/skills/setup-project/SKILL.md) skill. The agent reads the repo and asks you for the Bundles and the tier, in one message. It names the dependencies no Bundle covers. Its scripts write `.skilly/config.json`, and `preflight` checks that everything is ready. A missing secret: you set it with `gh secret set`, so it never enters the chat.
+   - **Apply.** No more questions, so you can walk away. Setup runs the first sync, opens the setup PR, then sets the repo settings and requires `ci / verify` on the default branch.
 
-   Setup is safe to run again: it runs only the apply phase.
+   The decide steps also run alone, from a terminal:
+
+   ```sh
+   npx -y github:timschoch/skilly#<release> detect                  # the Bundles, pre-ticked from the repo, as JSON
+   npx -y github:timschoch/skilly#<release> config <tier> <bundle...>  # write .skilly/config.json
+   npx -y github:timschoch/skilly#<release> preflight               # exits 1 and names each red check
+   ```
+
+   Setup is safe to run again: with a config it runs only the apply phase.
 
 3. Merge the setup PR. From then on the Hub's nightly keeps the repo up to date.
 

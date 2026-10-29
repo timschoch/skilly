@@ -1,4 +1,5 @@
 {
+  "detect": { "files": ["components.json"] },
   "includes": [],
   "rules": [],
   "sources": [

@@ -1,4 +1,5 @@
 {
+  "detect": { "dependencies": ["pg", "postgres"] },
   "includes": [],
   "rules": [],
   "sources": [

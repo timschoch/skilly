@@ -1,4 +1,5 @@
 {
+  "detect": { "dependencies": ["next"] },
   "includes": ["tech-react"],
   "rules": [],
   "sources": [

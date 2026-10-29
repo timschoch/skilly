@@ -1,4 +1,5 @@
 {
+  "detect": { "dependencies": ["typescript"], "files": ["tsconfig.json"] },
   "includes": [],
   "rules": [],
   "sources": [

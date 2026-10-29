@@ -1,4 +1,5 @@
 {
+  "detect": { "dependencies": ["@tanstack/react-router", "@tanstack/react-start", "@tanstack/router-*", "@tanstack/start-*"] },
   "includes": [],
   "rules": [],
   "sources": [

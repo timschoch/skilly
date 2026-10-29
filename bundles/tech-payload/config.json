@@ -1,4 +1,5 @@
 {
+  "detect": { "dependencies": ["payload", "@payloadcms/*"] },
   "includes": [],
   "rules": [],
   "sources": [

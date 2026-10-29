@@ -7,7 +7,8 @@ import { join } from 'node:path';
 // and logs each call as "METHOD path". A repo starts with every setting off except squash merge.
 // `forbidden` lists "METHOD path" calls that answer HTTP 403.
 // It also keeps the PRs of `gh pr list|create|edit`, logged as "pr <verb>",
-// the login of `gh api user` and the Hub's `permissions` for this login.
+// the login of `gh api user`, the Hub's `permissions` for this login and the
+// names of the repo's Actions `secrets`.
 const GH_SCRIPT = String.raw`
 const { readFileSync, writeFileSync } = require('node:fs');
 const file = process.env.FAKE_GITHUB;
@@ -54,6 +55,8 @@ const routes = {
   'GET /vulnerability-alerts': () => (state.vulnerabilityAlerts ? answer() : fail('Vulnerability alerts are disabled. (HTTP 404)')),
   'PUT /vulnerability-alerts': () => answer(void (state.vulnerabilityAlerts = true)),
   'GET /rulesets?includes_parents=false': () => answer(state.rulesets.map(summary)),
+  'GET /actions/secrets?per_page=100': () =>
+    answer({ total_count: state.secrets.length, secrets: state.secrets.map((name) => ({ name })) }),
   'POST /rulesets': () => {
     const created = { bypass_actors: [], ...body, id: state.rulesets.length + 1, source_type: 'Repository' };
     state.rulesets.push(created);
@@ -85,6 +88,7 @@ export function useFakeGitHub(overrides = {}) {
     prs: [],
     login: 'person',
     hubPermissions: { pull: true },
+    secrets: [],
     ...overrides,
   });
   writeFileSync(join(dir, 'gh'), `#!${process.execPath}\n${GH_SCRIPT}`);

@@ -1,4 +1,5 @@
 {
+  "detect": { "dependencies": ["@neondatabase/*", "neonctl"] },
   "includes": ["tech-postgres"],
   "rules": [],
   "sources": [
