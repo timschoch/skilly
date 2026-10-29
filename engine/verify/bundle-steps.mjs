@@ -18,18 +18,20 @@ export const findBundlesDir = (root) =>
   BUNDLES_DIRS.map((directory) => join(root, directory)).find((directory) => existsSync(directory)) ?? null;
 
 /**
- * The Bundle layer for `names`: `{ fullSuiteTriggers, stages }`, includes first, each Bundle once.
- * Throws on an unknown Bundle, an include cycle or a step without a stage.
+ * The Bundle layer for `names`: `{ layer: { fullSuiteTriggers, stages }, unknown }`, includes
+ * first, each Bundle once. `unknown` lists the Bundles without a config.json, skipped.
+ * Throws on an include cycle or a step without a stage.
  */
 export function bundleSteps(names, bundlesDir) {
   const configs = new Map();
+  const unknown = [];
   const visiting = [];
   const visit = (name) => {
-    if (configs.has(name)) return;
+    if (configs.has(name) || unknown.includes(name)) return;
     const cycleStart = visiting.indexOf(name);
     if (cycleStart !== -1) throw new Error(`Bundle include cycle: ${[...visiting.slice(cycleStart), name].join(' -> ')}`);
     const path = join(bundlesDir, name, 'config.json');
-    if (!existsSync(path)) throw new Error(`unknown Bundle "${name}", no ${path}`);
+    if (!existsSync(path)) return void unknown.push(name);
     const config = JSON.parse(readFileSync(path, 'utf8'));
     visiting.push(name);
     for (const included of config.includes ?? []) visit(included);
@@ -48,5 +50,5 @@ export function bundleSteps(names, bundlesDir) {
     }
     layer = mergeConfig(layer, { ...rest, stages });
   }
-  return layer;
+  return { layer, unknown };
 }

@@ -34,7 +34,7 @@
 
 import { spawnSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
-import { dirname, join, resolve } from 'node:path';
+import { dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { bundleSteps, findBundlesDir } from './bundle-steps.mjs';
 import { defaultBranch } from './default-branch.mjs';
@@ -82,11 +82,15 @@ const readBundleLayer = (names) => {
     console.error(`verify: no Bundle configs in .skilly/engine/bundles/ or bundles/, so the Bundle steps of ${names.join(', ')} do not run.`);
     return {};
   }
+  let result;
   try {
-    return bundleSteps(names, bundlesDir);
+    result = bundleSteps(names, bundlesDir);
   } catch (error) {
     return fail(error.message);
   }
+  for (const name of result.unknown)
+    console.error(`verify: no config for Bundle ${name} in ${relative(root, bundlesDir)}/, so its steps do not run.`);
+  return result.layer;
 };
 
 const overridePath = join(root, '.skilly', 'verify.json');

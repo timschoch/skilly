@@ -462,9 +462,18 @@ test('without Bundle configs verify runs the other layers and says the Bundle st
   assert.match(result.stderr, /no Bundle configs .* Bundle steps of workflow do not run/);
 });
 
-test('a Bundle with no config, an include cycle or a step without a stage exits 2', () => {
+// A Bundle the Release dropped can stay in .skilly/config.json. Its steps are gone,
+// the rest of the plan still runs, the commit hook too.
+test('a Bundle with no config is skipped with a note, the other Bundles still run', () => {
+  const bundles = { web: { verify: { steps: [{ name: 'web', stage: 'commit', run: 'echo ran-web' }] } } };
+  const result = run(makeRepo({ uses: ['ghost', 'web'], bundles }), 'commit');
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /ran-web/);
+  assert.match(result.stderr, /no config for Bundle ghost .* its steps do not run/);
+});
+
+test('an include cycle or a step without a stage exits 2', () => {
   const cases = [
-    [{ uses: ['ghost'], bundles: { web: {} } }, /unknown Bundle "ghost"/],
     [{ uses: ['a'], bundles: { a: { includes: ['b'] }, b: { includes: ['a'] } } }, /Bundle include cycle: a -> b -> a/],
     [
       { uses: ['web'], bundles: { web: { verify: { steps: [{ name: 'x', run: 'true' }] } } } },
