@@ -1,9 +1,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readdirSync } from 'node:fs';
-import { basename } from 'node:path';
+import { readdirSync, readFileSync } from 'node:fs';
+import { basename, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { mergeConfig } from '../bundles/workflow/skills/verify/scripts/merge-config.mjs';
+import { mergeConfig } from '../engine/verify/merge-config.mjs';
 
 test('objects merge by key, at every depth', () => {
   const merged = mergeConfig(
@@ -90,13 +90,12 @@ test('a leading dash removes the entry with that name', () => {
   assert.deepEqual(merged.steps, [{ name: 'unit', run: 'y' }]);
 });
 
-test('each shared helper ships once, in the verify skill', () => {
-  const bundles = fileURLToPath(new URL('../bundles', import.meta.url));
-  const helpers = readdirSync(bundles, { recursive: true })
+test('each shared helper ships once, in the Engine', () => {
+  const root = fileURLToPath(new URL('..', import.meta.url));
+  const helpers = ['bundles', 'engine']
+    .flatMap((folder) => readdirSync(join(root, folder), { recursive: true }).map((path) => join(folder, path)))
     .filter((path) => ['default-branch.mjs', 'merge-config.mjs'].includes(basename(path)))
+    .filter((path) => !readFileSync(join(root, path), 'utf8').includes('runEngineScript('))
     .sort();
-  assert.deepEqual(helpers, [
-    'workflow/skills/verify/scripts/default-branch.mjs',
-    'workflow/skills/verify/scripts/merge-config.mjs',
-  ]);
+  assert.deepEqual(helpers, ['engine/verify/default-branch.mjs', 'engine/verify/merge-config.mjs']);
 });

@@ -1,14 +1,14 @@
 {
-  "$comment": "Merged over bundles/workflow/skills/verify/references/verify.json. The hub is its own source, so its skills live under bundles/, not .agents/.",
+  "$comment": "Merged over engine/verify/verify.json. The hub runs its Engine from engine/, not .skilly/engine/.",
   "budgetTicket": "https://github.com/timschoch/skilly/issues",
   "stages": {
     "push": {
       "steps": [
-        { "name": "branch name", "run": "node bundles/workflow/skills/verify/scripts/check-branch-name.mjs" },
+        { "name": "branch name", "run": "node engine/verify/check-branch-name.mjs" },
         {
           "name": "naming",
-          "run": "node bundles/workflow/skills/naming/scripts/check.mjs",
-          "target": "bundles/workflow/skills/naming/scripts/check.mjs"
+          "run": "node engine/naming/check.mjs",
+          "target": "engine/naming/check.mjs"
         },
         { "name": "unit", "run": "npm test" }
       ]
@@ -20,7 +20,7 @@
           "run": "npx prettier --check .",
           "why": "lint-staged formats what a commit touches. A file written by a script or an agent that bypassed the hook shows up here."
         },
-        { "name": "audit", "run": "node bundles/workflow/skills/verify/scripts/audit.mjs" },
+        { "name": "audit", "run": "node engine/verify/audit.mjs" },
         {
           "name": "bundles",
           "run": "node scripts/validate-bundles.mjs",

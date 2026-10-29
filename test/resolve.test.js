@@ -4,9 +4,9 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { resolveBundles } from '../lib/resolve.js';
-import { selfSource, ownSkills } from '../lib/self-source.js';
-import { run } from '../lib/run.js';
+import { resolveBundles } from '../engine/lib/resolve.js';
+import { selfSource, ownSkills } from '../engine/lib/self-source.js';
+import { run } from '../engine/lib/run.js';
 
 const bundlesDir = fileURLToPath(new URL('./fixtures/bundles', import.meta.url));
 

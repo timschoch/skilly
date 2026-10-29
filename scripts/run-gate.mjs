@@ -4,8 +4,8 @@
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
-import { resolveBundles } from '../lib/resolve.js';
-import * as skillyFile from '../lib/skilly-file.js';
+import { resolveBundles } from '../engine/lib/resolve.js';
+import * as skillyFile from '../engine/lib/skilly-file.js';
 
 const bundlesDir = join(dirname(fileURLToPath(import.meta.url)), '..', 'bundles');
 if (!skillyFile.exists(process.cwd())) {

@@ -5,13 +5,9 @@ import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { prepareBranch } from '../lib/prepare-branch.js';
-import { run } from '../lib/run.js';
+import { run } from '../engine/lib/run.js';
 
-const GATE = join(
-  dirname(fileURLToPath(import.meta.url)),
-  '..',
-  'bundles/workflow/skills/verify/scripts/check-branch-name.mjs',
-);
+const GATE = join(dirname(fileURLToPath(import.meta.url)), '..', 'engine/verify/check-branch-name.mjs');
 
 // A repo on `branch`, by default one the user already blessed for skilly changes.
 function repo(branch, { gate = true, blessed = true } = {}) {

@@ -1,0 +1,10 @@
+{
+  "allow": {
+    "yesNoPrompt": {
+      "paths": ["^lib/"],
+      "names": ["^confirm$"],
+      "rules": ["verb-synonym"],
+      "why": "confirm asks the person y/N in the Hub's old verbs. It validates nothing."
+    }
+  }
+}

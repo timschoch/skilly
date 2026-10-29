@@ -4,11 +4,7 @@ import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import {
-  findMermaid,
-  listDiagrams,
-  validateMermaid,
-} from '../bundles/workflow/skills/writing-rules/scripts/check-mermaid.mjs';
+import { findMermaid, listDiagrams, validateMermaid } from '../engine/writing-rules/check-mermaid.mjs';
 
 const root = fileURLToPath(new URL('..', import.meta.url));
 

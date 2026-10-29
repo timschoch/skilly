@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const skillDir = fileURLToPath(new URL('../bundles/workflow/skills/verify/', import.meta.url));
+const engineDir = fileURLToPath(new URL('../engine/verify/', import.meta.url));
 
 const git = (root, ...gitArguments) => {
   const result = spawnSync('git', gitArguments, { cwd: root, encoding: 'utf8' });
@@ -16,17 +16,15 @@ const git = (root, ...gitArguments) => {
 const commit = (root, message) =>
   git(root, '-c', 'user.name=test', '-c', 'user.email=test@example.com', 'commit', '--quiet', '--message', message);
 
-// A git repo under a dot folder, as a worktree in `~/.t3/worktrees/` is, with the verify skill
+// A git repo under a dot folder, as a worktree in `~/.t3/worktrees/` is, with the Engine's verify folder
 // copied in and one commit on the branch `base`.
 const makeRepo = ({ fullSuiteTriggers }) => {
   const root = join(mkdtempSync(join(tmpdir(), 'skilly-changed-')), '.worktrees', 'repo');
-  const skill = join(root, '.agents', 'skills', 'verify');
-  mkdirSync(join(skill, 'scripts'), { recursive: true });
-  mkdirSync(join(skill, 'references'));
+  const engine = join(root, '.skilly', 'engine', 'verify');
+  mkdirSync(engine, { recursive: true });
   for (const file of ['verify.mjs', 'merge-config.mjs', 'default-branch.mjs', 'run-changed-tests.mjs'])
-    copyFileSync(join(skillDir, 'scripts', file), join(skill, 'scripts', file));
-  writeFileSync(join(skill, 'references', 'verify.json'), JSON.stringify({ fullSuiteTriggers, stages: {} }));
-  mkdirSync(join(root, '.skilly'));
+    copyFileSync(join(engineDir, file), join(engine, file));
+  writeFileSync(join(engine, 'verify.json'), JSON.stringify({ fullSuiteTriggers, stages: {} }));
   writeFileSync(join(root, '.skilly', 'config.json'), '{}');
   git(root, 'init', '--quiet', '--initial-branch', 'base');
   git(root, 'add', '--all');
@@ -41,11 +39,10 @@ const write = (root, path) => {
 
 // `echo` stands in for the test runner and prints the arguments it would get.
 const run = (root, { base = 'base', command = ['echo', 'tests'], cwd = root } = {}) =>
-  spawnSync(
-    process.execPath,
-    [join(root, '.agents', 'skills', 'verify', 'scripts', 'run-changed-tests.mjs'), base, ...command],
-    { cwd, encoding: 'utf8' },
-  );
+  spawnSync(process.execPath, [join(root, '.skilly', 'engine', 'verify', 'run-changed-tests.mjs'), base, ...command], {
+    cwd,
+    encoding: 'utf8',
+  });
 
 const TRIGGERS = ['package.json', 'pnpm-lock.yaml', 'vitest.config.*', 'drizzle/', 'src/schema.sql'];
 

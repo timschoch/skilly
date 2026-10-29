@@ -14,7 +14,7 @@ import { spawnSync } from 'node:child_process';
 import { appendFileSync, mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { run } from '../lib/run.js';
+import { run } from '../engine/lib/run.js';
 
 export const BRANCH = 'chore/upstream-release';
 const API = 'https://api.github.com';

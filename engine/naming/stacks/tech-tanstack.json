@@ -1,5 +1,5 @@
 {
-  "$comment": "Naming defaults for consumers that pick the tech-tanstack bundle. Merged after references/naming.json, before .skilly/naming.json. Keys carry the tanstack/ prefix.",
+  "$comment": "Naming defaults for consumers that pick the tech-tanstack bundle. Merged after naming.json, before .skilly/naming.json. Keys carry the tanstack/ prefix.",
   "allow": {
     "tanstack/route-tree": {
       "paths": ["(^|/)routeTree\\.gen\\.ts$"],

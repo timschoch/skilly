@@ -10,3 +10,6 @@ bundles/**
 
 # written by release-please, never reformatted
 CHANGELOG.md
+
+# Engine: copied to consumers verbatim, never reformatted
+engine/**
