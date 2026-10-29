@@ -82,6 +82,48 @@ test('mergeClaudeSettings: replaces the skilly entries and keeps the own entries
   assert.deepEqual(mergeClaudeSettings({ hooks: { PreToolUse: [bashGroup(GUARD)] } }, {}), {});
 });
 
+test('mergeClaudeSettings: keeps an own entry that runs a file from an own skill', () => {
+  const own = bashGroup('bash "$CLAUDE_PROJECT_DIR"/.claude/skills/my-own-skill/guard.sh');
+  const settings = {
+    hooks: {
+      PreToolUse: [
+        own,
+        bashGroup('"$CLAUDE_PROJECT_DIR"/.claude/hooks/block-destructive-git.sh'),
+        bashGroup('bash "$CLAUDE_PROJECT_DIR"/.agents/skills/verify/scripts/block-unverified-push.sh'),
+      ],
+    },
+  };
+  assert.deepEqual(mergeClaudeSettings(settings, { PreToolUse: [bashGroup(GUARD)] }).hooks.PreToolUse, [
+    own,
+    bashGroup(GUARD),
+  ]);
+});
+
+test('mergeLefthook: keeps an own command that runs a file from an own skill', () => {
+  const text = [
+    'pre-push:',
+    '  commands:',
+    '    own:',
+    '      run: node .agents/skills/my-own/check.mjs',
+    '    no-main:',
+    '      run: node .claude/hooks/check-push-branch.mjs',
+    '',
+  ].join('\n');
+  assert.equal(
+    mergeLefthook(text, new Set()),
+    [
+      'extends:',
+      '  - .skilly/lefthook.json',
+      '',
+      'pre-push:',
+      '  commands:',
+      '    own:',
+      '      run: node .agents/skills/my-own/check.mjs',
+      '',
+    ].join('\n'),
+  );
+});
+
 test('mergeLefthook: adds the extends line once and keeps the own commands and comments', () => {
   const own = '# own hooks\npre-commit:\n  commands:\n    test:\n      run: npm test\n';
   const merged = mergeLefthook(own, new Set());
@@ -222,6 +264,22 @@ test('writeHooks: a husky Consumer ends up on lefthook with its own lines and no
     before,
   );
   assert.equal(refreshed.length, 1);
+});
+
+test('writeHooks: the husky move keeps an own line that runs a file from an own skill', () => {
+  const cwd = makeHuskyConsumer();
+  writeFiles(cwd, {
+    '.husky/commit-msg': 'node .claude/hooks/check-commit-msg.mjs $1\n',
+    '.husky/pre-push':
+      'node .agents/skills/verify/scripts/verify.mjs push\nnode .agents/skills/my-own/check.mjs "$1"\n',
+  });
+  writeHooks(cwd, { bundles: ['base'], bundlesDir: makeBundles(), refreshLock: recordRefreshes().refreshLock });
+  const lefthook = readFileSync(join(cwd, 'lefthook.yml'), 'utf8');
+  assert.match(
+    lefthook,
+    /pre-push:\n {2}commands:\n {4}husky:\n {6}run: node \.agents\/skills\/my-own\/check\.mjs \{1\}\n/,
+  );
+  assert.doesNotMatch(lefthook, /commit-msg|verify\.mjs/);
 });
 
 test('writeHooks: a removed Bundle takes its hook entries with it', () => {

@@ -9,9 +9,26 @@ import { selfSource } from './self-source.js';
 // `hooks.claude` in the shape of `hooks` in .claude/settings.json. The Sync
 // writes only those entries and keeps every entry the Consumer added itself.
 //
-// A skilly entry runs a file in a tree the Sync owns, or runs the same command
-// as an entry of a Bundle. Entries from older skilly versions go by that rule too.
-const SKILLY_PATH = /\.(?:skilly|agents\/skills|claude\/skills)\//;
+// A skilly entry runs a file under .skilly/, runs the same command as an entry
+// of a Bundle, or is one of the exact commands older skilly versions wrote. An
+// own entry that runs a file from an own skill folder stays.
+const SKILLY_PATH = /\.skilly\//;
+// Written by setup-repo (lefthook.yml, .husky/, .claude/settings.json) and gdd
+// setup.mjs. husky lines compare with `$1` as `{1}`.
+const LEGACY_COMMANDS = new Set([
+  'node .agents/skills/verify/scripts/check-commit-msg.mjs {1}',
+  'node .agents/skills/verify/scripts/check-push-branch.mjs',
+  'node .agents/skills/verify/scripts/verify.mjs push',
+  'node .claude/hooks/check-commit-msg.mjs {1}',
+  'node .claude/hooks/check-push-branch.mjs',
+  'bash "$CLAUDE_PROJECT_DIR"/.agents/skills/verify/scripts/block-destructive-git.sh',
+  'bash "$CLAUDE_PROJECT_DIR"/.agents/skills/verify/scripts/block-invalid-branch-push.sh',
+  'bash "$CLAUDE_PROJECT_DIR"/.agents/skills/verify/scripts/block-unverified-push.sh',
+  '"$CLAUDE_PROJECT_DIR"/.claude/hooks/block-destructive-git.sh',
+  '"$CLAUDE_PROJECT_DIR"/.claude/hooks/block-invalid-branch-push.sh',
+  '"$CLAUDE_PROJECT_DIR"/.claude/hooks/block-unverified-push.sh',
+  'node "$CLAUDE_PROJECT_DIR/.claude/skills/gdd/scripts/check-pr.mjs"',
+]);
 // lefthook merges this file into lefthook.yml through `extends`, so the Engine
 // needs no YAML parser. On a name clash the extends file wins: skilly command
 // names start with `skilly-`.
@@ -61,7 +78,8 @@ export function hookEntries(bundles, bundlesDir) {
 const lefthookRuns = (lefthook) =>
   new Set(Object.values(lefthook).flatMap(({ commands }) => Object.values(commands).map(({ run }) => run)));
 
-const isSkillyCommand = (command, commands) => SKILLY_PATH.test(command) || commands.has(command);
+const isSkillyCommand = (command, commands) =>
+  SKILLY_PATH.test(command) || commands.has(command) || LEGACY_COMMANDS.has(command);
 
 /** `settings` with its skilly hook entries replaced by `claude`. Every other entry and setting stays. */
 export function mergeClaudeSettings(settings, claude) {
