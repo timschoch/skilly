@@ -51,16 +51,23 @@ const findDefaultBranch = (cwd) =>
   tryRun('git', ['symbolic-ref', '--short', 'refs/remotes/origin/HEAD'], { cwd })?.replace(/^origin\//, '') ?? 'main';
 
 // The setup steps up to setup-node, which caches the package manager's store by the lockfile.
-function setupNodeSteps(cwd, name, packageJson) {
+// setup-node.yml holds the action refs of these steps.
+function setupNodeSteps(cwd, templatesDir, name, packageJson) {
+  const setupNodeTemplate = readFileSync(join(templatesDir, 'setup-node.yml'), 'utf8');
+  const uses = (action) => {
+    const line = setupNodeTemplate.match(new RegExp(`^ *- uses: ${action}@.+$`, 'm'));
+    if (!line) throw new Error(`setup-node.yml has no uses: line for ${action}`);
+    return line[0].trim();
+  };
   const lines = [];
   if (name === 'pnpm') {
-    lines.push('- uses: pnpm/action-setup@v6');
+    lines.push(uses('pnpm/action-setup'));
     // A packageManager field pins the version, and the action fails when it gets a second one.
     if (!packageJson.packageManager) lines.push('  with:', '    version: latest');
   }
   const versionFile = ['.nvmrc', '.node-version'].find((file) => existsSync(join(cwd, file)));
   lines.push(
-    '- uses: actions/setup-node@v7',
+    uses('actions/setup-node'),
     '  with:',
     versionFile ? `    node-version-file: ${versionFile}` : '    node-version: lts/*',
     `    cache: ${name}`,
@@ -68,8 +75,9 @@ function setupNodeSteps(cwd, name, packageJson) {
   return lines.map((line) => `${STEP_INDENT}${line}`).join('\n');
 }
 
+// A placeholder for a block of lines is a comment line, so the template stays YAML for Dependabot.
 const render = (template, values) =>
-  template.replaceAll(/@\{(\w+)\}/g, (_, key) => {
+  template.replaceAll(/(?:^ *# )?@\{(\w+)\}/gm, (_, key) => {
     if (!(key in values)) throw new Error(`template placeholder @{${key}} has no value`);
     return values[key];
   });
@@ -98,7 +106,7 @@ export function writeManagedFiles(cwd, templatesDir, tier = 'sandbox') {
   const name = detectPackageManager(cwd, packageJson);
   const values = {
     ...PACKAGE_MANAGERS[name],
-    setupNode: setupNodeSteps(cwd, name, packageJson),
+    setupNode: setupNodeSteps(cwd, templatesDir, name, packageJson),
     defaultBranch: findDefaultBranch(cwd),
     releaseType: existsSync(join(cwd, 'package.json')) ? 'node' : 'simple',
   };

@@ -5,10 +5,15 @@ updates:
     directory: /
     schedule:
       interval: weekly
+    cooldown:
+      default-days: 7
     groups:
       dev-dependencies:
         dependency-type: development
+  # engine/templates/ holds the action refs of every Consumer's Managed workflows.
   - package-ecosystem: github-actions
-    directory: /
+    directories: [/, /engine/templates]
     schedule:
       interval: weekly
+    cooldown:
+      default-days: 7

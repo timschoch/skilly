@@ -11,7 +11,7 @@ name: Release
 
 on:
   push:
-    branches: [@{defaultBranch}]
+    branches: ['@{defaultBranch}']
 
 # A release reads the commits in order, so a newer push waits.
 concurrency:
@@ -28,10 +28,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: googleapis/release-please-action@v5
+      - uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5.0.0
         id: release
         with:
-          release-type: @{releaseType}
+          release-type: '@{releaseType}'
       - if: steps.release.outputs.pr != ''
         run: gh workflow run ci.yml --ref "$(jq -r .headBranchName <<< "$PR")"
         env:
