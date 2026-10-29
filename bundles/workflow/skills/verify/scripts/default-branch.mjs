@@ -1,6 +1,6 @@
 // The default branch: the one GitHub names default. Never assume main.
-// A skill must work alone, so each skill that needs this ships its own copy;
-// scripts/validate-shared-copies.mjs keeps every copy equal to this source.
+// The one copy: the naming and writing-rules skills import it from here. Every
+// Consumer has the workflow Bundle, so the verify skill is always installed.
 // Order: DEFAULT_BRANCH, then the GitHub event payload (every Actions run,
 // schedule included; actions/checkout sets no origin/HEAD), then origin/HEAD
 // (git clone sets it), then main. Run as a script, it prints the branch.

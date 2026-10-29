@@ -18,7 +18,7 @@ import { existsSync, readFileSync, realpathSync } from 'node:fs';
 import { extname, join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { compileAllow, loadNamingConfig } from './config.mjs';
-import { defaultBranch } from './default-branch.mjs';
+import { defaultBranch } from '../../verify/scripts/default-branch.mjs';
 
 const CODE_EXTENSIONS = new Set(['.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs']);
 const ENV_EXAMPLE = /^\.env(\.[^.]+)*\.(example|sample)$/;

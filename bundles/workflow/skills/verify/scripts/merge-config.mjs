@@ -1,7 +1,6 @@
 // Deep merge of one override onto one base config: skill defaults, then the
-// consumer's `.skilly/<skill>.json`. The naming and verify skills each ship a
-// byte-identical copy, because a skill must work without the other one. The
-// hub's `scripts/validate-shared-copies.mjs` fails a push when the copies differ.
+// consumer's `.skilly/<skill>.json`. verify.mjs and the naming skill import this
+// one copy. Every Consumer has the workflow Bundle, so verify is always installed.
 //
 // Merge rules:
 // - Objects merge by key. `null` drops a key. `$comment` keys disappear.
