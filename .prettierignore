@@ -7,3 +7,6 @@ skills-lock.json
 
 # hub-exposed stream: shipped to consumers verbatim, never reformatted
 bundles/**
+
+# written by release-please, never reformatted
+CHANGELOG.md
