@@ -12,6 +12,8 @@ const MANAGED_FILES = [
   { path: '.github/workflows/ai-review.yml', template: 'ai-review.yml', tier: 'tool' },
   { path: '.github/dependabot.yml', template: 'dependabot.yml', tier: 'tool' },
   { path: '.github/workflows/nightly.yml', template: 'nightly.yml', tier: 'product' },
+  // A Consumer's own release.yml can hold deploy steps, so the Sync never overwrites it.
+  { path: '.github/workflows/release.yml', template: 'release.yml', tier: 'product', keepsOwn: true },
 ];
 export const MANAGED_PATHS = MANAGED_FILES.map(({ path }) => path);
 
@@ -86,13 +88,17 @@ export function writeManagedFiles(cwd, templatesDir, tier = 'sandbox') {
     ...PACKAGE_MANAGERS[name],
     setupNode: setupNodeSteps(cwd, name, packageJson),
     defaultBranch: findDefaultBranch(cwd),
+    releaseType: existsSync(join(cwd, 'package.json')) ? 'node' : 'simple',
   };
   for (const file of MANAGED_FILES) {
     const target = join(cwd, file.path);
+    const exists = existsSync(target);
+    const isOwn = exists && !readFileSync(target, 'utf8').startsWith(HEADER);
     if (TIERS.indexOf(tier) >= TIERS.indexOf(file.tier)) {
+      if (isOwn && file.keepsOwn) continue;
       mkdirSync(dirname(target), { recursive: true });
       writeFileSync(target, render(readFileSync(join(templatesDir, file.template), 'utf8'), values));
-    } else if (existsSync(target) && readFileSync(target, 'utf8').startsWith(HEADER)) {
+    } else if (exists && !isOwn) {
       rmSync(target);
     }
   }

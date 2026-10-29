@@ -20,6 +20,7 @@ concurrency:
 
 permissions:
   contents: read
+  statuses: write # the verify commit status of a workflow_dispatch run
 
 jobs:
   verify:
@@ -44,3 +45,9 @@ jobs:
       - run: node .skilly/engine/verify/verify.mjs ${{ steps.plan.outputs.stage }}
         env:
           GITHUB_TOKEN: ${{ github.token }} # the audit step checks accepted advisories for a fix
+      # A check run from workflow_dispatch does not count for the release PR, a commit status does
+      # (ADR-0009). It runs only after a green verify.
+      - if: github.event_name == 'workflow_dispatch'
+        run: gh api repos/${{ github.repository }}/statuses/${{ github.sha }} -f state=success -f context=verify
+        env:
+          GH_TOKEN: ${{ github.token }}
