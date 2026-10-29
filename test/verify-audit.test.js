@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { fetchHasFix, parseNpm, parseYarn, validateAccept } from '../bundles/workflow/skills/verify/scripts/audit.mjs';
+import { fetchHasFix, parseNpm, parseYarn, validateAccept } from '../engine/verify/audit.mjs';
 
 const BRACES = 'GHSA-vfj7-8cjw-p6xm';
 const found = new Map([[BRACES, { name: 'braces', ranges: new Set(['<=3.0.3']) }]]);

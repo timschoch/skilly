@@ -369,9 +369,9 @@
       "why": "Installed or built output. The repo does not write it."
     },
     "agentTooling": {
-      "paths": ["(^|/)(\\.agents|\\.claude|\\.skilly-hub)/"],
+      "paths": ["(^|/)(\\.agents|\\.claude|\\.skilly-hub|\\.skilly/engine)/"],
       "rules": "*",
-      "why": "Skills and hub files that skilly vendors. Sync overwrites them."
+      "why": "Skills, the Engine and hub files that skilly vendors. Sync overwrites them."
     },
     "generated": {
       "paths": ["\\.generated\\.[^/]*$", "\\.d\\.ts$"],

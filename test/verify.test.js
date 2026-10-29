@@ -7,39 +7,64 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const skillDir = fileURLToPath(new URL('../bundles/workflow/skills/verify/', import.meta.url));
-const shippedScript = join(skillDir, 'scripts', 'verify.mjs');
-const shippedDefaults = join(skillDir, 'references', 'verify.json');
+const engineDir = fileURLToPath(new URL('../engine/verify/', import.meta.url));
+const shippedScript = join(engineDir, 'verify.mjs');
+const shippedDefaults = join(engineDir, 'verify.json');
 
-// Writes a fake Consumer and returns its root. The verify skill is copied in
-// with `defaults` as its references/verify.json, so a test sees only its own steps.
+// Writes a fake Consumer and returns its root. The Engine's verify folder is copied in
+// with `defaults` as its verify.json, so a test sees only its own steps.
 const makeRepo = ({ verify, defaults = {}, tier, files = [] } = {}) => {
   const root = mkdtempSync(join(tmpdir(), 'skilly-verify-'));
-  const scripts = join(root, '.agents', 'skills', 'verify', 'scripts');
-  mkdirSync(scripts, { recursive: true });
-  mkdirSync(join(root, '.agents', 'skills', 'verify', 'references'));
-  for (const file of readdirSync(join(skillDir, 'scripts')))
-    copyFileSync(join(skillDir, 'scripts', file), join(scripts, file));
-  writeFileSync(join(root, '.agents', 'skills', 'verify', 'references', 'verify.json'), JSON.stringify(defaults));
-  if (verify || tier) mkdirSync(join(root, '.skilly'), { recursive: true });
+  const engine = join(root, '.skilly', 'engine', 'verify');
+  mkdirSync(engine, { recursive: true });
+  for (const file of readdirSync(engineDir)) copyFileSync(join(engineDir, file), join(engine, file));
+  writeFileSync(join(engine, 'verify.json'), JSON.stringify(defaults));
   if (verify) writeFileSync(join(root, '.skilly', 'verify.json'), JSON.stringify(verify));
   if (tier) writeFileSync(join(root, '.skilly', 'config.json'), JSON.stringify({ tier }));
   for (const file of files) writeFileSync(join(root, file), '');
   return root;
 };
 
-const scriptIn = (root) => join(root, '.agents', 'skills', 'verify', 'scripts', 'verify.mjs');
+const scriptIn = (root) => join(root, '.skilly', 'engine', 'verify', 'verify.mjs');
 const run = (root, ...args) => spawnSync(process.execPath, [scriptIn(root), ...args], { cwd: root, encoding: 'utf8' });
 
-const shippedStages = () => JSON.parse(readFileSync(join(skillDir, 'references', 'verify.json'), 'utf8')).stages;
+const shippedStages = () => JSON.parse(readFileSync(shippedDefaults, 'utf8')).stages;
 
-test('the default branch name step runs in a Consumer that has only the verify skill', () => {
+// Consumers' ci.yml and hooks still call verify at its old skill-folder path.
+const installSkillShims = (root) => {
+  const scripts = join(root, '.agents', 'skills', 'verify', 'scripts');
+  mkdirSync(scripts, { recursive: true });
+  for (const file of readdirSync(join(skillDir, 'scripts')))
+    copyFileSync(join(skillDir, 'scripts', file), join(scripts, file));
+  return join(scripts, 'verify.mjs');
+};
+
+test('the default branch name step runs in a Consumer that has the verify skill and the Engine', () => {
   const step = shippedStages().push.steps.find(({ name }) => name === 'branch name');
   const root = makeRepo({ defaults: { stages: { push: { steps: [step] } } }, tier: 'sandbox' });
+  installSkillShims(root);
   spawnSync('git', ['init', '--quiet', '--initial-branch', 'wip', root]);
   const { GITHUB_HEAD_REF, ...env } = process.env;
   const result = spawnSync(process.execPath, [scriptIn(root), 'push'], { cwd: root, encoding: 'utf8', env });
   assert.equal(result.status, 1, result.stderr);
   assert.match(result.stderr, /Invalid branch name: "wip"/);
+});
+
+test('the old skill-folder path runs the Engine verify with its arguments and exit code', () => {
+  const failing = { name: 'red', run: 'exit 3' };
+  const root = makeRepo({ defaults: { stages: { commit: { steps: [failing] } } }, tier: 'sandbox' });
+  const shim = installSkillShims(root);
+  const steps = spawnSync(process.execPath, [shim, 'commit', '--steps'], { cwd: root, encoding: 'utf8' });
+  assert.equal(steps.status, 0, steps.stderr);
+  assert.deepEqual(JSON.parse(steps.stdout).steps, [failing]);
+  assert.equal(spawnSync(process.execPath, [shim, 'commit'], { cwd: root, encoding: 'utf8' }).status, 3);
+});
+
+test('the old skill-folder path names the missing Engine', () => {
+  const root = mkdtempSync(join(tmpdir(), 'skilly-verify-'));
+  const result = spawnSync(process.execPath, [installSkillShims(root), 'push'], { cwd: root, encoding: 'utf8' });
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /no \.skilly\/engine\/verify\/verify\.mjs/);
 });
 
 // Sync delivers the verify skill and nothing beside it. A default step that

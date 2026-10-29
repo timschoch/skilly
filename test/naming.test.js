@@ -5,9 +5,9 @@ import { spawnSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { validateNaming } from '../bundles/workflow/skills/naming/scripts/check.mjs';
+import { validateNaming } from '../engine/naming/check.mjs';
 
-const namingScript = fileURLToPath(new URL('../bundles/workflow/skills/naming/scripts/check.mjs', import.meta.url));
+const namingScript = fileURLToPath(new URL('../engine/naming/check.mjs', import.meta.url));
 const namingShell = fileURLToPath(new URL('../bundles/workflow/rules/naming.sh', import.meta.url));
 
 // A git hook (husky pre-commit → npm test) exports GIT_DIR / GIT_INDEX_FILE to

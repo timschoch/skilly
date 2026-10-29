@@ -3,8 +3,8 @@ import assert from 'node:assert/strict';
 import { mkdtempSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { loadNamingConfig, migrateAllow } from '../bundles/workflow/skills/naming/scripts/config.mjs';
-import { validateNaming } from '../bundles/workflow/skills/naming/scripts/check.mjs';
+import { loadNamingConfig, migrateAllow } from '../engine/naming/config.mjs';
+import { validateNaming } from '../engine/naming/check.mjs';
 import { validateAndUpdateSkilly } from '../lib/validate-and-update-skilly.js';
 
 // A consumer root holding `.skilly/naming.json` with the given content.

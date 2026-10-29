@@ -6,12 +6,12 @@
 # GITHUB_BASE_REF is set on pull_request events; else the default branch.
 set -euo pipefail
 
-branch="${GITHUB_BASE_REF:-$(node "$(dirname "$0")/../skills/verify/scripts/default-branch.mjs")}"
+branch="${GITHUB_BASE_REF:-$(node "$(dirname "$0")/../../../engine/verify/default-branch.mjs")}"
 
 ref="origin/${branch}"
 git rev-parse --verify --quiet "$ref" >/dev/null || ref="$branch"
 
-hook="$(dirname "$0")/../skills/verify/scripts/check-commit-msg.mjs"
+hook="$(dirname "$0")/../../../engine/verify/check-commit-msg.mjs"
 status=0
 checked=0
 while IFS=$'\t' read -r sha subject; do

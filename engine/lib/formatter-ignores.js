@@ -43,16 +43,16 @@ const missingFrom = (entries, forms, decorate = same) =>
 // write the 1.x key into it. Ask the manifest first, then the $schema URL,
 // and fall back to the shape only when neither names a version.
 export function biomeMajor(cwd, config = {}) {
-  const pkgPath = join(cwd, 'package.json');
-  const pkg = existsSync(pkgPath) ? JSON.parse(readFileSync(pkgPath, 'utf8')) : {};
-  const range = { ...pkg.dependencies, ...pkg.devDependencies }['@biomejs/biome'] ?? '';
+  const manifestPath = join(cwd, 'package.json');
+  const manifest = existsSync(manifestPath) ? JSON.parse(readFileSync(manifestPath, 'utf8')) : {};
+  const range = { ...manifest.dependencies, ...manifest.devDependencies }['@biomejs/biome'] ?? '';
   const declared = /(\d+)\./.exec(range) ?? /biomejs\.dev\/schemas\/(\d+)\./.exec(config.$schema ?? '');
   if (declared) return Number(declared[1]);
   return Array.isArray(config.files?.ignore) && !Array.isArray(config.files?.includes) ? 1 : 2;
 }
 
 export function addFormatterIgnores(cwd) {
-  const biomePath = ['biome.json', 'biome.jsonc'].map((f) => join(cwd, f)).find(existsSync);
+  const biomePath = ['biome.json', 'biome.jsonc'].map((file) => join(cwd, file)).find(existsSync);
   if (biomePath) {
     if (biomePath.endsWith('.jsonc')) {
       const forms = folderForms(biomeMajor(cwd));

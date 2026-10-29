@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const script = fileURLToPath(new URL('../bundles/workflow/skills/verify/scripts/default-branch.mjs', import.meta.url));
+const script = fileURLToPath(new URL('../engine/verify/default-branch.mjs', import.meta.url));
 
 // A repo whose origin/HEAD points at `originHead`, or is unset.
 const repo = (originHead) => {

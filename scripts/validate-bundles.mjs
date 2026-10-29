@@ -7,7 +7,7 @@ import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parse as parseYaml } from 'yaml';
-import { resolveBundles } from '../lib/resolve.js';
+import { resolveBundles } from '../engine/lib/resolve.js';
 
 const bundlesDir = join(dirname(fileURLToPath(import.meta.url)), '..', 'bundles');
 const names = readdirSync(bundlesDir, { withFileTypes: true })

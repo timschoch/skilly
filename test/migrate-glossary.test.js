@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { migrateGlossary } from '../lib/migrate-glossary.js';
-import { run } from '../lib/run.js';
+import { run } from '../engine/lib/run.js';
 
 // A git hook exports GIT_DIR to its children; inherited here, git would act on
 // the repo being committed instead of the temp repos below.

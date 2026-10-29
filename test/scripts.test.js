@@ -13,12 +13,12 @@ import {
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { matchName } from '../lib/match.js';
+import { matchName } from '../engine/lib/match.js';
 import { planRemovals } from '../lib/remove.js';
 import { pickPrivateOwner } from '../lib/add.js';
-import { sourceRepo } from '../lib/resolve.js';
-import { updateRules } from '../lib/update-rules.js';
-import { addFormatterIgnores, biomeMajor } from '../lib/formatter-ignores.js';
+import { sourceRepo } from '../engine/lib/resolve.js';
+import { updateRules } from '../engine/lib/update-rules.js';
+import { addFormatterIgnores, biomeMajor } from '../engine/lib/formatter-ignores.js';
 import { ignoreTemp, linkSkillsDir } from '../lib/setup.js';
 import {
   CALLER_WORKFLOW_PATH,
@@ -26,7 +26,7 @@ import {
   scaffoldCallerWorkflow,
   setPrivateOwner,
 } from '../lib/caller-workflow.js';
-import * as skillyFile from '../lib/skilly-file.js';
+import * as skillyFile from '../engine/lib/skilly-file.js';
 
 const bundlesDir = fileURLToPath(new URL('./fixtures/bundles', import.meta.url));
 const freshDir = () => mkdtempSync(join(tmpdir(), 'skilly-test-'));
@@ -374,7 +374,7 @@ test('updateRules with null source only deletes', () => {
 
 test('commit with push:false only commits; the next default commit pushes the backlog', async () => {
   const { commit } = await import('../lib/commit.js');
-  const { run } = await import('../lib/run.js');
+  const { run } = await import('../engine/lib/run.js');
 
   const bare = freshDir();
   run('git', ['init', '--bare', '--initial-branch=main', bare]);
@@ -409,7 +409,7 @@ test('commit with push:false only commits; the next default commit pushes the ba
 
 test('commit opens no PR for a branch that origin kept but that has nothing the trunk lacks', async () => {
   const { commit } = await import('../lib/commit.js');
-  const { run } = await import('../lib/run.js');
+  const { run } = await import('../engine/lib/run.js');
 
   const bare = freshDir();
   run('git', ['init', '--bare', '--initial-branch=main', bare]);
@@ -446,7 +446,7 @@ test('commit opens no PR for a branch that origin kept but that has nothing the 
 
 test('commit opens no PR when the default branch is not main and nothing changed', async () => {
   const { commit } = await import('../lib/commit.js');
-  const { run } = await import('../lib/run.js');
+  const { run } = await import('../engine/lib/run.js');
 
   // A Consumer like habits: main still in use, v2-rebuild ahead of it and the GitHub default.
   const bare = freshDir();
@@ -504,10 +504,8 @@ test('validateAgentsLock flags unlocked dirs and orphan pins, passes on 1:1', as
 
 test('check-branch-name: Conventional Branch passes, agent names fail, trunk, detached HEAD and bots pass', async () => {
   const { spawnSync } = await import('node:child_process');
-  const { run } = await import('../lib/run.js');
-  const script = fileURLToPath(
-    new URL('../bundles/workflow/skills/verify/scripts/check-branch-name.mjs', import.meta.url),
-  );
+  const { run } = await import('../engine/lib/run.js');
+  const script = fileURLToPath(new URL('../engine/verify/check-branch-name.mjs', import.meta.url));
   const repo = freshDir();
   run('git', ['init', '--initial-branch=main', repo]);
   run('git', ['-C', repo, 'config', 'user.name', 'test']);
@@ -549,12 +547,10 @@ test('check-branch-name: Conventional Branch passes, agent names fail, trunk, de
 
 test('block-invalid-branch-push: blocks push and PR on a bad branch name, through check-branch-name.mjs', async () => {
   const { spawnSync } = await import('node:child_process');
-  const { run } = await import('../lib/run.js');
-  const scripts = fileURLToPath(new URL('../bundles/workflow/skills/verify/scripts/', import.meta.url));
+  const { run } = await import('../engine/lib/run.js');
+  const scripts = fileURLToPath(new URL('../engine/verify/', import.meta.url));
   const hook = join(scripts, 'block-invalid-branch-push.sh');
-  const gate = fileURLToPath(
-    new URL('../bundles/workflow/skills/verify/scripts/check-branch-name.mjs', import.meta.url),
-  );
+  const gate = fileURLToPath(new URL('../engine/verify/check-branch-name.mjs', import.meta.url));
   // One rule file: the hook calls the gate, it holds no copy of the rule.
   const source = readFileSync(hook, 'utf8');
   assert.match(source, /check-branch-name\.mjs/);
@@ -595,10 +591,8 @@ test('block-invalid-branch-push: blocks push and PR on a bad branch name, throug
 
 test('block-unverified-push: runs the verify push stage when git will not, and only then', async () => {
   const { spawnSync } = await import('node:child_process');
-  const { run } = await import('../lib/run.js');
-  const hook = fileURLToPath(
-    new URL('../bundles/workflow/skills/verify/scripts/block-unverified-push.sh', import.meta.url),
-  );
+  const { run } = await import('../engine/lib/run.js');
+  const hook = fileURLToPath(new URL('../engine/verify/block-unverified-push.sh', import.meta.url));
   const repo = freshDir();
   run('git', ['init', '--initial-branch=main', repo]);
   const writeVerify = (path, exitCode) => {
