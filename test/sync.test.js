@@ -66,6 +66,20 @@ test('a second Sync at the same Release writes no file', () => {
   assert.deepEqual(report.release, { before: 'v1.0.0', after: 'v1.0.0' });
 });
 
+test('a new Release moves installed Hub skills to it, and a Sync at the same Release adds nothing', () => {
+  const cwd = makeCheckout({ bundles: ['hubby'] });
+  const skills = fakeSkills();
+  sync({ cwd, snapshot: makeSnapshot('v1.0.0'), skills });
+  assert.equal(skills.readLock(cwd)['hub-skill'].ref, 'v1.0.0');
+  const report = sync({ cwd, snapshot: makeSnapshot('v1.1.0'), skills });
+  assert.equal(skills.readLock(cwd)['hub-skill'].ref, 'v1.1.0');
+  assert.deepEqual(report.skills.added, []);
+  assert.deepEqual(report.skills.updated, ['hub-skill']);
+  const adds = skills.calls.filter(([verb]) => verb === 'add').length;
+  sync({ cwd, snapshot: makeSnapshot('v1.1.0'), skills });
+  assert.equal(skills.calls.filter(([verb]) => verb === 'add').length, adds);
+});
+
 test('a Bundle that leaves the config takes its skills and Router rules with it', () => {
   const cwd = makeCheckout({ bundles: ['hubby', 'other'] });
   sync({ cwd, snapshot: makeSnapshot(), skills: fakeSkills() });

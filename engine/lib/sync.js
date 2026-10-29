@@ -149,6 +149,19 @@ export function sync({ cwd, snapshot: { dir, release }, skills = skillsCli }) {
   }
   const { changed } = skills.update(cwd);
 
+  // A new Release moves the installed Hub skills to it. This runs after the
+  // update, which would move them to the Hub's main branch.
+  const updated = new Set(changed);
+  if (release && release !== config.hub) {
+    for (const [source, names] of wanted.sources) {
+      const installed = [...names].filter((name) => name in lock).sort();
+      if (sourceRepo(source.split('#')[0]) !== HUB_REPO || !installed.length) continue;
+      const result = skills.add(cwd, source, installed);
+      if (result.missing.length) throw new Error(`skills add left these uninstalled: ${result.missing.join(', ')}`);
+      for (const name of installed) updated.add(name);
+    }
+  }
+
   // Router rules: the Release's Bundles not configured go, then every
   // configured Bundle and installed skill is written fresh.
   for (const bundle of readdirSync(bundlesDir).filter(isBundle)) {
@@ -169,7 +182,7 @@ export function sync({ cwd, snapshot: { dir, release }, skills = skillsCli }) {
   return {
     release: { before: config.hub ?? null, after: release ?? config.hub ?? null },
     bundles: { removed: droppedBundles },
-    skills: { added: added.sort(), removed, updated: changed },
+    skills: { added: added.sort(), removed, updated: [...updated].sort() },
     files: files.sort(),
     engine: { hash },
   };

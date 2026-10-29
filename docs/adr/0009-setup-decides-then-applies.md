@@ -8,16 +8,16 @@ Goal: answer a few questions, walk away, and come back to a Consumer where CI an
 
 Setup runs in 14 steps, over the CLI, a browser interview ([lib/interview/](../../lib/interview/)) and 4 setup skills that an agent reads. 10 steps stop for a person:
 
-| Stop                                                     | Where                                                                                    |
-| -------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
-| App create or reuse, install in the browser, wait 10 min | [lib/github-app.js](../../lib/github-app.js)                                             |
-| "Use this branch?", throws without a terminal            | [lib/prepare-branch.js](../../lib/prepare-branch.js), [lib/run.js](../../lib/run.js)     |
-| Which parts apply, which Bundles                         | [setup-project](../../bundles/setup-project/skills/setup-project/SKILL.md)               |
-| Tier, `claude setup-token`                               | [setup-repo](../../bundles/setup-project/skills/setup-repo/SKILL.md)                     |
-| Waits for a merge to check release-please                | [setup-release-please](../../bundles/setup-project/skills/setup-release-please/SKILL.md) |
-| 3 to 5 confirms for issue tracker, labels, docs layout   | `setup-matt-pocock-skills`                                                               |
-| Removal prompt                                           | [lib/update.js](../../lib/update.js)                                                     |
-| "Fix only what the user picks"                           | `audit-skilly-workflow`, last step of `setup-project`                                    |
+| Stop                                                     | Where                                                                                      |
+| -------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| App create or reuse, install in the browser, wait 10 min | [lib/github-app.js](../../lib/github-app.js)                                               |
+| "Use this branch?", throws without a terminal            | [lib/prepare-branch.js](../../lib/prepare-branch.js), [lib/prompt.js](../../lib/prompt.js) |
+| Which parts apply, which Bundles                         | [setup-project](../../bundles/setup-project/skills/setup-project/SKILL.md)                 |
+| Tier, `claude setup-token`                               | [setup-repo](../../bundles/setup-project/skills/setup-repo/SKILL.md)                       |
+| Waits for a merge to check release-please                | [setup-release-please](../../bundles/setup-project/skills/setup-release-please/SKILL.md)   |
+| 3 to 5 confirms for issue tracker, labels, docs layout   | `setup-matt-pocock-skills`                                                                 |
+| Removal prompt                                           | [lib/update.js](../../lib/update.js)                                                       |
+| "Fix only what the user picks"                           | `audit-skilly-workflow`, last step of `setup-project`                                      |
 
 What goes wrong besides the stops:
 
