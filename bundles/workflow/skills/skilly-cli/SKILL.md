@@ -11,11 +11,13 @@ Exception — the user posts a skills.sh URL: that skill lives outside the hub. 
 
 - Add a bundle or single skill: `node .skilly/engine/bin/skilly.js add <name...>`. Bundle names and what they contain: [catalog](https://github.com/timschoch/skilly/blob/main/docs/bundles.md)
 - Remove: `node .skilly/engine/bin/skilly.js remove <name...>`. Takes out a bundle or a skill added by name. A skill another bundle still claims stays.
-- Pull the hub's current state: `npx -y github:timschoch/skilly update`
+- Move to the newest Release now: `node .skilly/engine/bin/skilly.js sync`. The nightly does the same for every Consumer.
 
 `add` and `remove` edit `.skilly/config.json`, then run the Sync at the pinned Release (`hub` in that file; none yet: the newest Release, then pinned). They print the Sync report: Release before and after, skills added and removed, files written. They never commit or push. Review the files, then commit them on a `<type>/<description>` branch. An unknown name or a failed Sync leaves the config as it was.
 
-No `.skilly/engine/` yet: run `npx -y github:timschoch/skilly add <name...>` or `remove <name...>` instead. These end with their own commit, push and PR. On `main` they branch to `chore/skilly-setup`.
+`sync` fetches the newest Release and runs that Release's Engine on a fresh copy of the default branch, with your `gh` login. It pushes `chore/skilly-sync`, opens the Sync PR or updates the open one, and prints its link. Your checkout and branch stay as they were. Auto-merge goes on, except for a new major Release (a first Sync counts as one) or a removal: merge those by hand. Nothing to sync: no push, no PR.
+
+No `.skilly/engine/` yet: run `npx -y github:timschoch/skilly add <name...>`, `remove <name...>` or `update` instead. These end with their own commit, push and PR. On `main` they branch to `chore/skilly-setup`.
 
 Never hand-edit skilly-owned files — the nightly sync wipes and rewrites them:
 

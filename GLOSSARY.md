@@ -98,7 +98,7 @@ The manual, local command that makes a repo a Consumer: `npx github:timschoch/sk
 _Avoid_: install, config, onboard
 
 **Sync PR**:
-The pull request the Hub's nightly opens in a Consumer. It moves skills, Engine and Managed files to the newest Release in one step. GitHub auto-merges it when `ci / verify` is green, unless it removes a skill or is a new major version.
+The pull request the Hub's nightly, or `skilly sync`, opens in a Consumer. It moves skills, Engine and Managed files to the newest Release in one step. GitHub auto-merges it when `ci / verify` is green, unless it removes a skill or is a new major version.
 
 **Upstream**:
 The repo a fork follows, for example `twentyhq/twenty` for `admin-laicadev/twenty`. Not a Source: the Hub does not read skills from it.
