@@ -1,6 +1,6 @@
 {
   "name": "skilly",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "private": true,
   "description": "Personal skill hub CLI: bundles resolved into prepared skills-CLI calls plus config sync",
   "type": "module",
