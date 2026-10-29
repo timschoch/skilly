@@ -1,7 +1,8 @@
 #!/usr/bin/env node
-// Gate check `naming`: the machine-checkable half of the naming Rule, over the
-// files a PR changes. The hub's `rules/naming.sh` runs it in CI; a consumer runs
-// the same file from `.skilly/engine/naming/` in its `verify` push stage.
+// Rule `naming`: the machine-checkable half of the naming Rule, over the files
+// a PR changes. The workflow Bundle adds it as the `naming` verify step, so a
+// consumer runs it from `.skilly/engine/naming/` on push and in CI. The hub's
+// `rules/naming.sh` runs it in the gate too.
 //   node check.mjs [files...]   no files: every file the branch adds or changes
 //                               over its base branch
 // Regex-only, on comment- and string-blanked source — the

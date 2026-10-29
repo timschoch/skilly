@@ -2,6 +2,7 @@
 //   - config.json parses and has the right shape
 //   - includes resolve, no cycles
 //   - every declared rule has its <rule>.sh in the declaring bundle (resolve throws)
+//   - every verify step has a name, a stage and a run command
 //   - every SKILL.md frontmatter is YAML the skills CLI accepts, with name and description
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
@@ -34,6 +35,16 @@ for (const name of names) {
     errors.push(`${name}: "includes" must be a string array`);
   if (config.rules !== undefined && !isStringArray(config.rules))
     errors.push(`${name}: "rules" must be a string array`);
+  if (config.verify !== undefined) {
+    const { fullSuiteTriggers, steps } = config.verify;
+    if (fullSuiteTriggers !== undefined && !isStringArray(fullSuiteTriggers))
+      errors.push(`${name}: "verify.fullSuiteTriggers" must be a string array`);
+    if (steps !== undefined && !Array.isArray(steps)) errors.push(`${name}: "verify.steps" must be an array`);
+    for (const step of Array.isArray(steps) ? steps : [])
+      for (const key of ['name', 'stage', 'run'])
+        if (typeof step?.[key] !== 'string' || !step[key])
+          errors.push(`${name}: verify step ${JSON.stringify(step?.name)} needs a string "${key}"`);
+  }
   if (config.sources !== undefined) {
     if (!Array.isArray(config.sources)) {
       errors.push(`${name}: "sources" must be an array`);

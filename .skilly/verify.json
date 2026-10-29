@@ -5,6 +5,7 @@
     "push": {
       "steps": [
         { "name": "branch name", "run": "node engine/verify/check-branch-name.mjs" },
+        { "name": "conventional-commits", "run": "node engine/verify/check-commit-msg.mjs --branch" },
         {
           "name": "naming",
           "run": "node engine/naming/check.mjs",

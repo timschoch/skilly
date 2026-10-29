@@ -8,20 +8,50 @@ Each Bundle is one directory under `bundles/`:
 
 ```
 bundles/<name>/
-  config.json   # required: { "includes": [...], "rules": [...], "sources": [{ "source": "owner/repo", "skills": [...] }] }
+  config.json   # required: { "includes": [...], "rules": [...], "verify": {...}, "sources": [{ "source": "owner/repo", "skills": [...] }] }
   skills/       # only skills maintained in this repo; external skills live in config.json only
   rules/        # <name>.md Router rule files, synced to Consumers
   docs/         # optional bundle docs
   README.md     # what the Bundle ships, and the skills left out and why
 ```
 
-| Field      | Holds                                                                                                                             |
-| ---------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| `includes` | other Bundles, pulled in recursively. Adding `project-x` gives the union of `project-x` and all it includes. A cycle is an error. |
-| `rules`    | the Rules this Bundle declares. Each Rule is a verify step the Bundle adds.                                                       |
-| `sources`  | one entry per Source repo, with the skills taken from it. Hub-maintained skills use the Source `timschoch/skilly`.                |
+| Field      | Holds                                                                                                                                    |
+| ---------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `includes` | other Bundles, pulled in recursively. Adding `project-x` gives the union of `project-x` and all it includes. A cycle is an error.        |
+| `rules`    | the Rules this Bundle declares. The `skilly / gate` check runs each `rules/<rule>.sh`, until every Consumer requires only `ci / verify`. |
+| `verify`   | the Bundle's verify steps and full-suite triggers, see [Verify steps](#verify-steps). Each Rule of the Bundle is one of its steps.       |
+| `sources`  | one entry per Source repo, with the skills taken from it. Hub-maintained skills use the Source `timschoch/skilly`.                       |
 
-`config.json` also declares the Bundle's verify steps, full-suite triggers, detect hints, secrets and hook entries ([ADR-0009](adr/0009-setup-decides-then-applies.md#bundles-declare-their-facts-as-data)).
+`config.json` also declares the Bundle's detect hints, secrets and hook entries ([ADR-0009](adr/0009-setup-decides-then-applies.md#bundles-declare-their-facts-as-data)).
+
+### Verify steps
+
+A Bundle adds checks to `verify` in every Consumer that has it, through an include too. Example: the `workflow` Bundle adds its Rules `conventional-commits` and `naming` ([config.json](../bundles/workflow/config.json)).
+
+```json
+{
+  "verify": {
+    "fullSuiteTriggers": ["drizzle/"],
+    "steps": [{ "name": "naming", "stage": "push", "run": "node .agents/skills/naming/scripts/check.mjs" }]
+  }
+}
+```
+
+| Field                      | Holds                                                                                                                                  |
+| -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| `verify.fullSuiteTriggers` | paths that make the changed-tests step run the full suite, appended to the default list                                                |
+| `verify.steps[].name`      | required. The key a Consumer uses in `.skilly/verify.json` to change or drop the step                                                  |
+| `verify.steps[].stage`     | required. The stage that runs the step, for example `push`. A later stage that `extends` it runs it too                                |
+| `verify.steps[].run`       | required. The shell command, run from the repo root                                                                                    |
+| `verify.steps[].tier`      | the lowest tier that runs the step: `sandbox`, `tool` or `product`                                                                     |
+| `verify.steps[].target`    | a path the step needs. Missing, the step is skipped                                                                                    |
+| `verify.steps[].paths`     | planned: the paths that trigger the step. The `pr` stage skips the step when none of them changed                                      |
+| `verify.steps[].toolchain` | planned: what the step needs installed, for example `["playwright"]`. CI installs and caches only the toolchains of the resolved steps |
+| `verify.steps[].why`       | why the step exists. verify prints it when the step goes red                                                                           |
+
+verify merges 3 layers: the default steps, the Bundle steps, then `.skilly/verify.json`. Other step fields, such as `replaces`: [verify skill](../bundles/workflow/skills/verify/SKILL.md).
+
+The Engine carries the Bundle configs of its Release in `.skilly/engine/bundles/`. The Hub reads them from `bundles/`.
 
 ```mermaid
 flowchart LR
@@ -38,7 +68,7 @@ flowchart LR
   detect --> setup[Setup decide phase]
 ```
 
-A Consumer has one PR check, `ci / verify`. It runs the Rule steps of all its Bundles from the Engine in `.skilly/engine/`. `skilly setup` makes it a required check on `main`. Details: [dev-process.md](dev-process.md).
+A Consumer has one PR check, `ci / verify`. It runs the verify steps of all its Bundles from the Engine in `.skilly/engine/`. `skilly setup` makes it a required check on `main`. Details: [dev-process.md](dev-process.md).
 
 The Release in `.skilly/config.json` (`"hub": "v1.4.0"`) fixes the version of the Hub-maintained skills. Skills from third-party Sources are not pinned by the Release ([ADR-0008](adr/0008-hub-run-sync-and-pinned-engine.md)).
 
@@ -75,6 +105,8 @@ Engineering and productivity skills, for any stack. Full list: [config.json](../
 | `skilly-cli`                                             | how a Consumer drives skilly's add, remove and sync. `setup-project` is removed after bootstrap, so this is the standing reference.                                                                                                                                                                              |
 | `writing-rules`                                          | the writing rules for all repo artifacts, distilled from Habits-Family/habits v2-rebuild. They live in the Hub because they keep changing.                                                                                                                                                                       |
 | `qa`                                                     | the Hub is its home: mattpocock/skills deprecated and deleted it. Its successors `triage` and `to-tickets` do not cover filing issues from a chat.                                                                                                                                                               |
+
+The Rules of `workflow` are its [verify steps](#verify-steps) in the `push` stage.
 
 | Rule                   | Checks                                                                                                                                                                                                                                                                         |
 | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |

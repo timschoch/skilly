@@ -5,7 +5,13 @@ description: The one definition of what each gate runs. Use to run a gate stage,
 
 # Verify
 
-`.skilly/engine/verify/verify.json` (Hub: `engine/verify/`) holds the default steps. Sync keeps them current in every Consumer. `.skilly/verify.json` holds only what the repo changes. Hooks and CI call a stage of the merged config, so the local gate and the pipeline cannot drift into disagreeing about what green means.
+verify merges 3 layers, a later one wins:
+
+1. `.skilly/engine/verify/verify.json` (Hub: `engine/verify/`): the default steps. Sync keeps them current in every Consumer.
+2. The `verify` block in the `config.json` of each Bundle in `.skilly/config.json`, includes too. See [Bundle steps](#bundle-steps).
+3. `.skilly/verify.json`: only what the repo changes.
+
+Hooks and CI call a stage of the merged config, so the local gate and the pipeline cannot drift into disagreeing about what green means.
 
 ## Usage
 
@@ -15,7 +21,7 @@ node .agents/skills/verify/scripts/verify.mjs <stage> --steps   # resolved steps
 node .agents/skills/verify/scripts/verify.mjs --config          # merged config as JSON, runs nothing
 ```
 
-Works from anywhere in the Consumer. Exit 0 passed, 2 config or usage error, anything else is the failing step's code.
+Works from anywhere in the Consumer. A red step does not stop the stage: every step runs, and the summary lists each one as `ok`, `FAILED` or `skip`. Exit 0 passed, 2 config or usage error, anything else is the code of the first red step.
 
 ## Config
 
@@ -45,7 +51,7 @@ Shape of both files:
 | Stage | Runs | Called by |
 | --- | --- | --- |
 | `commit` | nothing by default | `pre-commit` calls `lint-staged` directly |
-| `push` | branch name, naming, typecheck, `unit (changed)` | the `pre-push` hook |
+| `push` | branch name, typecheck, `unit (changed)`, plus `conventional-commits` and `naming` from the `workflow` Bundle | the `pre-push` hook |
 | `ci` | `push`, lint, full `unit`, build, audit, `e2e smoke` | CI on a PR; on the release PR where a PR runs `pr` |
 | `pr` | `ci` without full `unit` and `e2e smoke` | CI on a PR of a product repo with a release PR and a nightly |
 | `nightly` | full `unit`, `e2e full`, deps drift, security scan | the nightly workflow, product tier |
@@ -71,9 +77,19 @@ The list in `.skilly/verify.json` appends to the defaults; `"-package.json"` dro
 
 A budget warns and never fails. A gate that fails on slowness teaches you to bypass the gate, and the bypass outlives the slowness. `budgetTicket` says where a stage that outgrew its budget gets split.
 
+## Bundle steps
+
+A Bundle adds steps in its `config.json`. One flat list, each step names its stage:
+
+```json
+{ "verify": { "fullSuiteTriggers": [], "steps": [{ "name": "naming", "stage": "push", "run": "node .agents/skills/naming/scripts/check.mjs" }] } }
+```
+
+A step needs `name`, `stage` and `run`. The other step fields work as in the defaults. verify reads the Bundle configs from `.skilly/engine/bundles/`, or from `bundles/` in the Hub. With neither, it prints a note and runs without the Bundle steps.
+
 ## Override
 
-`.skilly/verify.json` merges over the defaults (`.skilly/engine/verify/merge-config.mjs`). Steps match by `name`, per stage:
+`.skilly/verify.json` merges over the defaults and the Bundle steps (`.skilly/engine/verify/merge-config.mjs`). Steps match by `name`, per stage:
 
 | Repo file | Effect |
 | --- | --- |
@@ -110,7 +126,7 @@ The gates and guards ship here, so each Sync PR updates them. `/setup-repo` (set
 
 | Script | Run by | Blocks |
 | --- | --- | --- |
-| [check-commit-msg.mjs](scripts/check-commit-msg.mjs) | `commit-msg` | a commit header that is not Conventional Commits |
+| [check-commit-msg.mjs](scripts/check-commit-msg.mjs) | `commit-msg`; with `--branch` the `conventional-commits` step | a commit header that is not Conventional Commits |
 | [check-push-branch.mjs](scripts/check-push-branch.mjs) | `pre-push` | a direct push to the trunk |
 | [check-branch-name.mjs](scripts/check-branch-name.mjs) | the `branch name` step | a branch not named `<type>/<description>` |
 | [block-destructive-git.sh](scripts/block-destructive-git.sh) | Claude Code PreToolUse | `reset --hard`, `clean -f`, `branch -D`, bare `push --force` |
@@ -119,4 +135,4 @@ The gates and guards ship here, so each Sync PR updates them. `/setup-repo` (set
 
 ## Adding a check
 
-One step, never a line in a hook or a workflow. A check for this repo only goes in `.skilly/verify.json`. A check every Consumer needs goes in the hub's `engine/verify/verify.json`. Give it a `why`: it prints the moment the step goes red, when the reader is least likely to go looking for it.
+One step, never a line in a hook or a workflow. A check for this repo only goes in `.skilly/verify.json`. A check every Consumer needs goes in the hub's `engine/verify/verify.json`. A check that comes with a Bundle goes in that Bundle's `config.json` `verify.steps`. Give it a `why`: it prints the moment the step goes red, when the reader is least likely to go looking for it.
