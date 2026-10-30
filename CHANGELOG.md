@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.0](https://github.com/timschoch/skilly/compare/v0.5.2...v0.6.0) (2026-10-30)
+
+
+### Features
+
+* **engine:** the Hub nightly syncs Habits-Family ([#267](https://github.com/timschoch/skilly/issues/267)) ([c639015](https://github.com/timschoch/skilly/commit/c63901593d08eae484b8121a8a476f2368eaa1f4)), closes [#220](https://github.com/timschoch/skilly/issues/220)
+
 ## [0.5.2](https://github.com/timschoch/skilly/compare/v0.5.1...v0.5.2) (2026-10-29)
 
 
